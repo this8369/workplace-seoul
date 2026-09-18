@@ -440,15 +440,12 @@ export default function App() {
           <div className="workspace">
             <section className="results" aria-label="건물 목록">
               <div className="results-heading">
-                <div>
-                  <h1>{view === "all" ? "오피스 둘러보기" : "관심 건물"}</h1>
-                  <p>
-                    {load === "ready"
-                      ? `${results.length.toLocaleString()}개의 공간`
-                      : "공간의 안팎을 연결합니다"}
-                  </p>
-                </div>
-                <Building2 size={21} />
+                <h1>{view === "all" ? "오피스 둘러보기" : "관심 건물"}</h1>
+                <p>
+                  {load === "ready"
+                    ? `${results.length.toLocaleString()}개의 공간`
+                    : "공간의 안팎을 연결합니다"}
+                </p>
               </div>
               <div className="results-scroll">
                 {load !== "ready" ? (

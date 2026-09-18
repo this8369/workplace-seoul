@@ -462,14 +462,9 @@ export default function NaverMap({
               <p>현재 검색·필터 결과 기준</p>
             </section>
           )}
-          <div className="map-level">
-            {overview
-              ? "권역을 누르면 해당 지역으로 확대"
-              : zoom < 16
-                ? "주변 자산 · 숫자를 누르면 확대"
-                : "빌딩을 선택해 자세히 보기"}
-            {missing > 0 && <span>위치 확인 중 {missing}개</span>}
-          </div>
+          {missing > 0 && (
+            <div className="map-location-status">위치 확인 중 {missing}개</div>
+          )}
           <div className="map-boundary-source">
             <a
               href="http://www.gisdeveloper.co.kr/?p=2332"

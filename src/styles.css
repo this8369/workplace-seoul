@@ -23,6 +23,8 @@
   --toolbar-height: 56px;
   --control-height: 32px;
   --control-radius: 6px;
+  --map-tabs-height: 30px;
+  --map-tabs-inset: 12px;
   --text-secondary: #636e80;
   --text-tertiary: #828b9b;
   --surface: #ffffff;
@@ -423,7 +425,8 @@ header {
   z-index: 1;
 }
 .results-heading {
-  min-height: 68px;
+  height: calc(var(--map-tabs-height) + 2 * var(--map-tabs-inset));
+  min-height: calc(var(--map-tabs-height) + 2 * var(--map-tabs-inset));
   flex-shrink: 0;
   padding: 12px 16px;
   display: flex;
@@ -442,7 +445,9 @@ header {
   font-size: 11px;
   line-height: 16px;
   color: var(--text-secondary);
-  margin-top: 3px;
+  margin: 0;
+  white-space: nowrap;
+  text-align: right;
 }
 .results-scroll {
   overflow: auto;
@@ -936,9 +941,6 @@ tbody th {
   }
   .results-heading h1 {
     font-size: 14px;
-  }
-  .results-heading p {
-    margin-top: 3px;
   }
   .empty {
     padding: 24px;
@@ -1862,7 +1864,7 @@ button:disabled {
 }
 .map-districts {
   position: absolute;
-  top: 12px;
+  top: var(--map-tabs-inset);
   left: 12px;
   width: max-content;
   max-width: calc(100% - 24px);
@@ -1882,7 +1884,7 @@ button:disabled {
   color: var(--brand);
   font-size: 11px;
   box-shadow: none;
-  height: 30px;
+  height: var(--map-tabs-height);
 }
 .map-districts b {
   color: inherit;
@@ -1906,9 +1908,9 @@ button:disabled {
   border-radius: 3px;
   font-size: 9px;
 }
-.map-level {
+.map-location-status {
   position: absolute;
-  top: 50px;
+  bottom: 58px;
   left: 12px;
   max-width: calc(100% - 24px);
   font-size: 11px;
@@ -1917,10 +1919,6 @@ button:disabled {
   background: #ffffffe8;
   border-radius: 5px;
   pointer-events: none;
-}
-.map-level span {
-  margin-left: 8px;
-  color: var(--accent);
 }
 .map-overlap {
   position: absolute;
