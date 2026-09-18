@@ -604,6 +604,7 @@ header {
 }
 .map-column .toolbar {
   flex-wrap: wrap;
+  padding-left: var(--map-tabs-inset);
   border-bottom-color: var(--map-divider);
 }
 .map-column .search {
@@ -1956,7 +1957,7 @@ button:disabled {
 .map-districts {
   position: absolute;
   top: var(--map-tabs-inset);
-  left: 12px;
+  left: var(--map-tabs-inset);
   width: max-content;
   max-width: calc(100% - 24px);
   display: flex;
