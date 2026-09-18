@@ -51,3 +51,21 @@ hole outlines; this is a presentation adjustment only. Navigation fits the displ
 Display labels use the polygon's area centroid in Web Mercator, matching the map projection. If that point falls outside the region or inside a hole (Seoul Others), use the largest polygon's widest interior point. These positions do not change asset coordinates or region membership. GBD is blue (`#287aab`); BBD is violet (`#7561a8`).
 
 Hover summaries follow the current search/filter results. Gross floor area includes planned area when development assets are visible, explicitly noted in the bubble. NOC uses the latest catalog quarter shared across regions, one positive finite source value per building, and a simple unweighted average. Missing current-quarter data never falls back to an earlier quarter; conflicting duplicate observations are excluded. The bubble states the quarter, sample size and the source's unconfirmed area/VAT basis. Building dots stay centred on their stored coordinates; name tags sit above them.
+
+### BBD urban display outline
+
+The BBD display now excludes the area west of Gyeongbu Expressway and the
+eastern mountain belt. The western edge follows sampled expressway geometry;
+the east uses Dolma-ro (including its underpasses), Saemaeul-ro, Bundang-ro,
+Buljeong-ro and Gumi-ro. Editorial connections follow the urban edge between
+road segments near Yuldong/Bundang-dong and south of Buljeong-ro. Those
+connections are approximate presentation choices, not surveyed road boundaries.
+Road junction joins use a maximum 45 m tolerance for this BBD trace.
+
+The pinned closed clipping mask, source way IDs and provenance are stored in
+`district-road-traces.json`. It is intersected with the original Bundang-gu
+geometry; the cut-off Gyeonggi area is not added to Seoul Others. Pangyo,
+Seohyeon, Jeongja, Yatap, Migeum and Ori station areas remain within the fill.
+Labels and camera bounds are regenerated from this smaller display polygon.
+Asset classification and the BBD archive continue to use the full source
+Bundang-gu membership boundary. The live Supabase update is migration 012.

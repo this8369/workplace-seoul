@@ -17,9 +17,12 @@ masks = {}
 for key, trace in road_data["traces"].items():
     points = trace["coordinates"]
     assert LineString(points).is_simple, key
-    closing_latitude = 37 if key == "CBD" else 38
-    mask = Polygon([(126, points[0][1]), *points, (128, points[-1][1]),
-                    (128, closing_latitude), (126, closing_latitude)])
+    if trace.get("clipMode") == "polygon":
+        mask = Polygon(points)
+    else:
+        closing_latitude = 37 if key == "CBD" else 38
+        mask = Polygon([(126, points[0][1]), *points, (128, points[-1][1]),
+                        (128, closing_latitude), (126, closing_latitude)])
     assert mask.is_valid, key
     masks[key] = mask
 features = []
@@ -33,7 +36,8 @@ for feature in source["features"]:
     assert clipped.is_valid and not clipped.is_empty
     assert clipped.area < original.area
     assert original.buffer(1e-10).covers(clipped)
-    trimmed.append(original.difference(clipped))
+    if key in ("CBD", "GBD"):
+        trimmed.append(original.difference(clipped))
     if clipped.geom_type == "Polygon":
         clipped = MultiPolygon([clipped])
     assert clipped.geom_type == "MultiPolygon"
@@ -52,7 +56,7 @@ if geo.geom_type == "Polygon":
 features.append({**others, "bbox": list(geo.bounds), "geometry": mapping(geo)})
 # Place labels at projected area centroids, falling back to the widest interior
 # point where an irregular region's centroid falls in a hole or outside its edge.
-features.extend(f for f in source["features"] if f["properties"]["key"] in ("YBD", "BBD"))
+features.extend(f for f in source["features"] if f["properties"]["key"] == "YBD")
 forward = Transformer.from_crs(4326, 3857, always_xy=True).transform
 inverse = Transformer.from_crs(3857, 4326, always_xy=True).transform
 for feature in features:

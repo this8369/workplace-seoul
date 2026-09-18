@@ -12,6 +12,7 @@ import {
 test("editorial mountain trims preserve central districts and source classification", () => {
   const cbd = displayBoundaries.find((b) => b.properties.key === "CBD")!;
   const gbd = displayBoundaries.find((b) => b.properties.key === "GBD")!;
+  const bbd = displayBoundaries.find((b) => b.properties.key === "BBD")!;
   assert.equal(boundaryContains(cbd, 126.977, 37.58), false); // Palace north of Line 3
   assert.equal(boundaryContains(cbd, 126.977, 37.571), true); // Gwanghwamun business area
   assert.equal(boundaryContains(cbd, 126.994, 37.574), true); // Jongmyo corridor
@@ -22,10 +23,36 @@ test("editorial mountain trims preserve central districts and source classificat
   assert.equal(boundaryContains(gbd, 127.079, 37.474), false); // Daemosan
   assert.equal(districtAt(126.98, 37.62), "CBD");
   assert.equal(districtAt(127.05, 37.47), "GBD");
+  for (const [lng, lat] of [
+    [127.1112, 37.3948], // Pangyo Station
+    [127.1005, 37.402], // Pangyo Techno Valley
+    [127.123, 37.385], // Seohyeon Station
+    [127.108, 37.366], // Jeongja Station
+    [127.109, 37.35], // Migeum Station
+    [127.108, 37.34], // Ori Station
+    [127.128, 37.411], // Yatap Station
+  ])
+    assert.equal(boundaryContains(bbd, lng, lat), true);
+  for (const [lng, lat] of [
+    [127.075, 37.391], // West Pangyo, west of Gyeongbu Expressway
+    [127.165, 37.401], // Yeongjangsan
+    [127.13, 37.354], // Bulgoksan western slope within Bundang-gu
+  ]) {
+    assert.equal(boundaryContains(bbd, lng, lat), false);
+    assert.equal(districtAt(lng, lat), "BBD");
+    assert.equal(
+      boundaryContains(
+        displayBoundaries.find((b) => b.properties.key === "Others")!,
+        lng,
+        lat,
+      ),
+      false,
+    );
+  }
   for (const boundary of displayBoundaries) {
     const [lng, lat] = boundary.properties.labelPosition;
     assert.ok(boundaryContains(boundary, lng, lat));
-    if (["YBD", "BBD"].includes(boundary.properties.key))
+    if (boundary.properties.key === "YBD")
       assert.deepEqual(
         boundary.geometry,
         boundaries.find((b) => b.properties.key === boundary.properties.key)!
