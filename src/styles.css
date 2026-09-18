@@ -1501,3 +1501,53 @@ button:disabled {
     flex-wrap: wrap;
   }
 }
+.account-identity {
+  padding: 0 7px 12px;
+  min-width: 0;
+}
+.account-identity > span {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 10px;
+  color: #817663;
+}
+.account-identity small {
+  display: block;
+  margin-top: 5px;
+  font-size: 9px;
+  color: #a07054;
+}
+.access-notice {
+  padding: 14px 27px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 14px;
+  background: #f1ebe0;
+  border-bottom: 1px solid #e3d8c5;
+  color: #786145;
+  font-size: 11px;
+}
+.access-notice strong {
+  font-weight: 500;
+}
+.access-notice p {
+  margin-top: 6px;
+  font-size: 10px;
+  color: #94826b;
+}
+.access-notice button {
+  border: 1px solid #d4c5ad;
+  white-space: nowrap;
+}
+@media (max-width: 760px) {
+  .account-identity {
+    display: none;
+  }
+  .access-notice {
+    padding: 12px;
+    flex-wrap: wrap;
+  }
+}

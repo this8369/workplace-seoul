@@ -237,6 +237,18 @@ export default function App() {
             <br />한 건물씩, 깊이 있게.
           </p>
         </div>
+        {session && (
+          <div className="account-identity">
+            <span title={session.user.email}>{session.user.email}</span>
+            <small>
+              {load !== "ready"
+                ? "로그인됨"
+                : catalog.review
+                  ? "검수 계정"
+                  : "일반 계정"}
+            </small>
+          </div>
+        )}
         <div className="account">
           <span className="avatar">{session ? "M" : "W"}</span>
           <button
@@ -278,6 +290,22 @@ export default function App() {
             현행 정보 검수 전
           </div>
         )}
+        {session &&
+          load === "ready" &&
+          !catalog.review &&
+          buildings.length === 0 && (
+            <div className="access-notice" role="status">
+              <div>
+                <strong>
+                  로그인은 완료됐지만 검수 자료를 볼 권한이 없습니다.
+                </strong>
+                <p>
+                  {session.user.email} · 권한이 등록된 계정인지 확인해 주세요.
+                </p>
+              </div>
+              <button onClick={refresh}>권한 다시 확인</button>
+            </div>
+          )}
         {!active && (
           <section className="toolbar" aria-label="검색 및 필터">
             <div className="search">
