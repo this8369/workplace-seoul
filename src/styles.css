@@ -920,9 +920,21 @@ tbody th {
   justify-content: flex-end;
 }
 .sidebar.is-collapsed nav button {
-  padding: 6px 10px;
-  gap: 9px;
-  justify-content: flex-start;
+  padding: 6px 0;
+  gap: 0;
+  justify-content: center;
+}
+.sidebar.is-collapsed .nav-text,
+.sidebar.is-collapsed .brand-name {
+  position: absolute;
+}
+.sidebar.is-collapsed .brand {
+  justify-content: center;
+  padding-inline: 0;
+  gap: 0;
+}
+.sidebar.is-collapsed .sidebar-toggle {
+  margin-inline: auto;
 }
 .sidebar.is-collapsed nav button svg:last-child:not(:first-child) {
   display: none;
@@ -936,6 +948,7 @@ tbody th {
 }
 .sidebar.is-collapsed .account-login {
   font-size: 0;
+  gap: 0;
   justify-content: center;
 }
 .sidebar.is-collapsed .account-login svg {
@@ -2350,4 +2363,8 @@ button:disabled {
 }
 .sidebar.is-collapsed .admin-navigation {
   margin-top: auto;
+}
+
+.sidebar.is-collapsed .admin-navigation + .account {
+  margin-top: 0;
 }
