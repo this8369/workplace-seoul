@@ -319,7 +319,7 @@ header {
   display: flex;
   gap: 12px;
   align-items: center;
-  border-bottom: 1px solid var(--divider);
+  border-bottom: 0.5px solid var(--divider);
   background: var(--canvas);
 }
 .search {
