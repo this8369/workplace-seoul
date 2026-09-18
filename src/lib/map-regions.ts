@@ -9,16 +9,24 @@ export type DistrictBoundary = {
   bbox: [number, number, number, number];
   geometry: { type: "MultiPolygon"; coordinates: Coordinate[][][] };
 };
-export const boundaries = data.features as unknown as DistrictBoundary[];
+export let boundaries = data.features as unknown as DistrictBoundary[];
 const displayOverrides = displayData.features as unknown as DistrictBoundary[];
 // Editorial mountain trims affect map display/navigation only, never membership.
-export const displayBoundaries = boundaries.map(
+export let displayBoundaries = boundaries.map(
   (boundary) =>
     displayOverrides.find(
       (b) => b.properties.key === boundary.properties.key,
     ) || boundary,
 );
-export const districts = [
+export type DistrictSetting = {
+  key: DistrictKey;
+  label: string;
+  name: string;
+  color: string;
+  focus_center?: Coordinate | null;
+  focus_zoom?: number | null;
+};
+export let districts: DistrictSetting[] = [
   { key: "CBD", label: "CBD", name: "종로구 · 중구", color: "#253985" },
   {
     key: "GBD",
@@ -39,7 +47,45 @@ export const districts = [
     name: "성남시 분당구 · 판교 포함",
     color: "#7561a8",
   },
-] as const;
+];
+
+let addressRules: { key: DistrictKey; patterns: string[] }[] | null = null;
+export type DistrictRecord = DistrictSetting & {
+  membership_boundary: DistrictBoundary;
+  display_boundary: DistrictBoundary;
+  address_patterns: string[];
+  sort_order: number;
+};
+export function configureDistricts(rows: DistrictRecord[]) {
+  if (rows.length !== 5 || new Set(rows.map((r) => r.key)).size !== 5)
+    throw new Error("권역 기준 데이터가 완전하지 않습니다.");
+  const ordered = [...rows].sort((a, b) => a.sort_order - b.sort_order);
+  for (const r of ordered) {
+    if (
+      !["CBD", "GBD", "YBD", "Others", "BBD"].includes(r.key) ||
+      r.membership_boundary.geometry.type !== "MultiPolygon" ||
+      r.display_boundary.geometry.type !== "MultiPolygon"
+    )
+      throw new Error("권역 경계 형식을 확인해 주세요.");
+    r.address_patterns.forEach((p) => new RegExp(p));
+  }
+  boundaries = ordered.map((r) => r.membership_boundary);
+  displayBoundaries = ordered.map((r) => r.display_boundary);
+  districts = ordered.map(
+    ({ key, label, name, color, focus_center, focus_zoom }) => ({
+      key,
+      label,
+      name,
+      color,
+      focus_center,
+      focus_zoom,
+    }),
+  );
+  addressRules = ordered.map((r) => ({
+    key: r.key,
+    patterns: r.address_patterns,
+  }));
+}
 
 function inRing([x, y]: Coordinate, ring: Coordinate[]) {
   let inside = false;
@@ -88,6 +134,22 @@ export function regionForBuilding(
   >,
 ): string {
   const address = (b.standard_address || b.address || "").trim();
+  if (addressRules) {
+    const match = addressRules.find((r) =>
+      r.patterns.some((p) => new RegExp(p).test(address)),
+    );
+    if (match) return match.key;
+    if (
+      /^서울(?:특별시|시)?\s/.test(address) &&
+      /\s\S+동(?:\s|$)/.test(address)
+    )
+      return "Others";
+    if (typeof b.longitude === "number" && typeof b.latitude === "number") {
+      const district = districtAt(b.longitude, b.latitude);
+      if (district) return district;
+    }
+    return /^서울(?:특별시|시)?\s/.test(address) ? "Others" : b.region;
+  }
   if (/^(?:경기도?\s+)?성남시?\s+분당구(?:\s|$)/.test(address)) return "BBD";
   if (/^서울(?:특별시|시)?\s/.test(address)) {
     if (/\s(?:종로구|중구)(?:\s|$)/.test(address)) return "CBD";

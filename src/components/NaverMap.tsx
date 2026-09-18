@@ -176,11 +176,14 @@ export default function NaverMap({
     activeDistrictRef.current = key;
     focusingDistrict.current = true;
     setActiveDistrict(key);
-    if (key === "Others") {
+    const setting = districts.find((d) => d.key === key);
+    if (setting?.focus_center) {
       // Seoul Others is geographically dispersed. Open its southwest cluster
       // around Sindorim instead of centring Seoul's complete bounding box.
-      map.current.setCenter(new n.LatLng(37.509, 126.891));
-      map.current.setZoom(15);
+      map.current.setCenter(
+        new n.LatLng(setting.focus_center[1], setting.focus_center[0]),
+      );
+      map.current.setZoom(setting.focus_zoom || 15);
       return;
     }
     map.current.fitBounds(

@@ -1,3 +1,6 @@
+import PhotoManager from "./components/PhotoManager";
+import BuildingPhoto from "./components/BuildingPhoto";
+import { fetchBuildingImages, primaryImage } from "./lib/building-images";
 import { districts } from "./lib/map-regions";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -8,6 +11,7 @@ import {
   ChevronRight,
   Compass,
   FileText,
+  ImagePlus,
   Layers3,
   LogOut,
   MapPin,
@@ -50,7 +54,9 @@ export default function App() {
   const [query, setQuery] = useState(initialQuery),
     [region, setRegion] = useState(""),
     [status, setStatus] = useState(""),
-    [view, setView] = useState<"all" | "saved" | "transactions">("all");
+    [view, setView] = useState<"all" | "saved" | "transactions" | "images">(
+      "all",
+    );
   const [selected, setSelected] = useState<string | null>(null),
     [compare, setCompare] = useState<string[]>([]),
     [showCompare, setShowCompare] = useState(false);
@@ -291,6 +297,23 @@ export default function App() {
             <br />한 건물씩, 깊이 있게.
           </p>
         </div>
+        {catalog.review && (
+          <nav className="admin-navigation" aria-label="관리 메뉴">
+            <div className="nav-label">관리</div>
+            <button
+              aria-label="사진 관리"
+              title="사진 관리"
+              className={view === "images" ? "current" : ""}
+              onClick={() => {
+                setView("images");
+                setSelected(null);
+              }}
+            >
+              <ImagePlus size={18} />
+              <span className="nav-text">사진 관리</span>
+            </button>
+          </nav>
+        )}
         <div className="account">
           <span className="avatar" aria-hidden="true">
             {session ? session.user.email?.[0].toUpperCase() || "W" : "W"}
@@ -347,7 +370,7 @@ export default function App() {
               <button onClick={refresh}>권한 다시 확인</button>
             </div>
           )}
-        {!active && (
+        {!active && view !== "images" && (
           <section className="toolbar" aria-label="검색 및 필터">
             <div className="search">
               <Search size={18} />
@@ -407,7 +430,16 @@ export default function App() {
             </div>
           </section>
         )}
-        {active ? (
+        {view === "images" && catalog.review && !active ? (
+          <PhotoManager
+            buildings={buildings}
+            images={catalog.images}
+            onRefresh={async () => {
+              const images = await fetchBuildingImages();
+              setCatalog((previous) => ({ ...previous, images }));
+            }}
+          />
+        ) : active ? (
           <AssetWorkspace
             key={active.id}
             building={active}
@@ -499,7 +531,9 @@ export default function App() {
                         onClick={() => select(b.id)}
                       >
                         <span className="building-art" aria-hidden="true">
-                          <Building2 size={26} />
+                          <BuildingPhoto
+                            image={primaryImage(catalog.images, b.id)}
+                          />
                         </span>
                         <span className="card-info">
                           <span className="eyebrow">

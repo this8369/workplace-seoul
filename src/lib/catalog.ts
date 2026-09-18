@@ -1,3 +1,4 @@
+import type { BuildingImage } from "./building-images";
 import type { Building } from "./domain.ts";
 import { toPyeong } from "./domain.ts";
 export type Evidence = {
@@ -82,6 +83,7 @@ export type Catalog = {
   movements: Movement[];
   leasing: Leasing[];
   developments: Development[];
+  images: BuildingImage[];
   review: boolean;
 };
 export const emptyCatalog: Catalog = {
@@ -92,6 +94,7 @@ export const emptyCatalog: Catalog = {
   movements: [],
   leasing: [],
   developments: [],
+  images: [],
   review: false,
 };
 export const money = (won: number | null) =>

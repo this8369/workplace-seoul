@@ -1,6 +1,11 @@
+import { fetchBuildingImages } from "./building-images";
 import { createClient } from "@supabase/supabase-js";
 import type { Building } from "./domain";
-import { regionForBuilding } from "./map-regions";
+import {
+  configureDistricts,
+  type DistrictRecord,
+  regionForBuilding,
+} from "./map-regions";
 const url = import.meta.env.VITE_SUPABASE_URL,
   key = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 export const supabase = url && key ? createClient(url, key) : null;
@@ -32,6 +37,12 @@ export async function fetchBuildings(): Promise<Building[]> {
 import { emptyCatalog, type Catalog } from "./catalog";
 export async function fetchCatalog(): Promise<Catalog> {
   if (!supabase) return emptyCatalog;
+  const districtResult = await supabase
+    .from("districts")
+    .select("*")
+    .order("sort_order");
+  if (districtResult.error) throw districtResult.error;
+  configureDistricts(districtResult.data as DistrictRecord[]);
   async function all(table: string) {
     const result: unknown[] = [];
     for (let from = 0; ; from += 500) {
@@ -53,6 +64,7 @@ export async function fetchCatalog(): Promise<Catalog> {
     movements,
     leasing,
     developments,
+    images,
   ] = await Promise.all([
     fetchBuildings(),
     all("transactions"),
@@ -61,6 +73,7 @@ export async function fetchCatalog(): Promise<Catalog> {
     all("tenant_movements"),
     all("leasing_quarters"),
     all("development_records"),
+    fetchBuildingImages(),
   ]);
   const {
     data: { session },
@@ -77,6 +90,7 @@ export async function fetchCatalog(): Promise<Catalog> {
     movements,
     leasing,
     developments,
+    images,
     review: access.data === true,
   } as Catalog;
 }

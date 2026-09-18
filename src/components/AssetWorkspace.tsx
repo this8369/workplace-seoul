@@ -1,3 +1,5 @@
+import BuildingPhoto from "./BuildingPhoto";
+import { primaryImage } from "../lib/building-images";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowLeft,
@@ -432,7 +434,7 @@ export function AssetWorkspace({
       </div>
       <div className="asset-hero">
         <div className="asset-symbol">
-          <Building2 size={38} strokeWidth={1.2} />
+          <BuildingPhoto image={primaryImage(catalog.images, b.id)} />
         </div>
         <div className="asset-title">
           <div className="asset-tags">
@@ -457,6 +459,30 @@ export function AssetWorkspace({
           {saved ? "저장됨" : "관심 건물"}
         </button>
       </div>
+      {primaryImage(catalog.images, b.id) &&
+        (() => {
+          const photo = primaryImage(catalog.images, b.id)!;
+          return (
+            <figure className="asset-photo">
+              <BuildingPhoto image={photo} detail />
+              <figcaption>
+                {photo.kind === "rendering" ? "조감도 · " : ""}
+                {photo.credit || photo.source_name}
+                {photo.license_name ? ` · ${photo.license_name}` : ""}
+                {photo.captured_on ? ` · 촬영 ${photo.captured_on}` : ""}
+                {safeSourceUrl(photo.source_url) && (
+                  <a
+                    href={safeSourceUrl(photo.source_url)!}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    출처
+                  </a>
+                )}
+              </figcaption>
+            </figure>
+          );
+        })()}
       <div className="asset-metrics">
         <div>
           <span>연면적{b.area_basis === "planned" ? " · 계획" : ""}</span>

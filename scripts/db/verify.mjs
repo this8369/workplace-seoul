@@ -21,6 +21,15 @@ try {
     "All application tables protected:",
     stats.rows.every((r) => r.rowsecurity),
   );
+  const media = await db.query(`select count(*)::int photos, count(*) filter(where is_primary)::int primary_photos,
+    count(*) filter(where review_status='approved' and (object_path is null or thumbnail_path is null))::int incomplete
+    from building_images`);
+  const objects = await db.query("select count(*)::int objects from storage.objects where bucket_id='building-images'");
+  const districts = await db.query("select key from districts order by sort_order");
+  if(media.rows[0].incomplete) throw new Error('Incomplete approved photos');
+  if(districts.rows.map(r=>r.key).join(',') !== 'CBD,GBD,YBD,Others,BBD') throw new Error('Invalid district order');
+  console.log('Photo storage:',media.rows[0],objects.rows[0]);
+  console.log('District master: 5 regions, correct display order');
   await db.query("begin");
   await db.query("set local role anon");
   for (const t of [
