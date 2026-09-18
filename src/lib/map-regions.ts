@@ -1,4 +1,5 @@
 import data from "../data/district-boundaries.json" with { type: "json" };
+import displayData from "../data/district-display-boundaries.json" with { type: "json" };
 import type { Building } from "./domain.ts";
 
 export type DistrictKey = "CBD" | "GBD" | "YBD" | "Others" | "BBD";
@@ -9,6 +10,14 @@ export type DistrictBoundary = {
   geometry: { type: "MultiPolygon"; coordinates: Coordinate[][][] };
 };
 export const boundaries = data.features as unknown as DistrictBoundary[];
+const displayOverrides = displayData.features as unknown as DistrictBoundary[];
+// Editorial mountain trims affect map display/navigation only, never membership.
+export const displayBoundaries = boundaries.map(
+  (boundary) =>
+    displayOverrides.find(
+      (b) => b.properties.key === boundary.properties.key,
+    ) || boundary,
+);
 export const districts = [
   { key: "CBD", label: "CBD", name: "종로구 · 중구", color: "#253985" },
   {

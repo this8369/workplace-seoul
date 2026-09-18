@@ -15,7 +15,8 @@
   --canvas: #f7f8fa;
   --surface-muted: #f0f2f6;
   --hover: #e9edf3;
-  --line: #dfe3eb;
+  --line: rgb(76 88 107 / 24%);
+  --divider: rgb(63 75 95 / 42%);
   --muted: #828b9b;
   --sidebar-width: 200px;
   --toolbar-height: 56px;
@@ -142,7 +143,7 @@ svg {
   width: var(--sidebar-width);
   flex-shrink: 0;
   background: var(--surface-muted);
-  border-right: 1px solid var(--line);
+  border-right: 1px solid var(--divider);
   display: flex;
   flex-direction: column;
   padding: 0 8px 8px;
@@ -167,6 +168,23 @@ svg {
   color: var(--brand);
   letter-spacing: -3px;
   padding-right: 3px;
+  transform: translateY(-3px);
+}
+.brand-name {
+  line-height: 20px;
+}
+.sidebar-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 36px;
+  margin: 8px 0 4px;
+}
+.sidebar-toggle {
+  width: 28px;
+  height: 28px;
+  padding: 5px;
+  color: var(--text-secondary);
 }
 .brand-city {
   font-size: inherit;
@@ -179,7 +197,7 @@ svg {
   letter-spacing: 0.6px;
   color: var(--text-tertiary);
   padding: 0 8px;
-  margin: 16px 0 6px;
+  margin: 0;
 }
 nav button {
   display: flex;
@@ -294,7 +312,7 @@ header {
   display: flex;
   gap: 12px;
   align-items: center;
-  border-bottom: 1px solid var(--line);
+  border-bottom: 1px solid var(--divider);
   background: var(--canvas);
 }
 .search {
@@ -377,7 +395,9 @@ header {
   display: flex;
   flex-direction: column;
   background: var(--surface);
-  border-right: 1px solid var(--line);
+  border-right: 1px solid var(--divider);
+  position: relative;
+  z-index: 1;
 }
 .results-heading {
   min-height: 68px;
@@ -821,49 +841,59 @@ tbody th {
     gap: 5px;
   }
 }
+/* The compact rail keeps every action available and leaves the map more room. */
+.sidebar.is-collapsed {
+  width: 56px;
+  padding: 0 8px 8px;
+}
+.sidebar.is-collapsed .brand,
+.sidebar.is-collapsed .nav-label,
+.sidebar.is-collapsed .sidebar-note,
+.sidebar.is-collapsed .nav-count,
+.sidebar.is-collapsed .account-identity,
+.sidebar.is-collapsed .avatar {
+  display: none;
+}
+.sidebar.is-collapsed .sidebar-heading {
+  min-height: var(--toolbar-height);
+  margin: 0;
+  justify-content: center;
+}
+.sidebar.is-collapsed nav button {
+  font-size: 0;
+  min-height: 36px;
+  padding: 8px;
+  gap: 0;
+  justify-content: center;
+}
+.sidebar.is-collapsed nav button svg:last-child:not(:first-child) {
+  display: none;
+}
+.sidebar.is-collapsed .account {
+  margin-top: auto;
+  padding: 4px;
+  min-height: 36px;
+  justify-content: center;
+  border: 0;
+}
+.sidebar.is-collapsed .account-login {
+  font-size: 0;
+  justify-content: center;
+}
+.sidebar.is-collapsed .account-login svg {
+  width: 16px;
+  height: 16px;
+}
 @media (max-width: 760px) {
   .app {
     min-height: 400px;
+    padding-left: 56px;
   }
   .sidebar {
-    width: 52px;
-    padding: 0 6px 8px;
-  }
-  .brand {
-    padding: 0;
-    justify-content: center;
-  }
-  .brand > span:last-child,
-  .nav-label,
-  .sidebar-note,
-  .nav-count {
-    display: none;
-  }
-  nav button {
-    font-size: 0;
-    padding: 8px;
-    min-height: 36px;
-    gap: 0;
-  }
-  nav button svg:last-child:not(:first-child) {
-    display: none;
-  }
-  .account {
-    padding: 4px;
-    margin-top: auto;
-    min-height: 36px;
-    justify-content: center;
-    border: 0;
-  }
-  .account .avatar {
-    display: none;
-  }
-  .account-login {
-    font-size: 0 !important;
-  }
-  .account-login svg {
-    width: 16px;
-    height: 16px;
+    position: absolute;
+    inset: 0 auto 0 0;
+    z-index: 30;
+    width: 200px;
   }
   header {
     height: 46px;
@@ -895,7 +925,7 @@ tbody th {
     width: 100%;
     flex: 1;
     min-height: 0;
-    border-top: 1px solid var(--line);
+    border-top: 1px solid var(--divider);
     border-right: 0;
   }
   .results-heading {
@@ -1665,9 +1695,6 @@ button:disabled {
   white-space: nowrap;
 }
 @media (max-width: 760px) {
-  .account-identity {
-    display: none;
-  }
   .access-notice {
     padding: 12px;
     flex-wrap: wrap;
@@ -1689,13 +1716,13 @@ button:disabled {
 }
 .map-cluster {
   transform: translate(-50%, -50%);
-  width: 46px;
-  height: 46px;
+  width: 50.6px;
+  height: 50.6px;
   border-radius: 50%;
-  background: #1c2435ef;
+  background: var(--brand);
   color: var(--surface);
-  border: 3px solid #ffffffbc;
-  box-shadow: 0 2px 10px #1c243526;
+  border: 0;
+  box-shadow: none;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1703,7 +1730,7 @@ button:disabled {
   cursor: pointer;
 }
 .map-cluster strong {
-  font-size: 17px;
+  font-size: 18.7px;
   line-height: 1.2;
   font-weight: 600;
 }
@@ -1733,7 +1760,10 @@ button:disabled {
 .map-cluster:hover,
 .map-cluster:focus-visible {
   background: var(--accent);
-  outline: 2px solid var(--surface);
+}
+.map-cluster:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
 }
 .map-districts {
   position: absolute;
@@ -1751,22 +1781,25 @@ button:disabled {
   flex-shrink: 0;
   pointer-events: auto;
   padding: 0 9px;
-  background: #fffffff5;
-  border: 1px solid var(--line);
+  background: var(--surface);
+  border: 1px solid var(--divider);
   border-radius: 6px;
-  color: var(--text-secondary);
+  color: var(--brand);
   font-size: 11px;
   box-shadow: none;
   height: 30px;
 }
 .map-districts b {
-  color: var(--accent);
+  color: inherit;
   margin-left: 4px;
   font-weight: 500;
 }
-.map-districts button[aria-pressed="true"] {
-  background: var(--accent-soft);
-  border-color: var(--accent);
+.map-districts button[aria-pressed="true"],
+.map-districts button:hover,
+.map-districts button:focus-visible {
+  background: var(--brand);
+  border-color: var(--brand);
+  color: white;
 }
 .map-boundary-source {
   position: absolute;

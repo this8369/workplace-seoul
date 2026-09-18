@@ -10,6 +10,8 @@ import {
   Layers3,
   LogOut,
   MapPin,
+  PanelLeftClose,
+  PanelLeftOpen,
   Search,
   SlidersHorizontal,
   X,
@@ -22,6 +24,23 @@ import { AssetWorkspace, Transactions } from "./components/AssetWorkspace";
 import { emptyCatalog, type Catalog } from "./lib/catalog";
 const initialQuery = new URLSearchParams(location.search).get("q") || "";
 export default function App() {
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+    if (window.matchMedia("(max-width: 760px)").matches) return true;
+    try {
+      return localStorage.getItem("workplace-sidebar-collapsed") === "true";
+    } catch {
+      return false;
+    }
+  });
+  function toggleSidebar() {
+    const next = !sidebarCollapsed;
+    setSidebarCollapsed(next);
+    try {
+      localStorage.setItem("workplace-sidebar-collapsed", String(next));
+    } catch {
+      /* Layout still works when storage is unavailable. */
+    }
+  }
   const [catalog, setCatalog] = useState<Catalog>(emptyCatalog);
   const [buildings, setBuildings] = useState<Building[]>([]),
     [load, setLoad] = useState<"loading" | "ready" | "error" | "setup">(
@@ -188,8 +207,12 @@ export default function App() {
   }
   return (
     <div className="app">
-      <aside className="sidebar">
-        <a className="brand" href={import.meta.env.BASE_URL}>
+      <aside className={`sidebar${sidebarCollapsed ? " is-collapsed" : ""}`}>
+        <a
+          className="brand"
+          href={import.meta.env.BASE_URL}
+          aria-label="Workplace Seoul"
+        >
           <span className="brand-mark" aria-hidden="true">
             w.
           </span>
@@ -197,11 +220,28 @@ export default function App() {
             Workplace <span className="brand-city">Seoul</span>
           </span>
         </a>
-        <div className="nav-label">WORKSPACE</div>
-        <nav aria-label="주 메뉴">
+        <div className="sidebar-heading">
+          <div className="nav-label">WORKSPACE</div>
+          <button
+            className="sidebar-toggle"
+            onClick={toggleSidebar}
+            aria-label={sidebarCollapsed ? "메뉴 펼치기" : "메뉴 접기"}
+            title={sidebarCollapsed ? "메뉴 펼치기" : "메뉴 접기"}
+            aria-expanded={!sidebarCollapsed}
+            aria-controls="primary-navigation"
+          >
+            {sidebarCollapsed ? (
+              <PanelLeftOpen size={18} />
+            ) : (
+              <PanelLeftClose size={18} />
+            )}
+          </button>
+        </div>
+        <nav id="primary-navigation" aria-label="주 메뉴">
           <button
             className={view === "all" ? "current" : ""}
             aria-label="공간 탐색"
+            title="공간 탐색"
             onClick={() => {
               setView("all");
               setSelected(null);
@@ -214,6 +254,7 @@ export default function App() {
           <button
             className={view === "saved" ? "current" : ""}
             aria-label="관심 건물"
+            title="관심 건물"
             onClick={() => {
               setView("saved");
               setSelected(null);
@@ -224,6 +265,7 @@ export default function App() {
           </button>
           <button
             aria-label="빌딩 매매사례"
+            title="빌딩 매매사례"
             className={view === "transactions" ? "current" : ""}
             onClick={() => {
               setView("transactions");

@@ -2,10 +2,33 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   boundaries,
+  displayBoundaries,
   boundaryContains,
   districtAt,
   regionForBuilding,
 } from "./map-regions.ts";
+
+test("editorial mountain trims preserve central districts and source classification", () => {
+  const cbd = displayBoundaries.find((b) => b.properties.key === "CBD")!;
+  const gbd = displayBoundaries.find((b) => b.properties.key === "GBD")!;
+  assert.equal(boundaryContains(cbd, 126.977, 37.58), true); // Gyeongbokgung
+  assert.equal(boundaryContains(cbd, 126.98, 37.62), false); // Northern mountains
+  assert.equal(boundaryContains(gbd, 127.027, 37.498), true); // Gangnam Station
+  assert.equal(boundaryContains(gbd, 127.047, 37.486), true); // Maebong
+  assert.equal(boundaryContains(gbd, 127.05, 37.47), false); // Guryongsan
+  assert.equal(boundaryContains(gbd, 127.079, 37.474), false); // Daemosan
+  assert.equal(districtAt(126.98, 37.62), "CBD");
+  assert.equal(districtAt(127.05, 37.47), "GBD");
+  for (const boundary of displayBoundaries) {
+    const [lng, lat] = boundary.properties.labelPosition;
+    assert.ok(boundaryContains(boundary, lng, lat));
+    if (["YBD", "BBD"].includes(boundary.properties.key))
+      assert.equal(
+        boundary,
+        boundaries.find((b) => b.properties.key === boundary.properties.key),
+      );
+  }
+});
 
 test("real geographic regions include intended neighbourhoods and exclude adjacent districts", () => {
   const places: [number, number, string | undefined][] = [

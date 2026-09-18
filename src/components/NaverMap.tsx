@@ -8,7 +8,10 @@ import {
   hasLocation,
   type MapGroup,
 } from "../lib/map-clusters";
-import { boundaries, type DistrictKey } from "../lib/map-regions";
+import {
+  displayBoundaries as boundaries,
+  type DistrictKey,
+} from "../lib/map-regions";
 export type MapCamera = {
   latitude: number;
   longitude: number;
@@ -154,13 +157,14 @@ export default function NaverMap({
       // Seoul Others is geographically dispersed. Open its southwest cluster
       // around Sindorim instead of centring Seoul's complete bounding box.
       map.current.setCenter(new n.LatLng(37.509, 126.891));
-      map.current.setZoom(14);
+      map.current.setZoom(15);
       return;
     }
     map.current.fitBounds(
       new n.LatLngBounds(new n.LatLng(south, west), new n.LatLng(north, east)),
       { top: 110, right: 45, bottom: 65, left: 45, maxZoom: 16 },
     );
+    map.current.setZoom(Math.min(17, map.current.getZoom() + 1));
   }
   function focus(group: MapGroup) {
     if (!map.current) return;
@@ -351,7 +355,6 @@ export default function NaverMap({
                   key={d.key}
                   aria-pressed={activeDistrict === d.key}
                   title={d.name}
-                  style={{ borderBottomColor: d.color, borderBottomWidth: 2 }}
                   onMouseEnter={() => highlightBoundary.current(d.key)}
                   onMouseLeave={() => highlightBoundary.current(null)}
                   onFocus={() => highlightBoundary.current(d.key)}
