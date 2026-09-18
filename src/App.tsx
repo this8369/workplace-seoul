@@ -153,6 +153,7 @@ export default function App() {
     ];
   const select = useCallback((id: string) => setSelected(id), []);
   const openDialog = () => {
+    if (compare.length < 2) return;
     setShowCompare(true);
     dialog.current?.showModal();
   };
@@ -531,6 +532,7 @@ export default function App() {
                           />
                         </button>
                         <button
+                          aria-label={`${b.name} 비교 ${compare.includes(b.id) ? "해제" : "선택"}`}
                           aria-pressed={compare.includes(b.id)}
                           onClick={() => toggleCompare(b.id)}
                         >
@@ -539,7 +541,7 @@ export default function App() {
                           ) : (
                             <Layers3 size={14} />
                           )}
-                          비교
+                          {compare.includes(b.id) ? "비교 선택됨" : "비교"}
                         </button>
                         <span>
                           {b.verified_on
@@ -551,7 +553,50 @@ export default function App() {
                   ))
                 )}
               </div>
-              <footer>기준이 명확한 공간, 근거가 있는 정보.</footer>
+              {compare.length > 0 ? (
+                <section className="compare-bar" aria-label="비교할 건물">
+                  <div className="compare-heading">
+                    <strong aria-live="polite">
+                      비교할 건물 {compare.length}/3
+                    </strong>
+                    <button onClick={() => setCompare([])}>초기화</button>
+                  </div>
+                  <div className="compare-selection">
+                    {compare.map((id) => {
+                      const name =
+                        buildings.find((b) => b.id === id)?.name ?? "건물";
+                      return (
+                        <button
+                          key={id}
+                          onClick={() => toggleCompare(id)}
+                          aria-label={`${name} 비교 목록에서 제외`}
+                          title={name}
+                        >
+                          <span>{name}</span>
+                          <X size={12} />
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <p aria-live="polite">
+                    {compare.length < 2
+                      ? "비교할 건물을 1개 더 선택하세요."
+                      : "최대 3개 건물을 나란히 비교할 수 있습니다."}
+                  </p>
+                  <button
+                    className="primary"
+                    disabled={compare.length < 2}
+                    onClick={openDialog}
+                  >
+                    {compare.length < 2
+                      ? "2개부터 비교 가능"
+                      : `${compare.length}개 건물 비교하기`}{" "}
+                    <ChevronRight size={14} />
+                  </button>
+                </section>
+              ) : (
+                <footer>기준이 명확한 공간, 근거가 있는 정보.</footer>
+              )}
             </section>
             <section className="map-region" aria-label="공간 지도">
               <NaverMap
@@ -562,16 +607,6 @@ export default function App() {
                 onSelect={select}
               />
             </section>
-          </div>
-        )}
-        {compare.length > 0 && !active && view !== "transactions" && (
-          <div className="compare-bar">
-            <Layers3 size={17} />
-            <span>{compare.length}개 건물 선택</span>
-            <button onClick={() => setCompare([])}>초기화</button>
-            <button className="primary" onClick={openDialog}>
-              나란히 비교 <ChevronRight size={14} />
-            </button>
           </div>
         )}
       </main>
