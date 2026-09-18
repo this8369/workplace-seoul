@@ -14,7 +14,7 @@ import {
   X,
 } from "lucide-react";
 import type { Session } from "@supabase/supabase-js";
-import NaverMap from "./components/NaverMap";
+import NaverMap, { type MapCamera } from "./components/NaverMap";
 import { fetchCatalog, supabase } from "./lib/supabase";
 import { filterBuildings, formatArea, type Building } from "./lib/domain";
 import { AssetWorkspace, Transactions } from "./components/AssetWorkspace";
@@ -41,6 +41,7 @@ export default function App() {
     [busy, setBusy] = useState(false);
   const dialog = useRef<HTMLDialogElement>(null),
     search = useRef<HTMLInputElement>(null);
+  const mapCamera = useRef<MapCamera | null>(null);
   const loadGeneration = useRef(0);
   const refresh = useCallback(() => {
     const generation = ++loadGeneration.current;
@@ -492,6 +493,7 @@ export default function App() {
             </section>
             <section className="map-region" aria-label="공간 지도">
               <NaverMap
+                camera={mapCamera}
                 buildings={results}
                 selected={selected}
                 onSelect={select}

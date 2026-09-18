@@ -2,6 +2,9 @@ export type Building = {
   id: string;
   name: string;
   address: string;
+  source_address?: string;
+  standard_address?: string | null;
+  road_address?: string | null;
   region: string;
   status: "operating" | "development";
   gross_area_m2: number;
@@ -35,7 +38,10 @@ export function filterBuildings(
   return buildings.filter(
     (b) =>
       isEligible(b.gross_area_m2) &&
-      (!q || `${b.name} ${b.address}`.toLocaleLowerCase("ko-KR").includes(q)) &&
+      (!q ||
+        `${b.name} ${b.address} ${b.road_address || ""}`
+          .toLocaleLowerCase("ko-KR")
+          .includes(q)) &&
       (!region || b.region === region) &&
       (!status || b.status === status) &&
       (!saved || saved.has(b.id)),
