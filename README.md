@@ -12,7 +12,7 @@ cp .env.example .env.local
 npm run dev
 ```
 
-`npm run build`는 TypeScript 검사와 프로덕션 빌드, `npm test`는 면적 경계값·검색·출처 링크 검증을 실행합니다.
+`npm run build`는 TypeScript 검사와 프로덕션 빌드, `npm test`는 면적 경계값·검색·출처 링크 및 로컬 PostgreSQL의 공개 조회·수정 차단·관심 건물 격리를 검증합니다.
 
 ## 구성
 
@@ -30,11 +30,11 @@ npm run dev
 3. Supabase Auth에 실제 서비스 URL과 로컬 개발 URL을 등록합니다. 공개 운영 전에는 메일 발송 설정을 확인합니다.
 4. Naver Cloud Maps 애플리케이션에서 Dynamic Map을 활성화하고 웹 서비스 URL을 등록한 후 client ID를 설정합니다. SDK는 `ncpKeyId`를 사용합니다.
 
-| 환경변수 | 내용 |
-|---|---|
-| VITE_SUPABASE_URL | 전용 프로젝트 URL |
-| VITE_SUPABASE_PUBLISHABLE_KEY | 공개 클라이언트용 키 |
-| VITE_NAVER_MAP_CLIENT_ID | 네이버 Maps 클라이언트 ID |
+| 환경변수                      | 내용                      |
+| ----------------------------- | ------------------------- |
+| VITE_SUPABASE_URL             | 전용 프로젝트 URL         |
+| VITE_SUPABASE_PUBLISHABLE_KEY | 공개 클라이언트용 키      |
+| VITE_NAVER_MAP_CLIENT_ID      | 네이버 Maps 클라이언트 ID |
 
 미설정·연결 실패·검색 결과 없음은 별도 상태로 표시하며 예시 데이터로 대체하지 않습니다. 실제 데이터는 아직 포함하지 않았습니다. 사이트 호스팅과 API 연결은 별도 설정 후 활성화합니다.
 
