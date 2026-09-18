@@ -18,6 +18,7 @@
   --line: rgb(76 88 107 / 24%);
   --divider: rgb(63 75 95 / 42%);
   --vertical-divider: rgb(63 75 95 / 36%);
+  --map-divider: rgb(63 75 95 / 45%);
   --muted: #828b9b;
   --sidebar-width: 200px;
   --toolbar-height: 56px;
@@ -421,7 +422,7 @@ header {
   display: flex;
   flex-direction: column;
   background: var(--surface);
-  border-right: 0.5px solid var(--vertical-divider);
+  border-right: 0.5px solid var(--map-divider);
   position: relative;
   z-index: 1;
 }
@@ -602,6 +603,7 @@ header {
 }
 .map-column .toolbar {
   flex-wrap: wrap;
+  border-bottom-color: var(--map-divider);
 }
 .map-column .search {
   flex: 1 1 240px;
