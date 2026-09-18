@@ -266,30 +266,6 @@ export default function App() {
         </div>
       </aside>
       <main>
-        <header>
-          <div className="breadcrumb">
-            Workplace Seoul <ChevronRight size={13} />
-            <strong>
-              {active
-                ? "자산 상세"
-                : view === "all"
-                  ? "공간 탐색"
-                  : view === "transactions"
-                    ? "매매사례"
-                    : "관심 건물"}
-            </strong>
-          </div>
-          <span className="scope">
-            <span />
-            전국 · 연면적 1만 평 이상
-          </span>
-        </header>
-        {catalog.review && (
-          <div className="preview-notice">
-            <span>자료 검수 모드</span>건물·개발 2026.06 기준 · 임대 2025년 ·
-            현행 정보 검수 전
-          </div>
-        )}
         {session &&
           load === "ready" &&
           !catalog.review &&
