@@ -24,6 +24,12 @@ for key, trace in road_data["traces"].items():
         mask = Polygon([(126, points[0][1]), *points, (128, points[-1][1]),
                         (128, closing_latitude), (126, closing_latitude)])
     assert mask.is_valid, key
+    if "westernTrim" in trace:
+        west = trace["westernTrim"]["coordinates"]
+        assert LineString(west).is_simple, key
+        east_of_park = Polygon([*west, (128, west[-1][1]), (128, west[0][1])])
+        assert east_of_park.is_valid, key
+        mask = mask.intersection(east_of_park)
     masks[key] = mask
 features = []
 trimmed = []

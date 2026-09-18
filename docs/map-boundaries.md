@@ -69,3 +69,20 @@ Seohyeon, Jeongja, Yatap, Migeum and Ori station areas remain within the fill.
 Labels and camera bounds are regenerated from this smaller display polygon.
 Asset classification and the BBD archive continue to use the full source
 Bundang-gu membership boundary. The live Supabase update is migration 012.
+
+### GBD western edge at Seoripul
+
+GBD's western display edge follows the mapped eastern edges of Seoripul Park
+(OSM ways 184588726 and 303550179). Around the former Defense Intelligence
+Command site it moves west through the park, retaining both north and south
+Seoripul development parcels. The southern construction footprint (OSM way
+477611289) is fully contained, with additional room along its western edge.
+The north/south plot layout was checked against Seoul notice 2021-296, page 364
+(special planning zone amendment map). The project inset and connections to the
+park and outer GBD boundary are editorial approximations, not cadastral geometry.
+
+`GBD.westernTrim` in `district-road-traces.json` pins this additional mask and
+provenance. The generator intersects it with the existing southern road trim,
+recalculates the label, and incorporates the removed park area into the
+surrounding Seoul Others display. Migrations 013–014 update both display polygons
+in Supabase together. Original asset membership remains unchanged.

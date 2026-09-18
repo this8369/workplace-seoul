@@ -21,6 +21,17 @@ test("editorial mountain trims preserve central districts and source classificat
   assert.equal(boundaryContains(gbd, 127.047, 37.486), true); // Maebong
   assert.equal(boundaryContains(gbd, 127.05, 37.47), false); // Guryongsan
   assert.equal(boundaryContains(gbd, 127.079, 37.474), false); // Daemosan
+  assert.equal(boundaryContains(gbd, 126.998, 37.488), false); // Seoripul western park
+  assert.equal(boundaryContains(gbd, 127.007, 37.499), false); // Northern park interior
+  assert.equal(boundaryContains(gbd, 127.0022505, 37.4908867), true); // Seoripul north site
+  assert.equal(boundaryContains(gbd, 127.0027062, 37.4890245), true); // Seoripul south site
+  assert.equal(boundaryContains(gbd, 127.0008548, 37.4886), true); // South site western edge
+  assert.equal(boundaryContains(gbd, 127.0078, 37.4919), true); // Seocho Station
+  assert.equal(districtAt(126.998, 37.488), "GBD");
+  assert.equal(
+    gbd.bbox[3],
+    boundaries.find((b) => b.properties.key === "GBD")!.bbox[3],
+  );
   assert.equal(districtAt(126.98, 37.62), "CBD");
   assert.equal(districtAt(127.05, 37.47), "GBD");
   for (const [lng, lat] of [
@@ -141,8 +152,8 @@ test("canonical legal-dong address wins over imported region labels and uncertai
 
 test("home center balances CBD, GBD and YBD without Seoul Others or BBD", () => {
   const center = homeMapCenter();
-  assert.ok(Math.abs(center.latitude - 37.53260110471119) < 0.000001);
-  assert.ok(Math.abs(center.longitude - 126.9883474921121) < 0.000001);
+  assert.ok(Math.abs(center.latitude - 37.53334035550666) < 0.000001);
+  assert.ok(Math.abs(center.longitude - 126.99108000230602) < 0.000001);
   const shifted = displayBoundaries.map((b) =>
     ["Others", "BBD"].includes(b.properties.key)
       ? {
