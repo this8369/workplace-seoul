@@ -1827,33 +1827,42 @@ button:disabled {
   box-shadow: none;
 }
 .map-marker-bubble {
+  --bubble-background: var(--surface);
+  --bubble-border: var(--brand);
   position: absolute;
-  bottom: 21px;
+  bottom: 18.5px;
   left: 50%;
-  transform: translateX(-50%);
   display: block;
-  width: 184px;
-  padding: 7px 9px;
+  width: max-content;
+  max-width: 220px;
+  padding: 5px 8px;
   text-align: left;
   white-space: normal;
-  border-radius: 6px;
-  border: 1.5px solid var(--brand);
-  background: var(--surface);
+  border-radius: 6px 6px 6px 0;
+  border: 1.5px solid var(--bubble-border);
+  background: var(--bubble-background);
   color: var(--brand);
   box-shadow: none;
 }
+.map-marker-bubble::before,
 .map-marker-bubble::after {
   content: "";
   position: absolute;
-  left: 50%;
-  bottom: -5px;
-  width: 8px;
-  height: 8px;
-  transform: translateX(-50%) rotate(45deg);
-  border-right: 1.5px solid;
-  border-bottom: 1.5px solid;
-  border-color: inherit;
-  background: inherit;
+  clip-path: polygon(0 0, 100% 0, 0 100%);
+}
+.map-marker-bubble::before {
+  left: -1.5px;
+  bottom: -12px;
+  width: 12px;
+  height: 12px;
+  background: var(--bubble-border);
+}
+.map-marker-bubble::after {
+  left: 0;
+  bottom: -8.5px;
+  width: 10px;
+  height: 10px;
+  background: var(--bubble-background);
 }
 .map-marker-name {
   display: block;
@@ -1863,12 +1872,9 @@ button:disabled {
   font-size: 12px;
   line-height: 18px;
   font-weight: 600;
-  padding-bottom: 4px;
-  margin-bottom: 4px;
-  border-bottom: 0.5px solid rgb(63 75 95 / 25%);
 }
 .map-marker-facts {
-  display: flex;
+  display: none;
   flex-direction: column;
   gap: 2px;
   font-size: 11px;
@@ -1896,15 +1902,24 @@ button:disabled {
 .map-marker.active .map-marker-bubble,
 .map-marker:hover .map-marker-bubble,
 .map-marker:focus-visible .map-marker-bubble {
-  background: var(--accent);
+  --bubble-background: var(--accent);
+  --bubble-border: var(--accent);
   color: white;
-  border-color: var(--accent);
+}
+.map-marker:is(:hover, :focus-visible) .map-marker-bubble {
+  min-width: 184px;
+  padding: 7px 9px;
+}
+.map-marker:is(:hover, :focus-visible) .map-marker-facts {
+  display: flex;
 }
 .map-marker:is(.active, :hover, :focus-visible) .map-marker-fact-label {
   color: #e2e7f8;
 }
-.map-marker:is(.active, :hover, :focus-visible) .map-marker-name {
-  border-bottom-color: rgb(255 255 255 / 30%);
+.map-marker:is(:hover, :focus-visible) .map-marker-name {
+  padding-bottom: 4px;
+  margin-bottom: 4px;
+  border-bottom: 0.5px solid rgb(255 255 255 / 30%);
 }
 .map-region-tooltip {
   position: absolute;

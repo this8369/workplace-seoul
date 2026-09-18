@@ -32,4 +32,5 @@ floor area from `buildings` (`typical_floor_area_pyeong`, nullable), and NOC fro
 missing or conflicting observations stay unknown rather than falling back to an
 older quarter. Typical floor area is not estimated from gross area or floor count.
 The current source snapshot has no typical-floor or completion-date values, so
-those fields remain unknown until supplied. All four facts are visible without hover.
+those fields remain unknown until supplied. Map bubbles show only the building name at rest. Hover or keyboard focus reveals
+all four facts; the bottom-left pointer remains anchored to the building location.
