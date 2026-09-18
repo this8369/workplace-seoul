@@ -12,6 +12,7 @@ import {
 } from "../lib/map-clusters";
 import {
   displayBoundaries as boundaries,
+  homeMapCenter,
   type DistrictKey,
 } from "../lib/map-regions";
 export type MapCamera = {
@@ -60,12 +61,14 @@ export default function NaverMap({
   selected,
   onSelect,
   camera,
+  homeRequest,
 }: {
   buildings: Building[];
   leasing: Leasing[];
   selected: string | null;
   onSelect: (id: string) => void;
   camera: { current: MapCamera | null };
+  homeRequest: number;
 }) {
   const container = useRef<HTMLDivElement>(null),
     map = useRef<any>(null),
@@ -93,6 +96,7 @@ export default function NaverMap({
     camera.current?.district ?? null,
   );
   const activeDistrictRef = useRef(activeDistrict);
+  const lastHomeRequest = useRef(homeRequest);
   const focusingDistrict = useRef(false);
   const highlightBoundary = useRef<(key: DistrictKey | null) => void>(() => {});
   const zoom = map.current?.getZoom() ?? camera.current?.zoom ?? 12;
@@ -110,8 +114,8 @@ export default function NaverMap({
         sdk.current = n;
         instance = new n.Map(container.current, {
           center: new n.LatLng(
-            camera.current?.latitude ?? 37.5665,
-            camera.current?.longitude ?? 126.978,
+            camera.current?.latitude ?? homeMapCenter().latitude,
+            camera.current?.longitude ?? homeMapCenter().longitude,
           ),
           zoom: camera.current?.zoom ?? 12,
           minZoom: 7,
@@ -162,6 +166,24 @@ export default function NaverMap({
       map.current = null;
     };
   }, [attempt]);
+  function focusHome() {
+    if (!map.current || !sdk.current) return;
+    const center = homeMapCenter();
+    setHoveredDistrict(null);
+    setOverlap([]);
+    activeDistrictRef.current = null;
+    setActiveDistrict(null);
+    focusingDistrict.current = false;
+    map.current.setCenter(
+      new sdk.current.LatLng(center.latitude, center.longitude),
+    );
+    map.current.setZoom(12);
+  }
+  useEffect(() => {
+    if (phase !== "ready" || lastHomeRequest.current === homeRequest) return;
+    lastHomeRequest.current = homeRequest;
+    focusHome();
+  }, [homeRequest, phase]);
   function highlightDistrict(key: DistrictKey | null) {
     setHoveredDistrict(key);
     highlightBoundary.current(key);
@@ -411,17 +433,7 @@ export default function NaverMap({
                 </button>
               );
             })}
-            <button
-              onClick={() => {
-                setOverlap([]);
-                activeDistrictRef.current = null;
-                setActiveDistrict(null);
-                map.current.setCenter(new sdk.current.LatLng(37.5665, 126.978));
-                map.current.setZoom(12);
-              }}
-            >
-              전체
-            </button>
+            <button onClick={focusHome}>전체</button>
           </div>
           {hoveredDistrict && stats && (
             <section

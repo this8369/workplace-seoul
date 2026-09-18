@@ -69,6 +69,13 @@ export default function App() {
   const dialog = useRef<HTMLDialogElement>(null),
     search = useRef<HTMLInputElement>(null);
   const mapCamera = useRef<MapCamera | null>(null);
+  const [homeRequest, setHomeRequest] = useState(0);
+  function goHome() {
+    setView("all");
+    setSelected(null);
+    mapCamera.current = null;
+    setHomeRequest((value) => value + 1);
+  }
   const loadGeneration = useRef(0);
   const refresh = useCallback(() => {
     const generation = ++loadGeneration.current;
@@ -225,6 +232,17 @@ export default function App() {
           className="brand"
           href={import.meta.env.BASE_URL}
           aria-label="Workplace Seoul"
+          onClick={(event) => {
+            if (
+              event.metaKey ||
+              event.ctrlKey ||
+              event.shiftKey ||
+              event.altKey
+            )
+              return;
+            event.preventDefault();
+            goHome();
+          }}
         >
           <span className="brand-mark" aria-hidden="true">
             w.
@@ -255,10 +273,7 @@ export default function App() {
             className={view === "all" ? "current" : ""}
             aria-label="공간 탐색"
             title="공간 탐색"
-            onClick={() => {
-              setView("all");
-              setSelected(null);
-            }}
+            onClick={goHome}
           >
             <Compass size={18} />
             <span className="nav-text">공간 탐색</span>
@@ -635,6 +650,7 @@ export default function App() {
             <section className="map-region" aria-label="공간 지도">
               <NaverMap
                 camera={mapCamera}
+                homeRequest={homeRequest}
                 buildings={results}
                 leasing={catalog.leasing}
                 selected={selected}

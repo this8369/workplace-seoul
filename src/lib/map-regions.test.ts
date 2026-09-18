@@ -2,6 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   boundaries,
+  homeMapCenter,
   displayBoundaries,
   boundaryContains,
   districtAt,
@@ -109,4 +110,22 @@ test("canonical legal-dong address wins over imported region labels and uncertai
     "Others",
   );
   assert.equal(classify("", "미확인"), "미확인");
+});
+
+test("home center balances CBD, GBD and YBD without Seoul Others or BBD", () => {
+  const center = homeMapCenter();
+  assert.ok(Math.abs(center.latitude - 37.53260110471119) < 0.000001);
+  assert.ok(Math.abs(center.longitude - 126.9883474921121) < 0.000001);
+  const shifted = displayBoundaries.map((b) =>
+    ["Others", "BBD"].includes(b.properties.key)
+      ? {
+          ...b,
+          properties: {
+            ...b.properties,
+            labelPosition: [130, 39] as [number, number],
+          },
+        }
+      : b,
+  );
+  assert.deepEqual(homeMapCenter(shifted), center);
 });

@@ -18,6 +18,22 @@ export let displayBoundaries = boundaries.map(
       (b) => b.properties.key === boundary.properties.key,
     ) || boundary,
 );
+/** Home balances the three core office districts, independent of Seoul's outline. */
+export function homeMapCenter(regions: DistrictBoundary[] = displayBoundaries) {
+  const core = regions.filter((b) =>
+    ["CBD", "GBD", "YBD"].includes(b.properties.key),
+  );
+  if (core.length !== 3) throw new Error("주요 권역 중심을 확인해 주세요.");
+  return {
+    latitude:
+      core.reduce((sum, b) => sum + b.properties.labelPosition[1], 0) /
+      core.length,
+    longitude:
+      core.reduce((sum, b) => sum + b.properties.labelPosition[0], 0) /
+      core.length,
+  };
+}
+
 export type DistrictSetting = {
   key: DistrictKey;
   label: string;
