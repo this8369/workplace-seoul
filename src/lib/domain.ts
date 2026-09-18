@@ -15,7 +15,8 @@ export type Building = {
   parking_spaces: number | null;
   source_name: string;
   source_url: string | null;
-  verified_on: string;
+  verified_on: string | null;
+  source_as_of?: string;
 };
 export const toPyeong = (m2: number) => (m2 * 121) / 400;
 // Never compare rounded display values.

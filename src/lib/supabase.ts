@@ -10,7 +10,7 @@ export async function fetchBuildings(): Promise<Building[]> {
     const { data, error } = await supabase
       .from("buildings")
       .select(
-        "id,name,address,region,status,gross_area_m2,area_basis,latitude,longitude,overview,floors_above,floors_below,completion_year,parking_spaces,source_name,source_url,verified_on",
+        "id,name,address,region,status,gross_area_m2,area_basis,latitude,longitude,overview,floors_above,floors_below,completion_year,parking_spaces,source_name,source_url,verified_on,source_as_of",
       )
       .order("id")
       .range(from, from + 499);
@@ -19,4 +19,56 @@ export async function fetchBuildings(): Promise<Building[]> {
     if (data.length < 500) break;
   }
   return rows;
+}
+
+import { emptyCatalog, type Catalog } from "./catalog";
+export async function fetchCatalog(): Promise<Catalog> {
+  if (!supabase) return emptyCatalog;
+  async function all(table: string) {
+    const result: unknown[] = [];
+    for (let from = 0; ; from += 500) {
+      const { data, error } = await supabase!
+        .from(table)
+        .select("*")
+        .order("id")
+        .range(from, from + 499);
+      if (error) throw error;
+      result.push(...data);
+      if (data.length < 500) return result;
+    }
+  }
+  const [
+    buildings,
+    transactions,
+    companies,
+    occupancies,
+    movements,
+    leasing,
+    developments,
+  ] = await Promise.all([
+    fetchBuildings(),
+    all("transactions"),
+    all("companies"),
+    all("occupancies"),
+    all("tenant_movements"),
+    all("leasing_quarters"),
+    all("development_records"),
+  ]);
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+  const access = session
+    ? await supabase.rpc("can_review_records")
+    : { data: false, error: null };
+  if (access.error) throw access.error;
+  return {
+    buildings,
+    transactions,
+    companies,
+    occupancies,
+    movements,
+    leasing,
+    developments,
+    review: access.data === true,
+  } as Catalog;
 }

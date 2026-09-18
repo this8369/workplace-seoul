@@ -6,7 +6,7 @@ import {
   Check,
   ChevronRight,
   Compass,
-  ExternalLink,
+  FileText,
   Layers3,
   MapPin,
   Search,
@@ -15,15 +15,13 @@ import {
 } from "lucide-react";
 import type { Session } from "@supabase/supabase-js";
 import NaverMap from "./components/NaverMap";
-import { fetchBuildings, supabase } from "./lib/supabase";
-import {
-  filterBuildings,
-  formatArea,
-  safeSourceUrl,
-  type Building,
-} from "./lib/domain";
+import { fetchCatalog, supabase } from "./lib/supabase";
+import { filterBuildings, formatArea, type Building } from "./lib/domain";
+import { AssetWorkspace, Transactions } from "./components/AssetWorkspace";
+import { emptyCatalog, type Catalog } from "./lib/catalog";
 const initialQuery = new URLSearchParams(location.search).get("q") || "";
 export default function App() {
+  const [catalog, setCatalog] = useState<Catalog>(emptyCatalog);
   const [buildings, setBuildings] = useState<Building[]>([]),
     [load, setLoad] = useState<"loading" | "ready" | "error" | "setup">(
       supabase ? "loading" : "setup",
@@ -31,7 +29,7 @@ export default function App() {
   const [query, setQuery] = useState(initialQuery),
     [region, setRegion] = useState(""),
     [status, setStatus] = useState(""),
-    [view, setView] = useState<"all" | "saved">("all");
+    [view, setView] = useState<"all" | "saved" | "transactions">("all");
   const [selected, setSelected] = useState<string | null>(null),
     [compare, setCompare] = useState<string[]>([]),
     [showCompare, setShowCompare] = useState(false);
@@ -43,17 +41,26 @@ export default function App() {
     [busy, setBusy] = useState(false);
   const dialog = useRef<HTMLDialogElement>(null),
     search = useRef<HTMLInputElement>(null);
+  const loadGeneration = useRef(0);
   const refresh = useCallback(() => {
-    if (!supabase) return;
+    const generation = ++loadGeneration.current;
     setLoad("loading");
-    fetchBuildings()
+    setCatalog(emptyCatalog);
+    setBuildings([]);
+    setSelected(null);
+    setCompare([]);
+    fetchCatalog()
       .then((data) => {
-        setBuildings(data);
-        setLoad("ready");
+        if (generation !== loadGeneration.current) return;
+        setCatalog(data);
+        setBuildings(data.buildings);
+        setLoad(supabase ? "ready" : "setup");
       })
-      .catch(() => setLoad("error"));
+      .catch(() => {
+        if (generation === loadGeneration.current) setLoad("error");
+      });
   }, []);
-  useEffect(refresh, [refresh]);
+  useEffect(refresh, [refresh, session?.user.id]);
   useEffect(() => {
     if (!supabase) return;
     let alive = true;
@@ -190,7 +197,11 @@ export default function App() {
         <nav aria-label="주 메뉴">
           <button
             className={view === "all" ? "current" : ""}
-            onClick={() => setView("all")}
+            aria-label="공간 탐색"
+            onClick={() => {
+              setView("all");
+              setSelected(null);
+            }}
           >
             <Compass size={18} />
             공간 탐색
@@ -198,10 +209,25 @@ export default function App() {
           </button>
           <button
             className={view === "saved" ? "current" : ""}
-            onClick={() => setView("saved")}
+            aria-label="관심 건물"
+            onClick={() => {
+              setView("saved");
+              setSelected(null);
+            }}
           >
             <Bookmark size={18} />
             관심 건물<span className="nav-count">{saved.size || ""}</span>
+          </button>
+          <button
+            aria-label="매매사례"
+            className={view === "transactions" ? "current" : ""}
+            onClick={() => {
+              setView("transactions");
+              setSelected(null);
+            }}
+          >
+            <FileText size={18} />
+            매매사례
           </button>
         </nav>
         <div className="sidebar-note">
@@ -231,246 +257,245 @@ export default function App() {
         <header>
           <div className="breadcrumb">
             Workplace Seoul <ChevronRight size={13} />
-            <strong>{view === "all" ? "공간 탐색" : "관심 건물"}</strong>
+            <strong>
+              {active
+                ? "자산 상세"
+                : view === "all"
+                  ? "공간 탐색"
+                  : view === "transactions"
+                    ? "매매사례"
+                    : "관심 건물"}
+            </strong>
           </div>
           <span className="scope">
             <span />
             전국 · 연면적 1만 평 이상
           </span>
         </header>
-        <section className="toolbar" aria-label="검색 및 필터">
-          <div className="search">
-            <Search size={18} />
-            <input
-              ref={search}
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="건물명 또는 주소 검색"
-              aria-label="건물 검색"
-            />
-            {query ? (
-              <button aria-label="검색 초기화" onClick={() => setQuery("")}>
-                <X size={14} />
-              </button>
-            ) : (
-              <kbd>⌘ K</kbd>
-            )}
+        {catalog.review && (
+          <div className="preview-notice">
+            <span>자료 검수 모드</span>건물·개발 2026.06 기준 · 임대 2025년 ·
+            현행 정보 검수 전
           </div>
-          <div className="filters">
-            <label>
-              <MapPin size={14} />
-              <select
-                aria-label="권역"
-                value={region}
-                onChange={(e) => setRegion(e.target.value)}
-              >
-                <option value="">전국</option>
-                {regions.map((r) => (
-                  <option key={r}>{r}</option>
-                ))}
-              </select>
-            </label>
-            <label>
-              <Layers3 size={14} />
-              <select
-                aria-label="건물 상태"
-                value={status}
-                onChange={(e) => setStatus(e.target.value)}
-              >
-                <option value="">전체 상태</option>
-                <option value="operating">운영 중</option>
-                <option value="development">개발 중</option>
-              </select>
-            </label>
-            <span className="fixed-filter">
-              <SlidersHorizontal size={14} />
-              1만 평 이상
-            </span>
-          </div>
-        </section>
-        <div className="workspace">
-          <section className="results" aria-label="건물 목록">
-            <div className="results-heading">
-              <div>
-                <h1>{view === "all" ? "오피스 둘러보기" : "관심 건물"}</h1>
-                <p>
-                  {load === "ready"
-                    ? `${results.length.toLocaleString()}개의 공간`
-                    : "공간의 안팎을 연결합니다"}
-                </p>
-              </div>
-              <Building2 size={21} />
-            </div>
-            <div className="results-scroll">
-              {load !== "ready" ? (
-                <div className="empty">
-                  <Building2 size={30} />
-                  <h2>
-                    {load === "loading"
-                      ? "공간 정보를 불러오고 있습니다"
-                      : load === "error"
-                        ? "정보를 불러오지 못했습니다"
-                        : "첫 번째 공간을 준비하고 있습니다"}
-                  </h2>
-                  <p>
-                    {load === "setup"
-                      ? "검증된 건물 정보를 이곳에서 만나보세요."
-                      : load === "error"
-                        ? "연결 상태를 확인하고 다시 시도해 주세요."
-                        : "잠시만 기다려 주세요."}
-                  </p>
-                  {load === "error" && (
-                    <button onClick={refresh}>다시 시도</button>
-                  )}
-                </div>
-              ) : results.length === 0 ? (
-                <div className="empty">
-                  <Search size={26} />
-                  <h2>
-                    {view === "saved"
-                      ? "저장한 건물이 없습니다"
-                      : "조건에 맞는 건물이 없습니다"}
-                  </h2>
-                  <p>
-                    {view === "saved"
-                      ? "관심 있는 건물의 북마크를 눌러보세요."
-                      : "다른 검색어나 지역으로 살펴보세요."}
-                  </p>
-                </div>
+        )}
+        {!active && (
+          <section className="toolbar" aria-label="검색 및 필터">
+            <div className="search">
+              <Search size={18} />
+              <input
+                ref={search}
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder={
+                  view === "transactions"
+                    ? "건물명, 매수인 또는 매도인 검색"
+                    : "건물명 또는 주소 검색"
+                }
+                aria-label={
+                  view === "transactions" ? "매매사례 검색" : "건물 검색"
+                }
+              />
+              {query ? (
+                <button aria-label="검색 초기화" onClick={() => setQuery("")}>
+                  <X size={14} />
+                </button>
               ) : (
-                results.map((b) => (
-                  <article
-                    key={b.id}
-                    className={`building-card ${b.id === selected ? "selected" : ""}`}
-                  >
-                    <button className="card-main" onClick={() => select(b.id)}>
-                      <span className="building-art">
-                        <Building2 size={32} />
-                      </span>
-                      <span className="card-info">
-                        <span className="eyebrow">
-                          {b.region} ·{" "}
-                          {b.status === "operating" ? "운영 중" : "개발 중"}
-                        </span>
-                        <strong>{b.name}</strong>
-                        <span className="address">{b.address}</span>
-                        <span className="area">
-                          {formatArea(b.gross_area_m2)}
-                          <span>
-                            연면적{b.area_basis === "planned" ? " · 계획" : ""}
-                          </span>
-                        </span>
-                      </span>
-                    </button>
-                    <div className="card-actions">
-                      <button
-                        aria-label={`${b.name} 관심 건물 ${saved.has(b.id) ? "해제" : "저장"}`}
-                        aria-pressed={saved.has(b.id)}
-                        disabled={busy}
-                        onClick={() => toggleSave(b.id)}
-                      >
-                        <Bookmark
-                          size={15}
-                          fill={saved.has(b.id) ? "currentColor" : "none"}
-                        />
-                      </button>
-                      <button
-                        aria-pressed={compare.includes(b.id)}
-                        onClick={() => toggleCompare(b.id)}
-                      >
-                        {compare.includes(b.id) ? (
-                          <Check size={14} />
-                        ) : (
-                          <Layers3 size={14} />
-                        )}
-                        비교
-                      </button>
-                      <span>확인 {b.verified_on}</span>
-                    </div>
-                  </article>
-                ))
+                <kbd>⌘ K</kbd>
               )}
             </div>
-            <footer>기준이 명확한 공간, 근거가 있는 정보.</footer>
-          </section>
-          <section className="map-region" aria-label="공간 지도">
-            <NaverMap
-              buildings={results}
-              selected={selected}
-              onSelect={select}
-            />
-            {active && (
-              <aside className="detail">
-                <div className="detail-top">
-                  <span className="eyebrow">
-                    {active.region} ·{" "}
-                    {active.status === "operating" ? "운영 중" : "개발 중"}
-                  </span>
-                  <button
-                    aria-label="건물 상세 닫기"
-                    onClick={() => setSelected(null)}
+            <div className="filters">
+              <label>
+                <MapPin size={14} />
+                <select
+                  aria-label="권역"
+                  value={region}
+                  onChange={(e) => setRegion(e.target.value)}
+                >
+                  <option value="">전국</option>
+                  {regions.map((r) => (
+                    <option key={r}>{r}</option>
+                  ))}
+                </select>
+              </label>
+              {view !== "transactions" && (
+                <label>
+                  <Layers3 size={14} />
+                  <select
+                    aria-label="건물 상태"
+                    value={status}
+                    onChange={(e) => setStatus(e.target.value)}
                   >
-                    <X size={17} />
-                  </button>
-                </div>
-                <h2>{active.name}</h2>
-                <p className="address">{active.address}</p>
-                <p className="overview">
-                  {active.overview || "공간 소개를 준비하고 있습니다."}
-                </p>
-                <dl>
-                  <div>
-                    <dt>
-                      연면적{active.area_basis === "planned" ? " (계획)" : ""}
-                    </dt>
-                    <dd>{formatArea(active.gross_area_m2)}</dd>
-                  </div>
-                  <div>
-                    <dt>층수</dt>
-                    <dd>
-                      {active.floors_above != null
-                        ? `지상 ${active.floors_above}층`
-                        : "미확인"}
-                      {active.floors_below != null
-                        ? ` · 지하 ${active.floors_below}층`
-                        : ""}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt>준공연도</dt>
-                    <dd>{active.completion_year || "미확인"}</dd>
-                  </div>
-                  <div>
-                    <dt>주차</dt>
-                    <dd>
-                      {active.parking_spaces != null
-                        ? `${active.parking_spaces}대`
-                        : "미확인"}
-                    </dd>
-                  </div>
-                </dl>
-                <div className="source">
-                  출처 ·{" "}
-                  {safeSourceUrl(active.source_url) ? (
-                    <a
-                      href={safeSourceUrl(active.source_url)}
-                      target="_blank"
-                      rel="noreferrer"
-                    >
-                      {active.source_name}
-                      <ExternalLink size={11} />
-                    </a>
-                  ) : (
-                    active.source_name
-                  )}
-                  <br />
-                  확인일 · {active.verified_on}
-                </div>
-              </aside>
-            )}
+                    <option value="">전체 상태</option>
+                    <option value="operating">운영 중</option>
+                    <option value="development">개발 중</option>
+                  </select>
+                </label>
+              )}
+              <span className="fixed-filter">
+                <SlidersHorizontal size={14} />
+                1만 평 이상
+              </span>
+            </div>
           </section>
-        </div>
-        {compare.length > 0 && (
+        )}
+        {active ? (
+          <AssetWorkspace
+            key={active.id}
+            building={active}
+            catalog={catalog}
+            onClose={() => setSelected(null)}
+            onBuilding={select}
+            saved={saved.has(active.id)}
+            onSave={() => toggleSave(active.id)}
+          />
+        ) : view === "transactions" ? (
+          load === "ready" ? (
+            <Transactions
+              catalog={catalog}
+              query={query}
+              region={region}
+              onBuilding={select}
+            />
+          ) : (
+            <div className="empty">
+              <h2>
+                {load === "error"
+                  ? "거래 정보를 불러오지 못했습니다"
+                  : load === "loading"
+                    ? "거래 정보를 불러오고 있습니다"
+                    : "거래 정보를 준비하고 있습니다"}
+              </h2>
+              {load === "error" && <button onClick={refresh}>다시 시도</button>}
+            </div>
+          )
+        ) : (
+          <div className="workspace">
+            <section className="results" aria-label="건물 목록">
+              <div className="results-heading">
+                <div>
+                  <h1>{view === "all" ? "오피스 둘러보기" : "관심 건물"}</h1>
+                  <p>
+                    {load === "ready"
+                      ? `${results.length.toLocaleString()}개의 공간`
+                      : "공간의 안팎을 연결합니다"}
+                  </p>
+                </div>
+                <Building2 size={21} />
+              </div>
+              <div className="results-scroll">
+                {load !== "ready" ? (
+                  <div className="empty">
+                    <Building2 size={30} />
+                    <h2>
+                      {load === "loading"
+                        ? "공간 정보를 불러오고 있습니다"
+                        : load === "error"
+                          ? "정보를 불러오지 못했습니다"
+                          : "첫 번째 공간을 준비하고 있습니다"}
+                    </h2>
+                    <p>
+                      {load === "setup"
+                        ? "검증된 건물 정보를 이곳에서 만나보세요."
+                        : load === "error"
+                          ? "연결 상태를 확인하고 다시 시도해 주세요."
+                          : "잠시만 기다려 주세요."}
+                    </p>
+                    {load === "error" && (
+                      <button onClick={refresh}>다시 시도</button>
+                    )}
+                  </div>
+                ) : results.length === 0 ? (
+                  <div className="empty">
+                    <Search size={26} />
+                    <h2>
+                      {view === "saved"
+                        ? "저장한 건물이 없습니다"
+                        : buildings.length === 0
+                          ? "공간 정보를 공개 준비 중입니다"
+                          : "조건에 맞는 건물이 없습니다"}
+                    </h2>
+                    <p>
+                      {view === "saved"
+                        ? "관심 있는 건물의 북마크를 눌러보세요."
+                        : buildings.length === 0
+                          ? "검수 계정으로 로그인하면 수집된 자료를 확인할 수 있습니다."
+                          : "다른 검색어나 지역으로 살펴보세요."}
+                    </p>
+                  </div>
+                ) : (
+                  results.map((b) => (
+                    <article
+                      key={b.id}
+                      className={`building-card ${b.id === selected ? "selected" : ""}`}
+                    >
+                      <button
+                        className="card-main"
+                        onClick={() => select(b.id)}
+                      >
+                        <span className="building-art">
+                          <Building2 size={32} />
+                        </span>
+                        <span className="card-info">
+                          <span className="eyebrow">
+                            {b.region} ·{" "}
+                            {b.status === "operating" ? "운영 중" : "개발 중"}
+                          </span>
+                          <strong>{b.name}</strong>
+                          <span className="address">{b.address}</span>
+                          <span className="area">
+                            {formatArea(b.gross_area_m2)}
+                            <span>
+                              연면적
+                              {b.area_basis === "planned" ? " · 계획" : ""}
+                            </span>
+                          </span>
+                        </span>
+                      </button>
+                      <div className="card-actions">
+                        <button
+                          aria-label={`${b.name} 관심 건물 ${saved.has(b.id) ? "해제" : "저장"}`}
+                          aria-pressed={saved.has(b.id)}
+                          disabled={busy}
+                          onClick={() => toggleSave(b.id)}
+                        >
+                          <Bookmark
+                            size={15}
+                            fill={saved.has(b.id) ? "currentColor" : "none"}
+                          />
+                        </button>
+                        <button
+                          aria-pressed={compare.includes(b.id)}
+                          onClick={() => toggleCompare(b.id)}
+                        >
+                          {compare.includes(b.id) ? (
+                            <Check size={14} />
+                          ) : (
+                            <Layers3 size={14} />
+                          )}
+                          비교
+                        </button>
+                        <span>
+                          {b.verified_on
+                            ? `확인 ${b.verified_on}`
+                            : `원본 ${b.source_as_of || "기준일 미확인"}`}
+                        </span>
+                      </div>
+                    </article>
+                  ))
+                )}
+              </div>
+              <footer>기준이 명확한 공간, 근거가 있는 정보.</footer>
+            </section>
+            <section className="map-region" aria-label="공간 지도">
+              <NaverMap
+                buildings={results}
+                selected={selected}
+                onSelect={select}
+              />
+            </section>
+          </div>
+        )}
+        {compare.length > 0 && !active && view !== "transactions" && (
           <div className="compare-bar">
             <Layers3 size={17} />
             <span>{compare.length}개 건물 선택</span>
@@ -517,7 +542,7 @@ export default function App() {
                   ["주소", (b: Building) => b.address],
                   ["준공연도", (b: Building) => b.completion_year ?? "미확인"],
                   ["주차 대수", (b: Building) => b.parking_spaces ?? "미확인"],
-                  ["확인일", (b: Building) => b.verified_on],
+                  ["확인일", (b: Building) => b.verified_on ?? "검수 전"],
                 ].map(([label, fn]) => (
                   <tr key={label as string}>
                     <th>{label as string}</th>
@@ -537,7 +562,7 @@ export default function App() {
       </dialog>
       {login && (
         <LoginModal onClose={() => setLogin(false)}>
-          <h2>관심 있는 공간을 모아보세요</h2>
+          <h2>Workplace Seoul에 로그인</h2>
           <p>이메일로 받은 링크를 통해 로그인합니다.</p>
           {supabase ? (
             <form onSubmit={signIn}>
