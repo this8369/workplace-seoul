@@ -45,3 +45,9 @@ hole outlines; this is a presentation adjustment only. Navigation fits the displ
 - Pinned input: `src/data/district-road-traces.json` retains the sampled coordinates, road names, source way IDs and ODbL-1.0 license metadata. Short junction connections join opposite carriageways within 22 metres; source road bends are retained without decorative smoothing.
 - The road trace dataset and the resulting OSM-derived display geometry are available under the [Open Database License 1.0](https://opendatacommons.org/licenses/odbl/1-0/). This data license does not change the application code's license. The original GEOSERVICE attribution remains attached to the administrative geometry.
 - The selected corridor is an editorial product boundary. Its location is informed by mapped roads; it is not a claim about cadastral boundaries or an official office-market designation.
+
+### Label positions and region summaries
+
+Display labels use the polygon's area centroid in Web Mercator, matching the map projection. If that point falls outside the region or inside a hole (Seoul Others), use the largest polygon's widest interior point. These positions do not change asset coordinates or region membership. GBD is blue (`#287aab`); BBD is violet (`#7561a8`).
+
+Hover summaries follow the current search/filter results. Gross floor area includes planned area when development assets are visible, explicitly noted in the bubble. NOC uses the latest catalog quarter shared across regions, one positive finite source value per building, and a simple unweighted average. Missing current-quarter data never falls back to an earlier quarter; conflicting duplicate observations are excluded. The bubble states the quarter, sample size and the source's unconfirmed area/VAT basis. Building dots stay centred on their stored coordinates; name tags sit above them.

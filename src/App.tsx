@@ -1,3 +1,4 @@
+import { districts } from "./lib/map-regions";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowUpRight,
@@ -144,7 +145,12 @@ export default function App() {
     [buildings, query, region, status, view, saved],
   );
   const active = buildings.find((b) => b.id === selected),
-    regions = [...new Set(buildings.map((b) => b.region))].sort();
+    regions = [
+      ...new Set([
+        ...districts.map((d) => d.key),
+        ...buildings.map((b) => b.region),
+      ]),
+    ];
   const select = useCallback((id: string) => setSelected(id), []);
   const openDialog = () => {
     setShowCompare(true);
@@ -248,7 +254,7 @@ export default function App() {
             }}
           >
             <Compass size={18} />
-            공간 탐색
+            <span className="nav-text">공간 탐색</span>
             <ChevronRight size={14} />
           </button>
           <button
@@ -261,7 +267,8 @@ export default function App() {
             }}
           >
             <Bookmark size={18} />
-            관심 건물<span className="nav-count">{saved.size || ""}</span>
+            <span className="nav-text">관심 건물</span>
+            <span className="nav-count">{saved.size || ""}</span>
           </button>
           <button
             aria-label="빌딩 매매사례"
@@ -273,7 +280,7 @@ export default function App() {
             }}
           >
             <FileText size={18} />
-            빌딩 매매사례
+            <span className="nav-text">빌딩 매매사례</span>
           </button>
         </nav>
         <div className="sidebar-note">
@@ -553,6 +560,7 @@ export default function App() {
               <NaverMap
                 camera={mapCamera}
                 buildings={results}
+                leasing={catalog.leasing}
                 selected={selected}
                 onSelect={select}
               />

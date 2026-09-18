@@ -24,7 +24,7 @@ export const districts = [
     key: "GBD",
     label: "GBD",
     name: "강남구 · 서초구 · 송파구 신천동·잠실동",
-    color: "#7561a8",
+    color: "#287aab",
   },
   { key: "YBD", label: "YBD", name: "여의도동", color: "#287f78" },
   {
@@ -37,7 +37,7 @@ export const districts = [
     key: "BBD",
     label: "BBD",
     name: "성남시 분당구 · 판교 포함",
-    color: "#287aab",
+    color: "#7561a8",
   },
 ] as const;
 

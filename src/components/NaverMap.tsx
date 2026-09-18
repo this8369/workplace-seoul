@@ -1,4 +1,6 @@
-import { useEffect, useRef, useState } from "react";
+import type { Leasing } from "../lib/catalog";
+import { regionStats } from "../lib/region-stats";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { MapPin, RefreshCw, X } from "lucide-react";
 import { formatArea, type Building } from "../lib/domain";
 import {
@@ -54,11 +56,13 @@ function loadSdk(): Promise<any> {
 }
 export default function NaverMap({
   buildings,
+  leasing,
   selected,
   onSelect,
   camera,
 }: {
   buildings: Building[];
+  leasing: Leasing[];
   selected: string | null;
   onSelect: (id: string) => void;
   camera: { current: MapCamera | null };
@@ -71,6 +75,19 @@ export default function NaverMap({
   );
   const [attempt, setAttempt] = useState(0);
   const [viewport, setViewport] = useState(0);
+  const [hoveredDistrict, setHoveredDistrict] = useState<DistrictKey | null>(
+    null,
+  );
+  const [tooltipPoint, setTooltipPoint] = useState({ x: 24, y: 100 });
+  const stats = useMemo(
+    () =>
+      hoveredDistrict ? regionStats(buildings, leasing, hoveredDistrict) : null,
+    [buildings, leasing, hoveredDistrict],
+  );
+  const nocText = (value: number | null) =>
+    value === null
+      ? "미확인"
+      : `${Math.round(value).toLocaleString("ko-KR")} 원/평`;
   const [overlap, setOverlap] = useState<string[]>([]);
   const [activeDistrict, setActiveDistrict] = useState<DistrictKey | null>(
     camera.current?.district ?? null,
@@ -104,6 +121,7 @@ export default function NaverMap({
         });
         map.current = instance;
         n.Event.addListener(instance, "idle", () => {
+          setHoveredDistrict(null);
           const center = instance.getCenter();
           // Zooming back out restores the geographical overview, except while
           // applying a region's navigation camera.
@@ -144,8 +162,13 @@ export default function NaverMap({
       map.current = null;
     };
   }, [attempt]);
+  function highlightDistrict(key: DistrictKey | null) {
+    setHoveredDistrict(key);
+    highlightBoundary.current(key);
+  }
   function focusDistrict(key: DistrictKey) {
     if (!map.current) return;
+    setHoveredDistrict(null);
     const boundary = boundaries.find((b) => b.properties.key === key)!;
     const [west, south, east, north] = boundary.bbox;
     const n = sdk.current;
@@ -218,10 +241,10 @@ export default function NaverMap({
                 focusDistrict(district.key),
               ),
               n.Event.addListener(polygon, "mouseover", () =>
-                highlightBoundary.current(district.key),
+                highlightDistrict(district.key),
               ),
               n.Event.addListener(polygon, "mouseout", () =>
-                highlightBoundary.current(null),
+                highlightDistrict(null),
               ),
             ]
           : [];
@@ -280,9 +303,15 @@ export default function NaverMap({
         : group.label
           ? `map-region-label${group.id === "Others" ? " is-others" : ""}`
           : "map-cluster";
-      if (single)
-        button.textContent = b.name.split(/\s*[（(]/)[0].trim() || b.name;
-      else {
+      if (single) {
+        const dot = document.createElement("span");
+        dot.className = "map-marker-dot";
+        dot.setAttribute("aria-hidden", "true");
+        const name = document.createElement("span");
+        name.className = "map-marker-name";
+        name.textContent = b.name.split(/\s*[（(]/)[0].trim() || b.name;
+        button.append(dot, name);
+      } else {
         if (group.label) {
           const label = document.createElement("span");
           label.textContent = group.label;
@@ -298,7 +327,7 @@ export default function NaverMap({
           ? `${b.name} 선택`
           : `${group.label || "인근"} 자산 ${group.buildings.length}개 확대`,
       );
-      button.title = single ? b.name : "클릭하여 자산 살펴보기";
+      if (single) button.title = b.name;
       const activate = (event: MouseEvent) => {
         event.stopPropagation();
         if (group.label) focusDistrict(group.id as DistrictKey);
@@ -307,10 +336,10 @@ export default function NaverMap({
       };
       button.addEventListener("click", activate);
       const highlight = () => {
-        if (group.label) highlightBoundary.current(group.id as DistrictKey);
+        if (group.label) highlightDistrict(group.id as DistrictKey);
       };
       const unhighlight = () => {
-        if (group.label) highlightBoundary.current(null);
+        if (group.label) highlightDistrict(null);
       };
       button.addEventListener("mouseenter", highlight);
       button.addEventListener("mouseleave", unhighlight);
@@ -338,7 +367,23 @@ export default function NaverMap({
   }, [phase, buildings, selected, onSelect, viewport, overview]);
   const overlapping = buildings.filter((b) => overlap.includes(b.id));
   return (
-    <div className="map-shell">
+    <div
+      className="map-shell"
+      onPointerMove={(event) => {
+        const rect = event.currentTarget.getBoundingClientRect();
+        setTooltipPoint({
+          x: Math.max(
+            8,
+            Math.min(event.clientX - rect.left + 18, rect.width - 272),
+          ),
+          y: Math.max(
+            8,
+            Math.min(event.clientY - rect.top + 20, rect.height - 285),
+          ),
+        });
+      }}
+      onPointerLeave={() => highlightDistrict(null)}
+    >
       <div className="map-canvas" ref={container} aria-label="네이버 지도" />
       {phase === "ready" && (
         <>
@@ -351,11 +396,11 @@ export default function NaverMap({
                 <button
                   key={d.key}
                   aria-pressed={activeDistrict === d.key}
-                  title={d.name}
-                  onMouseEnter={() => highlightBoundary.current(d.key)}
-                  onMouseLeave={() => highlightBoundary.current(null)}
-                  onFocus={() => highlightBoundary.current(d.key)}
-                  onBlur={() => highlightBoundary.current(null)}
+                  aria-label={`${d.label} · ${d.name}`}
+                  onMouseEnter={() => highlightDistrict(d.key)}
+                  onMouseLeave={() => highlightDistrict(null)}
+                  onFocus={() => highlightDistrict(d.key)}
+                  onBlur={() => highlightDistrict(null)}
                   onClick={() => focusDistrict(d.key)}
                 >
                   {d.label}
@@ -375,6 +420,48 @@ export default function NaverMap({
               전체
             </button>
           </div>
+          {hoveredDistrict && stats && (
+            <section
+              className="map-region-tooltip"
+              role="tooltip"
+              style={{ left: tooltipPoint.x, top: tooltipPoint.y }}
+            >
+              <strong>
+                {districts.find((d) => d.key === hoveredDistrict)?.label}
+              </strong>
+              <dl>
+                <div>
+                  <dt>오피스 개수</dt>
+                  <dd>{stats.count.toLocaleString()}개</dd>
+                </div>
+                <div>
+                  <dt>총 연면적</dt>
+                  <dd>{formatArea(stats.area)}</dd>
+                </div>
+                <div>
+                  <dt>평균 NOC</dt>
+                  <dd>{nocText(stats.average)}</dd>
+                </div>
+                <div>
+                  <dt>최고 NOC</dt>
+                  <dd>{nocText(stats.highest)}</dd>
+                </div>
+                <div>
+                  <dt>최저 NOC</dt>
+                  <dd>{nocText(stats.lowest)}</dd>
+                </div>
+              </dl>
+              <p>
+                {stats.period ?? "기준분기 미확인"} · NOC {stats.samples}개
+                원문값 기준 · 단순평균
+              </p>
+              <p>
+                면적·부가세 기준 미확인
+                {stats.planned ? " · 계획 연면적 포함" : ""}
+              </p>
+              <p>현재 검색·필터 결과 기준</p>
+            </section>
+          )}
           <div className="map-level">
             {overview
               ? "권역을 누르면 해당 지역으로 확대"

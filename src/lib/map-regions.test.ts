@@ -25,9 +25,10 @@ test("editorial mountain trims preserve central districts and source classificat
     const [lng, lat] = boundary.properties.labelPosition;
     assert.ok(boundaryContains(boundary, lng, lat));
     if (["YBD", "BBD"].includes(boundary.properties.key))
-      assert.equal(
-        boundary,
-        boundaries.find((b) => b.properties.key === boundary.properties.key),
+      assert.deepEqual(
+        boundary.geometry,
+        boundaries.find((b) => b.properties.key === boundary.properties.key)!
+          .geometry,
       );
   }
 });
