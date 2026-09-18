@@ -8,7 +8,13 @@ import {
   hasLocation,
   type MapGroup,
 } from "../lib/map-clusters";
-export type MapCamera = { latitude: number; longitude: number; zoom: number };
+import { boundaries, type DistrictKey } from "../lib/map-regions";
+export type MapCamera = {
+  latitude: number;
+  longitude: number;
+  zoom: number;
+  district?: DistrictKey | null;
+};
 // The SDK is loaded only from Naver's official endpoint.
 declare global {
   interface Window {
@@ -63,7 +69,13 @@ export default function NaverMap({
   const [attempt, setAttempt] = useState(0);
   const [viewport, setViewport] = useState(0);
   const [overlap, setOverlap] = useState<string[]>([]);
+  const [activeDistrict, setActiveDistrict] = useState<DistrictKey | null>(
+    camera.current?.district ?? null,
+  );
+  const activeDistrictRef = useRef(activeDistrict);
+  const focusingDistrict = useRef(false);
   const zoom = map.current?.getZoom() ?? camera.current?.zoom ?? 12;
+  const overview = zoom <= 12 && !activeDistrict;
   const missing = buildings.filter((b) => !hasLocation(b)).length;
   useEffect(() => {
     if (!import.meta.env.VITE_NAVER_MAP_CLIENT_ID) return;
@@ -89,10 +101,22 @@ export default function NaverMap({
         map.current = instance;
         n.Event.addListener(instance, "idle", () => {
           const center = instance.getCenter();
+          // Zooming back out restores the geographical overview. A fitBounds
+          // for broad Others may itself need zoom 12, so don't reset that move.
+          if (
+            !focusingDistrict.current &&
+            instance.getZoom() <= 12 &&
+            instance.getZoom() < (camera.current?.zoom ?? 12)
+          ) {
+            activeDistrictRef.current = null;
+            setActiveDistrict(null);
+          }
+          focusingDistrict.current = false;
           camera.current = {
             latitude: center.lat(),
             longitude: center.lng(),
             zoom: instance.getZoom(),
+            district: activeDistrictRef.current,
           };
           setViewport((v) => v + 1);
         });
@@ -116,12 +140,26 @@ export default function NaverMap({
       map.current = null;
     };
   }, [attempt]);
+  function focusDistrict(key: DistrictKey) {
+    if (!map.current) return;
+    const boundary = boundaries.find((b) => b.properties.key === key)!;
+    const [west, south, east, north] = boundary.bbox;
+    const n = sdk.current;
+    setOverlap([]);
+    activeDistrictRef.current = key;
+    focusingDistrict.current = true;
+    setActiveDistrict(key);
+    map.current.fitBounds(
+      new n.LatLngBounds(new n.LatLng(south, west), new n.LatLng(north, east)),
+      { top: 110, right: 45, bottom: 65, left: 45, maxZoom: 16 },
+    );
+  }
   function focus(group: MapGroup) {
     if (!map.current) return;
     setOverlap([]);
     const located = group.buildings.filter(hasLocation);
     if (!located.length) return;
-    if (zoom >= 19 && !group.label) {
+    if (zoom >= 19) {
       setOverlap(group.buildings.map((b) => b.id));
       return;
     }
@@ -130,16 +168,79 @@ export default function NaverMap({
     const lng =
       located.reduce((sum, b) => sum + b.longitude, 0) / located.length;
     map.current.setCenter(new sdk.current.LatLng(lat, lng));
-    map.current.setZoom(group.label ? 14 : Math.min(21, zoom + 2));
+    map.current.setZoom(Math.min(21, zoom + 2));
   }
+  useEffect(() => {
+    if (phase !== "ready" || !map.current || zoom > 15) return;
+    const n = sdk.current;
+    const visible = boundaries.filter(
+      (b) => overview || b.properties.key === activeDistrict,
+    );
+    const overlays = visible.flatMap((boundary) => {
+      const district = districts.find(
+        (d) => d.key === boundary.properties.key,
+      )!;
+      return boundary.geometry.coordinates.map((rings) => {
+        // Each MultiPolygon part has an outer ring and optional inner holes.
+        // In particular, Others must not cover CBD, GBD or Yeouido.
+        const polygon = new n.Polygon({
+          map: map.current,
+          paths: rings.map((ring) =>
+            ring.map(([lng, lat]) => new n.LatLng(lat, lng)),
+          ),
+          fillColor: district.color,
+          fillOpacity: overview
+            ? district.key === "Others"
+              ? 0.06
+              : 0.12
+            : 0.035,
+          strokeColor: district.color,
+          strokeWeight: overview ? 2 : 1.5,
+          strokeOpacity: 0.8,
+          clickable: overview,
+          zIndex: district.key === "Others" ? 1 : 2,
+        });
+        const listeners = overview
+          ? [
+              n.Event.addListener(polygon, "click", () =>
+                focusDistrict(district.key),
+              ),
+              n.Event.addListener(polygon, "mouseover", () =>
+                polygon.setOptions({ fillOpacity: 0.22, strokeWeight: 2.5 }),
+              ),
+              n.Event.addListener(polygon, "mouseout", () =>
+                polygon.setOptions({
+                  fillOpacity: district.key === "Others" ? 0.06 : 0.12,
+                  strokeWeight: 2,
+                }),
+              ),
+            ]
+          : [];
+        return { polygon, listeners };
+      });
+    });
+    return () =>
+      overlays.forEach(({ polygon, listeners }) => {
+        listeners.forEach((listener) => n.Event.removeListener(listener));
+        polygon.setMap(null);
+      });
+  }, [phase, overview, activeDistrict, zoom]);
   useEffect(() => {
     if (phase !== "ready" || !map.current) return;
     const n = sdk.current;
     const currentZoom = map.current.getZoom();
-    const groups =
-      currentZoom <= 12
-        ? districtGroups(buildings)
-        : spatialGroups(buildings, currentZoom);
+    const groups = overview
+      ? districts.map((d) => {
+          const boundary = boundaries.find((b) => b.properties.key === d.key)!;
+          return {
+            id: d.key,
+            label: d.label,
+            longitude: boundary.properties.labelPosition[0],
+            latitude: boundary.properties.labelPosition[1],
+            buildings: buildings.filter((b) => b.region === d.key),
+          };
+        })
+      : spatialGroups(buildings, currentZoom);
     const markers = groups.map((group) => {
       const single = !group.label && group.buildings.length === 1;
       const b = group.buildings[0];
@@ -147,7 +248,9 @@ export default function NaverMap({
       button.type = "button";
       button.className = single
         ? `map-marker ${selected === b.id ? "active" : ""}`
-        : `map-cluster ${group.label ? "district" : ""}`;
+        : group.label
+          ? "map-region-label"
+          : "map-cluster";
       if (single)
         button.textContent = b.name.split(/\s*[（(]/)[0].trim() || b.name;
       else {
@@ -169,7 +272,9 @@ export default function NaverMap({
       button.title = single ? b.name : "클릭하여 자산 살펴보기";
       const activate = (event: MouseEvent) => {
         event.stopPropagation();
-        single ? onSelect(b.id) : focus(group);
+        if (group.label) focusDistrict(group.id as DistrictKey);
+        else if (single) onSelect(b.id);
+        else focus(group);
       };
       button.addEventListener("click", activate);
       const marker = new n.Marker({
@@ -185,7 +290,7 @@ export default function NaverMap({
         button.removeEventListener("click", activate);
         marker.setMap(null);
       });
-  }, [phase, buildings, selected, onSelect, viewport]);
+  }, [phase, buildings, selected, onSelect, viewport, overview]);
   const overlapping = buildings.filter((b) => overlap.includes(b.id));
   return (
     <div className="map-shell">
@@ -200,9 +305,9 @@ export default function NaverMap({
               return (
                 <button
                   key={d.key}
-                  disabled={!group}
+                  aria-pressed={activeDistrict === d.key}
                   title={d.name}
-                  onClick={() => group && focus(group)}
+                  onClick={() => focusDistrict(d.key)}
                 >
                   {d.label}
                   <b>{group?.buildings.length ?? 0}</b>
@@ -212,6 +317,8 @@ export default function NaverMap({
             <button
               onClick={() => {
                 setOverlap([]);
+                activeDistrictRef.current = null;
+                setActiveDistrict(null);
                 map.current.setCenter(new sdk.current.LatLng(37.5665, 126.978));
                 map.current.setZoom(12);
               }}
@@ -220,13 +327,22 @@ export default function NaverMap({
             </button>
           </div>
           <div className="map-level">
-            {zoom <= 12
-              ? "권역별 자산"
+            {overview
+              ? "권역을 누르면 해당 지역으로 확대"
               : zoom < 16
                 ? "주변 자산 · 숫자를 누르면 확대"
                 : "빌딩을 선택해 자세히 보기"}
             {missing > 0 && <span>위치 확인 중 {missing}개</span>}
           </div>
+          <a
+            className="map-boundary-source"
+            href="http://www.gisdeveloper.co.kr/?p=2332"
+            target="_blank"
+            rel="noreferrer"
+            title="지오서비스 법정동 경계 · 2023.07 · 지도 표시용 단순화"
+          >
+            경계 © 지오서비스 · 2023.07
+          </a>
           {overlapping.length > 0 && (
             <section className="map-overlap" aria-label="가까운 위치의 자산">
               <header>

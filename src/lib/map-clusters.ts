@@ -1,41 +1,6 @@
 import type { Building } from "./domain.ts";
-export const districts = [
-  {
-    key: "CBD",
-    label: "CBD",
-    name: "도심",
-    latitude: 37.57,
-    longitude: 126.986,
-  },
-  {
-    key: "GBD",
-    label: "GBD",
-    name: "강남",
-    latitude: 37.506,
-    longitude: 127.044,
-  },
-  {
-    key: "YBD",
-    label: "YBD",
-    name: "여의도",
-    latitude: 37.524,
-    longitude: 126.925,
-  },
-  {
-    key: "Others",
-    label: "서울 기타",
-    name: "서울 기타",
-    latitude: 37.559,
-    longitude: 126.865,
-  },
-  {
-    key: "BBD",
-    label: "BBD",
-    name: "분당·판교",
-    latitude: 37.399,
-    longitude: 127.111,
-  },
-] as const;
+import { boundaries, districts } from "./map-regions.ts";
+export { districts } from "./map-regions.ts";
 export function hasLocation(
   b: Building,
 ): b is Building & { latitude: number; longitude: number } {
@@ -62,8 +27,10 @@ export function districtGroups(buildings: Building[]): MapGroup[] {
     .map((d) => ({
       id: d.key,
       label: d.label,
-      latitude: d.latitude,
-      longitude: d.longitude,
+      latitude: boundaries.find((b) => b.properties.key === d.key)!.properties
+        .labelPosition[1],
+      longitude: boundaries.find((b) => b.properties.key === d.key)!.properties
+        .labelPosition[0],
       buildings: buildings.filter((b) => b.region === d.key),
     }))
     .filter((d) => d.buildings.length);

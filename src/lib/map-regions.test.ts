@@ -1,0 +1,86 @@
+import { test } from "node:test";
+import assert from "node:assert/strict";
+import {
+  boundaries,
+  boundaryContains,
+  districtAt,
+  regionForBuilding,
+} from "./map-regions.ts";
+
+test("real geographic regions include intended neighbourhoods and exclude adjacent districts", () => {
+  const places: [number, number, string | undefined][] = [
+    [126.978, 37.566, "CBD"], // City Hall, Jung-gu
+    [126.983, 37.573, "CBD"], // Jongno
+    [127.036, 37.5, "GBD"], // Yeoksam
+    [127.01, 37.483, "GBD"], // Seocho
+    [127.103, 37.514, "GBD"], // Sincheon-dong
+    [127.082, 37.509, "GBD"], // Jamsil-dong
+    [126.925, 37.524, "YBD"],
+    [127.111, 37.395, "BBD"], // Pangyo
+    [127.108, 37.366, "BBD"], // Jeongja
+    [127.12, 37.485, "Others"], // Munjeong is not GBD
+    [126.9, 37.52, "Others"], // Yeongdeungpo outside Yeouido
+    [126.97, 37.529, "Others"], // Yongsan is not CBD
+    [127.127, 37.444, undefined], // Sujeong is not BBD
+    [126.72, 37.5, undefined], // Incheon is not Seoul Others
+  ];
+  for (const [lng, lat, expected] of places) {
+    assert.equal(districtAt(lng, lat), expected, `${lng},${lat}`);
+    const hits = boundaries.filter((b) => boundaryContains(b, lng, lat));
+    assert.equal(hits.length, expected ? 1 : 0, "no overlapping region fill");
+  }
+});
+
+test("boundary bounds enclose every vertex, rings close and labels sit in their own regions", () => {
+  assert.equal(boundaries.length, 5);
+  for (const boundary of boundaries) {
+    const {
+      key,
+      labelPosition: [lng, lat],
+    } = boundary.properties;
+    assert.equal(districtAt(lng, lat), key);
+    const [w, s, e, n] = boundary.bbox;
+    for (const polygon of boundary.geometry.coordinates)
+      for (const ring of polygon) {
+        assert.ok(ring.length >= 4);
+        assert.deepEqual(ring[0], ring.at(-1));
+        for (const [x, y] of ring)
+          assert.ok(x >= w && x <= e && y >= s && y <= n);
+      }
+  }
+});
+
+test("canonical legal-dong address wins over imported region labels and uncertain coordinates", () => {
+  const classify = (address: string, region = "Others") =>
+    regionForBuilding({
+      address,
+      region,
+      latitude: null,
+      longitude: null,
+    });
+  assert.equal(classify("서울특별시 송파구 신천동 29"), "GBD");
+  assert.equal(classify("서울 송파구 잠실동 1"), "GBD");
+  assert.equal(classify("서울특별시 송파구 문정동 651-8", "GBD"), "Others");
+  assert.equal(classify("서울특별시 영등포구 여의도동 23"), "YBD");
+  assert.equal(classify("서울특별시 용산구 동자동 12", "CBD"), "Others");
+  assert.equal(classify("경기도 성남시 분당구 삼평동 681"), "BBD");
+  assert.equal(
+    regionForBuilding({
+      address: "서울 송파구 올림픽로 300",
+      region: "Others",
+      latitude: 37.514,
+      longitude: 127.103,
+    }),
+    "GBD",
+  );
+  assert.equal(
+    regionForBuilding({
+      address: "서울 송파구 문정동 651",
+      region: "GBD",
+      latitude: 37.514,
+      longitude: 127.103,
+    }),
+    "Others",
+  );
+  assert.equal(classify("", "미확인"), "미확인");
+});

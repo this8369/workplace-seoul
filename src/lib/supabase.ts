@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import type { Building } from "./domain";
+import { regionForBuilding } from "./map-regions";
 const url = import.meta.env.VITE_SUPABASE_URL,
   key = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 export const supabase = url && key ? createClient(url, key) : null;
@@ -19,6 +20,7 @@ export async function fetchBuildings(): Promise<Building[]> {
       ...(data as Building[]).map((b) => ({
         ...b,
         source_address: b.address,
+        region: regionForBuilding(b),
         address: b.standard_address || b.address,
       })),
     );
