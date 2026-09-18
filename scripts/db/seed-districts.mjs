@@ -67,7 +67,11 @@ try {
         JSON.stringify(membership),
         JSON.stringify(visual),
         JSON.stringify(patterns),
-        key === "Others" ? JSON.stringify([126.891, 37.509]) : null,
+        key === "Others"
+          ? JSON.stringify([126.891, 37.509])
+          : key === "CBD"
+            ? JSON.stringify([126.98262, 37.56595])
+            : null,
         key === "Others" ? 15 : null,
         JSON.stringify({
           membership: {
@@ -85,7 +89,7 @@ try {
     "Districts:",
     (
       await db.query(
-        "select key,label,sort_order from districts order by sort_order",
+        "select key,label,sort_order,focus_center,focus_zoom from districts order by sort_order",
       )
     ).rows,
   );
