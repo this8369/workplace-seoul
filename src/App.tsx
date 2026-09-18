@@ -219,7 +219,7 @@ export default function App() {
             관심 건물<span className="nav-count">{saved.size || ""}</span>
           </button>
           <button
-            aria-label="매매사례"
+            aria-label="빌딩 매매사례"
             className={view === "transactions" ? "current" : ""}
             onClick={() => {
               setView("transactions");
@@ -227,7 +227,7 @@ export default function App() {
             }}
           >
             <FileText size={18} />
-            매매사례
+            빌딩 매매사례
           </button>
         </nav>
         <div className="sidebar-note">
