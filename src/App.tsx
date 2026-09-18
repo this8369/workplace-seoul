@@ -225,6 +225,64 @@ export default function App() {
     );
     if (!error) setLogin(false);
   }
+  const searchToolbar = (
+    <section className="toolbar" aria-label="검색 및 필터">
+      <div className="search">
+        <Search size={18} />
+        <input
+          ref={search}
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder={
+            view === "transactions"
+              ? "건물명, 매수인 또는 매도인 검색"
+              : "건물명 또는 주소 검색"
+          }
+          aria-label={view === "transactions" ? "매매사례 검색" : "건물 검색"}
+        />
+        {query ? (
+          <button aria-label="검색 초기화" onClick={() => setQuery("")}>
+            <X size={14} />
+          </button>
+        ) : (
+          <kbd>⌘ K</kbd>
+        )}
+      </div>
+      <div className="filters">
+        <label>
+          <MapPin size={14} />
+          <select
+            aria-label="권역"
+            value={region}
+            onChange={(e) => setRegion(e.target.value)}
+          >
+            <option value="">전국</option>
+            {regions.map((r) => (
+              <option key={r}>{r}</option>
+            ))}
+          </select>
+        </label>
+        {view !== "transactions" && (
+          <label>
+            <Layers3 size={14} />
+            <select
+              aria-label="건물 상태"
+              value={status}
+              onChange={(e) => setStatus(e.target.value)}
+            >
+              <option value="">전체 상태</option>
+              <option value="operating">운영 중</option>
+              <option value="development">개발 중</option>
+            </select>
+          </label>
+        )}
+        <span className="fixed-filter">
+          <SlidersHorizontal size={14} />
+          1만 평 이상
+        </span>
+      </div>
+    </section>
+  );
   return (
     <div className="app">
       <aside className={`sidebar${sidebarCollapsed ? " is-collapsed" : ""}`}>
@@ -385,66 +443,7 @@ export default function App() {
               <button onClick={refresh}>권한 다시 확인</button>
             </div>
           )}
-        {!active && view !== "images" && (
-          <section className="toolbar" aria-label="검색 및 필터">
-            <div className="search">
-              <Search size={18} />
-              <input
-                ref={search}
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder={
-                  view === "transactions"
-                    ? "건물명, 매수인 또는 매도인 검색"
-                    : "건물명 또는 주소 검색"
-                }
-                aria-label={
-                  view === "transactions" ? "매매사례 검색" : "건물 검색"
-                }
-              />
-              {query ? (
-                <button aria-label="검색 초기화" onClick={() => setQuery("")}>
-                  <X size={14} />
-                </button>
-              ) : (
-                <kbd>⌘ K</kbd>
-              )}
-            </div>
-            <div className="filters">
-              <label>
-                <MapPin size={14} />
-                <select
-                  aria-label="권역"
-                  value={region}
-                  onChange={(e) => setRegion(e.target.value)}
-                >
-                  <option value="">전국</option>
-                  {regions.map((r) => (
-                    <option key={r}>{r}</option>
-                  ))}
-                </select>
-              </label>
-              {view !== "transactions" && (
-                <label>
-                  <Layers3 size={14} />
-                  <select
-                    aria-label="건물 상태"
-                    value={status}
-                    onChange={(e) => setStatus(e.target.value)}
-                  >
-                    <option value="">전체 상태</option>
-                    <option value="operating">운영 중</option>
-                    <option value="development">개발 중</option>
-                  </select>
-                </label>
-              )}
-              <span className="fixed-filter">
-                <SlidersHorizontal size={14} />
-                1만 평 이상
-              </span>
-            </div>
-          </section>
-        )}
+        {!active && view === "transactions" && searchToolbar}
         {view === "images" && catalog.review && !active ? (
           <PhotoManager
             buildings={buildings}
@@ -647,16 +646,19 @@ export default function App() {
                 <footer>기준이 명확한 공간, 근거가 있는 정보.</footer>
               )}
             </section>
-            <section className="map-region" aria-label="공간 지도">
-              <NaverMap
-                camera={mapCamera}
-                homeRequest={homeRequest}
-                buildings={results}
-                leasing={catalog.leasing}
-                selected={selected}
-                onSelect={select}
-              />
-            </section>
+            <div className="map-column">
+              {searchToolbar}
+              <section className="map-region" aria-label="공간 지도">
+                <NaverMap
+                  camera={mapCamera}
+                  homeRequest={homeRequest}
+                  buildings={results}
+                  leasing={catalog.leasing}
+                  selected={selected}
+                  onSelect={select}
+                />
+              </section>
+            </div>
           </div>
         )}
       </main>

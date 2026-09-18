@@ -426,8 +426,8 @@ header {
   z-index: 1;
 }
 .results-heading {
-  height: calc(var(--map-tabs-height) + 2 * var(--map-tabs-inset));
-  min-height: calc(var(--map-tabs-height) + 2 * var(--map-tabs-inset));
+  height: var(--toolbar-height);
+  min-height: var(--toolbar-height);
   flex-shrink: 0;
   padding: 12px var(--content-inset);
   display: flex;
@@ -593,7 +593,23 @@ header {
   border: 1px solid var(--line);
   margin-top: 18px;
 }
+.map-column {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+}
+.map-column .toolbar {
+  flex-wrap: wrap;
+}
+.map-column .search {
+  flex: 1 1 240px;
+  min-width: 120px;
+  max-width: 320px;
+}
 .map-region {
+  min-height: 0;
   flex: 1;
   min-width: 0;
   position: relative;
@@ -992,8 +1008,16 @@ tbody th {
   .workspace {
     flex-direction: column-reverse;
   }
+  .map-column {
+    flex: 0 0 50%;
+    min-height: 230px;
+  }
+  .map-column .search {
+    flex: 1 1 100%;
+    max-width: none;
+  }
   .map-region {
-    flex: 0 0 40%;
+    flex: 1;
     min-height: 150px;
   }
   .results {
