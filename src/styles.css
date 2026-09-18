@@ -457,7 +457,7 @@ header {
 }
 .building-card {
   border-top: 1px solid var(--line);
-  padding: 12px var(--content-inset) 8px;
+  padding: 14px var(--content-inset) 8px;
   transition: background 120ms ease;
 }
 .building-card.selected {
@@ -1077,7 +1077,7 @@ tbody th {
     display: none;
   }
   .building-card {
-    padding: 12px var(--content-inset) 8px;
+    padding: 14px var(--content-inset) 8px;
   }
   .toast {
     width: 90%;
