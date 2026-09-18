@@ -71,7 +71,9 @@ try {
           ? JSON.stringify([126.891, 37.509])
           : key === "CBD"
             ? JSON.stringify([126.98262, 37.56595])
-            : null,
+            : key === "YBD"
+              ? JSON.stringify([126.9243, 37.52167])
+              : null,
         key === "Others" ? 15 : null,
         JSON.stringify({
           membership: {
