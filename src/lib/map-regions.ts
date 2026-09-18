@@ -10,25 +10,25 @@ export type DistrictBoundary = {
 };
 export const boundaries = data.features as unknown as DistrictBoundary[];
 export const districts = [
-  { key: "CBD", label: "CBD", name: "종로구 · 중구", color: "#9b7057" },
+  { key: "CBD", label: "CBD", name: "종로구 · 중구", color: "#253985" },
   {
     key: "GBD",
     label: "GBD",
     name: "강남구 · 서초구 · 송파구 신천동·잠실동",
-    color: "#8b7860",
+    color: "#7561a8",
   },
-  { key: "YBD", label: "YBD", name: "여의도동", color: "#567e76" },
+  { key: "YBD", label: "YBD", name: "여의도동", color: "#287f78" },
   {
     key: "Others",
     label: "서울 기타",
     name: "서울 내 CBD · GBD · YBD 외 지역",
-    color: "#8c9193",
+    color: "#778397",
   },
   {
     key: "BBD",
     label: "BBD",
     name: "성남시 분당구 · 판교 포함",
-    color: "#767e99",
+    color: "#287aab",
   },
 ] as const;
 

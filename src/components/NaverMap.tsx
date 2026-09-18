@@ -74,6 +74,7 @@ export default function NaverMap({
   );
   const activeDistrictRef = useRef(activeDistrict);
   const focusingDistrict = useRef(false);
+  const highlightBoundary = useRef<(key: DistrictKey | null) => void>(() => {});
   const zoom = map.current?.getZoom() ?? camera.current?.zoom ?? 12;
   const overview = zoom <= 12 && !activeDistrict;
   const missing = buildings.filter((b) => !hasLocation(b)).length;
@@ -101,8 +102,8 @@ export default function NaverMap({
         map.current = instance;
         n.Event.addListener(instance, "idle", () => {
           const center = instance.getCenter();
-          // Zooming back out restores the geographical overview. A fitBounds
-          // for broad Others may itself need zoom 12, so don't reset that move.
+          // Zooming back out restores the geographical overview, except while
+          // applying a region's navigation camera.
           if (
             !focusingDistrict.current &&
             instance.getZoom() <= 12 &&
@@ -149,6 +150,13 @@ export default function NaverMap({
     activeDistrictRef.current = key;
     focusingDistrict.current = true;
     setActiveDistrict(key);
+    if (key === "Others") {
+      // Seoul Others is geographically dispersed. Open its southwest cluster
+      // around Sindorim instead of centring Seoul's complete bounding box.
+      map.current.setCenter(new n.LatLng(37.509, 126.891));
+      map.current.setZoom(14);
+      return;
+    }
     map.current.fitBounds(
       new n.LatLngBounds(new n.LatLng(south, west), new n.LatLng(north, east)),
       { top: 110, right: 45, bottom: 65, left: 45, maxZoom: 16 },
@@ -191,12 +199,12 @@ export default function NaverMap({
           fillColor: district.color,
           fillOpacity: overview
             ? district.key === "Others"
-              ? 0.06
-              : 0.12
-            : 0.035,
+              ? 0.09
+              : 0.2
+            : 0.07,
           strokeColor: district.color,
-          strokeWeight: overview ? 2 : 1.5,
-          strokeOpacity: 0.8,
+          strokeWeight: overview ? 3 : 2.5,
+          strokeOpacity: 0.9,
           clickable: overview,
           zIndex: district.key === "Others" ? 1 : 2,
         });
@@ -206,24 +214,41 @@ export default function NaverMap({
                 focusDistrict(district.key),
               ),
               n.Event.addListener(polygon, "mouseover", () =>
-                polygon.setOptions({ fillOpacity: 0.22, strokeWeight: 2.5 }),
+                highlightBoundary.current(district.key),
               ),
               n.Event.addListener(polygon, "mouseout", () =>
-                polygon.setOptions({
-                  fillOpacity: district.key === "Others" ? 0.06 : 0.12,
-                  strokeWeight: 2,
-                }),
+                highlightBoundary.current(null),
               ),
             ]
           : [];
-        return { polygon, listeners };
+        return { polygon, listeners, key: district.key };
       });
     });
-    return () =>
+    highlightBoundary.current = (key) => {
+      overlays.forEach(({ polygon, key: districtKey }) => {
+        const highlighted = districtKey === key;
+        polygon.setOptions({
+          fillOpacity: highlighted
+            ? districtKey === "Others"
+              ? 0.18
+              : 0.34
+            : overview
+              ? districtKey === "Others"
+                ? 0.09
+                : 0.2
+              : 0.07,
+          strokeWeight: (overview ? 3 : 2.5) + (highlighted ? 0.5 : 0),
+          strokeOpacity: highlighted ? 1 : 0.9,
+        });
+      });
+    };
+    return () => {
+      highlightBoundary.current = () => {};
       overlays.forEach(({ polygon, listeners }) => {
         listeners.forEach((listener) => n.Event.removeListener(listener));
         polygon.setMap(null);
       });
+    };
   }, [phase, overview, activeDistrict, zoom]);
   useEffect(() => {
     if (phase !== "ready" || !map.current) return;
@@ -258,6 +283,9 @@ export default function NaverMap({
           const label = document.createElement("span");
           label.textContent = group.label;
           button.append(label);
+          button.style.borderColor = districts.find(
+            (d) => d.key === group.id,
+          )!.color;
         }
         const count = document.createElement("strong");
         count.textContent = String(group.buildings.length);
@@ -277,19 +305,35 @@ export default function NaverMap({
         else focus(group);
       };
       button.addEventListener("click", activate);
+      const highlight = () => {
+        if (group.label) highlightBoundary.current(group.id as DistrictKey);
+      };
+      const unhighlight = () => {
+        if (group.label) highlightBoundary.current(null);
+      };
+      button.addEventListener("mouseenter", highlight);
+      button.addEventListener("mouseleave", unhighlight);
+      button.addEventListener("focus", highlight);
+      button.addEventListener("blur", unhighlight);
       const marker = new n.Marker({
         map: map.current,
         position: new n.LatLng(group.latitude, group.longitude),
         icon: { content: button, anchor: new n.Point(0, 0) },
         zIndex: group.label ? 100 : single ? 10 : 50,
       });
-      return { marker, button, activate };
+      return { marker, button, activate, highlight, unhighlight };
     });
     return () =>
-      markers.forEach(({ marker, button, activate }) => {
-        button.removeEventListener("click", activate);
-        marker.setMap(null);
-      });
+      markers.forEach(
+        ({ marker, button, activate, highlight, unhighlight }) => {
+          button.removeEventListener("click", activate);
+          button.removeEventListener("mouseenter", highlight);
+          button.removeEventListener("mouseleave", unhighlight);
+          button.removeEventListener("focus", highlight);
+          button.removeEventListener("blur", unhighlight);
+          marker.setMap(null);
+        },
+      );
   }, [phase, buildings, selected, onSelect, viewport, overview]);
   const overlapping = buildings.filter((b) => overlap.includes(b.id));
   return (
@@ -307,6 +351,11 @@ export default function NaverMap({
                   key={d.key}
                   aria-pressed={activeDistrict === d.key}
                   title={d.name}
+                  style={{ borderBottomColor: d.color, borderBottomWidth: 2 }}
+                  onMouseEnter={() => highlightBoundary.current(d.key)}
+                  onMouseLeave={() => highlightBoundary.current(null)}
+                  onFocus={() => highlightBoundary.current(d.key)}
+                  onBlur={() => highlightBoundary.current(null)}
                   onClick={() => focusDistrict(d.key)}
                 >
                   {d.label}
