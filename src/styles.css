@@ -79,6 +79,7 @@ select {
 }
 select {
   appearance: none;
+  cursor: pointer;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12' fill='none'%3E%3Cpath d='m3 4.5 3 3 3-3' stroke='%23636e80' stroke-width='1.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 10px center;
@@ -87,9 +88,12 @@ input::placeholder {
   color: var(--text-tertiary);
 }
 .search:focus-within,
-.filters label:focus-within {
+.filters select:focus-visible {
   border-color: var(--accent);
   box-shadow: 0 0 0 2px #25398518;
+}
+.filters select:focus-visible {
+  outline: none;
 }
 .search input:focus-visible {
   outline: none;
@@ -372,15 +376,31 @@ header {
   background: var(--surface);
   white-space: nowrap;
 }
-.filters select {
+.filters label {
+  position: relative;
+  padding: 0;
   border: 0;
-  height: 30px;
-  padding: 0 22px 0 0;
+  gap: 0;
+  cursor: pointer;
+}
+.filters label > svg {
+  position: absolute;
+  left: 10px;
+  pointer-events: none;
+}
+.filters select {
+  border: 1px solid var(--line);
+  width: 100%;
+  height: 100%;
+  padding: 0 30px 0 30px;
   background-color: transparent;
-  background-position: right center;
+  background-position: right 10px center;
   color: var(--brand);
   max-width: 145px;
   font-size: 13px;
+}
+.filters select:hover {
+  border-color: var(--text-secondary);
 }
 .fixed-filter {
   border-color: transparent;
