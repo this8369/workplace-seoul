@@ -17,6 +17,7 @@
   --hover: #e9edf3;
   --line: rgb(76 88 107 / 24%);
   --divider: rgb(63 75 95 / 42%);
+  --vertical-divider: rgb(63 75 95 / 36%);
   --muted: #828b9b;
   --sidebar-width: 200px;
   --toolbar-height: 56px;
@@ -143,7 +144,7 @@ svg {
   width: var(--sidebar-width);
   flex-shrink: 0;
   background: var(--surface-muted);
-  border-right: 1px solid var(--divider);
+  border-right: 1px solid var(--vertical-divider);
   display: flex;
   flex-direction: column;
   padding: 0 8px 8px;
@@ -395,7 +396,7 @@ header {
   display: flex;
   flex-direction: column;
   background: var(--surface);
-  border-right: 1px solid var(--divider);
+  border-right: 1px solid var(--vertical-divider);
   position: relative;
   z-index: 1;
 }
@@ -1737,25 +1738,40 @@ button:disabled {
 .map-region-label {
   transform: translate(-50%, -50%);
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 6px;
+  gap: 2px;
   white-space: nowrap;
-  padding: 6px 9px;
-  background: #fffffff0;
-  border: 1px solid var(--line);
-  border-radius: 5px;
-  color: var(--text-secondary);
-  box-shadow: 0 2px 8px #1c243515;
-  font-size: 12px;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  color: #fff;
+  box-shadow: none;
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: 0.3px;
   cursor: pointer;
 }
 .map-region-label strong {
+  font-size: 13px;
+  line-height: 18px;
+  font-weight: 500;
+  letter-spacing: 0;
+}
+.map-region-label.is-others {
+  color: var(--brand);
+  font-size: 19px;
   font-weight: 600;
 }
 .map-region-label:hover,
 .map-region-label:focus-visible {
-  background: var(--accent-soft);
-  outline: 2px solid var(--accent);
+  background: transparent;
+}
+.map-region-label:focus-visible {
+  outline: 1px solid currentColor;
+  outline-offset: 5px;
 }
 .map-cluster:hover,
 .map-cluster:focus-visible {

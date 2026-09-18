@@ -204,7 +204,7 @@ export default function NaverMap({
           fillOpacity: overview
             ? district.key === "Others"
               ? 0.09
-              : 0.2
+              : 0.58
             : 0.07,
           strokeColor: district.color,
           strokeWeight: overview ? 3 : 2.5,
@@ -235,11 +235,11 @@ export default function NaverMap({
           fillOpacity: highlighted
             ? districtKey === "Others"
               ? 0.18
-              : 0.34
+              : 0.78
             : overview
               ? districtKey === "Others"
                 ? 0.09
-                : 0.2
+                : 0.58
               : 0.07,
           strokeWeight: (overview ? 3 : 2.5) + (highlighted ? 0.5 : 0),
           strokeOpacity: highlighted ? 1 : 0.9,
@@ -278,7 +278,7 @@ export default function NaverMap({
       button.className = single
         ? `map-marker ${selected === b.id ? "active" : ""}`
         : group.label
-          ? "map-region-label"
+          ? `map-region-label${group.id === "Others" ? " is-others" : ""}`
           : "map-cluster";
       if (single)
         button.textContent = b.name.split(/\s*[（(]/)[0].trim() || b.name;
@@ -287,12 +287,9 @@ export default function NaverMap({
           const label = document.createElement("span");
           label.textContent = group.label;
           button.append(label);
-          button.style.borderColor = districts.find(
-            (d) => d.key === group.id,
-          )!.color;
         }
         const count = document.createElement("strong");
-        count.textContent = String(group.buildings.length);
+        count.textContent = `${group.buildings.length}${group.label ? "개" : ""}`;
         button.append(count);
       }
       button.setAttribute(
@@ -386,15 +383,25 @@ export default function NaverMap({
                 : "빌딩을 선택해 자세히 보기"}
             {missing > 0 && <span>위치 확인 중 {missing}개</span>}
           </div>
-          <a
-            className="map-boundary-source"
-            href="http://www.gisdeveloper.co.kr/?p=2332"
-            target="_blank"
-            rel="noreferrer"
-            title="지오서비스 법정동 경계 · 2023.07 · 지도 표시용 단순화"
-          >
-            경계 © 지오서비스 · 2023.07
-          </a>
+          <div className="map-boundary-source">
+            <a
+              href="http://www.gisdeveloper.co.kr/?p=2332"
+              target="_blank"
+              rel="noreferrer"
+              title="지오서비스 법정동 경계 · 2023.07 · 지도 표시용 단순화"
+            >
+              경계 © 지오서비스
+            </a>
+            <span> · </span>
+            <a
+              href="https://www.openstreetmap.org/copyright"
+              target="_blank"
+              rel="noreferrer"
+              title="도로 선형 © OpenStreetMap contributors · ODbL"
+            >
+              도로 © OpenStreetMap
+            </a>
+          </div>
           {overlapping.length > 0 && (
             <section className="map-overlap" aria-label="가까운 위치의 자산">
               <header>

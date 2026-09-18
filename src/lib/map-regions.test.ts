@@ -11,7 +11,9 @@ import {
 test("editorial mountain trims preserve central districts and source classification", () => {
   const cbd = displayBoundaries.find((b) => b.properties.key === "CBD")!;
   const gbd = displayBoundaries.find((b) => b.properties.key === "GBD")!;
-  assert.equal(boundaryContains(cbd, 126.977, 37.58), true); // Gyeongbokgung
+  assert.equal(boundaryContains(cbd, 126.977, 37.58), false); // Palace north of Line 3
+  assert.equal(boundaryContains(cbd, 126.977, 37.571), true); // Gwanghwamun business area
+  assert.equal(boundaryContains(cbd, 126.994, 37.574), true); // Jongmyo corridor
   assert.equal(boundaryContains(cbd, 126.98, 37.62), false); // Northern mountains
   assert.equal(boundaryContains(gbd, 127.027, 37.498), true); // Gangnam Station
   assert.equal(boundaryContains(gbd, 127.047, 37.486), true); // Maebong

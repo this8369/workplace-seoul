@@ -4,21 +4,23 @@ Run after build-map-boundaries.py. Requires shapely.
 """
 import json
 from pathlib import Path
-from shapely.geometry import shape, mapping, box, Polygon, MultiPolygon
+from shapely.geometry import shape, mapping, LineString, Polygon, MultiPolygon
 from shapely.ops import unary_union
 
 root = Path(__file__).resolve().parents[2]
 source = json.loads((root / "src/data/district-boundaries.json").read_text())
-# Keep Gyeongbokgung, trim the northern mountain extension. The GBD cut follows
-# an editorial foothill line below the built-up area, not a new legal boundary.
-masks = {
-    "CBD": box(126, 37, 128, 37.587),
-    "GBD": Polygon([
-        (126.9, 37.465), (127.015, 37.465), (127.035, 37.478),
-        (127.06, 37.482), (127.085, 37.48), (127.12, 37.477),
-        (127.2, 37.477), (127.2, 38), (126.9, 38),
-    ]),
-}
+road_data = json.loads((root / "src/data/district-road-traces.json").read_text())
+# Editorial boundaries follow sampled road geometry, including road bends and
+# the Jongmyo corridor, instead of latitude cuts or decorative spline curves.
+masks = {}
+for key, trace in road_data["traces"].items():
+    points = trace["coordinates"]
+    assert LineString(points).is_simple, key
+    closing_latitude = 37 if key == "CBD" else 38
+    mask = Polygon([(126, points[0][1]), *points, (128, points[-1][1]),
+                    (128, closing_latitude), (126, closing_latitude)])
+    assert mask.is_valid, key
+    masks[key] = mask
 features = []
 trimmed = []
 for feature in source["features"]:
@@ -34,7 +36,11 @@ for feature in source["features"]:
     if clipped.geom_type == "Polygon":
         clipped = MultiPolygon([clipped])
     assert clipped.geom_type == "MultiPolygon"
-    features.append({**feature, "bbox": list(clipped.bounds), "geometry": mapping(clipped)})
+    properties = dict(feature["properties"])
+    if key == "CBD":
+        properties["labelPosition"] = [126.986, 37.5638]
+    features.append({**feature, "properties": properties,
+                     "bbox": list(clipped.bounds), "geometry": mapping(clipped)})
 # Merge trimmed hills into the surrounding display background so old CBD/GBD
 # hole edges do not remain as misleading ghost outlines behind the new cuts.
 others = next(f for f in source["features"] if f["properties"]["key"] == "Others")
@@ -44,6 +50,8 @@ if geo.geom_type == "Polygon":
     geo = MultiPolygon([geo])
 features.append({**others, "bbox": list(geo.bounds), "geometry": mapping(geo)})
 target = root / "src/data/district-display-boundaries.json"
-target.write_text(json.dumps({"type": "FeatureCollection", "features": features},
+target.write_text(json.dumps({"type": "FeatureCollection", "roadSource": road_data["source"],
+                             "roadSourceUrl": road_data["sourceUrl"], "roadLicense": road_data["license"],
+                             "features": features},
                              ensure_ascii=False, separators=(",", ":")) + "\n")
 print(f"Wrote {len(features)} display-only boundaries to {target.name}")
