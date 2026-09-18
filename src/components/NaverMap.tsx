@@ -1,5 +1,6 @@
 import type { Leasing } from "../lib/catalog";
 import { regionStats } from "../lib/region-stats";
+import { mapMarkerFacts, markerNocIndex } from "../lib/map-marker-facts";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { MapPin, RefreshCw, X } from "lucide-react";
 import { formatArea, type Building } from "../lib/domain";
@@ -87,6 +88,7 @@ export default function NaverMap({
       hoveredDistrict ? regionStats(buildings, leasing, hoveredDistrict) : null,
     [buildings, leasing, hoveredDistrict],
   );
+  const markerNoc = useMemo(() => markerNocIndex(leasing), [leasing]);
   const nocText = (value: number | null) =>
     value === null
       ? "미확인"
@@ -336,10 +338,41 @@ export default function NaverMap({
         const dot = document.createElement("span");
         dot.className = "map-marker-dot";
         dot.setAttribute("aria-hidden", "true");
-        const name = document.createElement("span");
+        const bubble = document.createElement("span");
+        bubble.className = "map-marker-bubble";
+        const name = document.createElement("strong");
         name.className = "map-marker-name";
         name.textContent = b.name.split(/\s*[（(]/)[0].trim() || b.name;
-        button.append(dot, name);
+        bubble.append(name);
+        const facts = document.createElement("span");
+        facts.className = "map-marker-facts";
+        const values = mapMarkerFacts(b, markerNoc.get(b.id));
+        for (const fact of values) {
+          const row = document.createElement("span");
+          row.className = "map-marker-fact";
+          const label = document.createElement("span");
+          label.className = "map-marker-fact-label";
+          label.textContent = fact.label;
+          if (fact.note) {
+            const note = document.createElement("small");
+            note.textContent = fact.note;
+            label.append(note);
+          }
+          const value = document.createElement("span");
+          value.className = "map-marker-fact-value";
+          value.textContent = fact.value;
+          if (fact.title) row.title = fact.title;
+          row.append(label, value);
+          facts.append(row);
+        }
+        bubble.append(facts);
+        button.append(dot, bubble);
+        button.setAttribute(
+          "aria-description",
+          values
+            .map((f) => `${f.label} ${f.value}${f.note ? ` (${f.note})` : ""}`)
+            .join(", "),
+        );
       } else {
         if (group.label) {
           const label = document.createElement("span");
@@ -366,9 +399,11 @@ export default function NaverMap({
       button.addEventListener("click", activate);
       const highlight = () => {
         if (group.label) highlightDistrict(group.id as DistrictKey);
+        else if (single) marker.setZIndex(1000);
       };
       const unhighlight = () => {
         if (group.label) highlightDistrict(null);
+        else if (single) marker.setZIndex(selected === b.id ? 300 : 10);
       };
       button.addEventListener("mouseenter", highlight);
       button.addEventListener("mouseleave", unhighlight);
@@ -378,7 +413,13 @@ export default function NaverMap({
         map: map.current,
         position: new n.LatLng(group.latitude, group.longitude),
         icon: { content: button, anchor: new n.Point(0, 0) },
-        zIndex: group.label ? 100 : single ? 10 : 50,
+        zIndex: group.label
+          ? 100
+          : single
+            ? selected === b.id
+              ? 300
+              : 10
+            : 50,
       });
       return { marker, button, activate, highlight, unhighlight };
     });
@@ -393,7 +434,7 @@ export default function NaverMap({
           marker.setMap(null);
         },
       );
-  }, [phase, buildings, selected, onSelect, viewport, overview]);
+  }, [phase, buildings, markerNoc, selected, onSelect, viewport, overview]);
   const overlapping = buildings.filter((b) => overlap.includes(b.id));
   return (
     <div

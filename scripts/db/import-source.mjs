@@ -49,6 +49,8 @@ const buildings = table("01").map((r) => ({
   floors_above: n(r["지상층"]),
   floors_below: n(r["지하층"]),
   completion_year: null,
+  typical_floor_area_pyeong:
+    n(r["기준층면적_평"]) > 0 ? n(r["기준층면적_평"]) : null,
   parking_spaces: null,
   source_name: "제공 원본 · 검수 전",
   source_url: r["원본링크"],

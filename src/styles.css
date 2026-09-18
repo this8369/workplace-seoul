@@ -1826,29 +1826,85 @@ button:disabled {
   background: var(--accent);
   box-shadow: none;
 }
-.map-marker-name {
+.map-marker-bubble {
   position: absolute;
-  bottom: 19.5px; /* 4.5px gap above the 14px point, previously 9px. */
+  bottom: 21px;
   left: 50%;
   transform: translateX(-50%);
-  padding: 4.5px 7px;
-  max-width: 220px;
+  display: block;
+  width: 184px;
+  padding: 7px 9px;
+  text-align: left;
+  white-space: normal;
+  border-radius: 6px;
+  border: 1.5px solid var(--brand);
+  background: var(--surface);
+  color: var(--brand);
+  box-shadow: none;
+}
+.map-marker-bubble::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: -5px;
+  width: 8px;
+  height: 8px;
+  transform: translateX(-50%) rotate(45deg);
+  border-right: 1.5px solid;
+  border-bottom: 1.5px solid;
+  border-color: inherit;
+  background: inherit;
+}
+.map-marker-name {
+  display: block;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   font-size: 12px;
   line-height: 18px;
-  border-radius: 6px;
-  border: 1px solid #8792a6;
-  background: var(--surface);
-  color: var(--brand);
+  font-weight: 600;
+  padding-bottom: 4px;
+  margin-bottom: 4px;
+  border-bottom: 0.5px solid rgb(63 75 95 / 25%);
 }
-.map-marker.active .map-marker-name,
-.map-marker:hover .map-marker-name,
-.map-marker:focus-visible .map-marker-name {
+.map-marker-facts {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 11px;
+  line-height: 17px;
+  font-variant-numeric: tabular-nums;
+}
+.map-marker-fact {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 6px;
+}
+.map-marker-fact-label {
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+.map-marker-fact-label small {
+  margin-left: 3px;
+  font-size: 9px;
+}
+.map-marker-fact-value {
+  font-weight: 500;
+  white-space: nowrap;
+}
+.map-marker.active .map-marker-bubble,
+.map-marker:hover .map-marker-bubble,
+.map-marker:focus-visible .map-marker-bubble {
   background: var(--accent);
   color: white;
   border-color: var(--accent);
+}
+.map-marker:is(.active, :hover, :focus-visible) .map-marker-fact-label {
+  color: #e2e7f8;
+}
+.map-marker:is(.active, :hover, :focus-visible) .map-marker-name {
+  border-bottom-color: rgb(255 255 255 / 30%);
 }
 .map-region-tooltip {
   position: absolute;

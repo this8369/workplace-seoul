@@ -25,3 +25,11 @@ Google Sheets는 수집·검토 원본이며 DB와 자동 양방향 동기화되
 `scripts/images/collect.mjs`는 공개 오피스 검색 결과를 건물명과 위치로 대조한다. `discover.mjs`는 검색으로 확인한 소개 페이지의 사진을 추가 수집한다. 수집 결과는 Git에서 제외된 `data/private/images/`에만 저장한다. `prepare-webp.py`가 WebP와 묶음 등록 파일을 만든다.
 
 관리 화면의 사진 묶음 가져오기는 로그인 사용자의 Supabase 권한으로 업로드하며 기존 대표 사진을 보존한다. 개발 서버의 수집한 사진 적용 버튼은 고정된 로컬 묶음 파일만 읽고, 서버에서 관리 권한을 확인한 뒤 반환한다. 이 경로는 배포 빌드에 포함되지 않는다. DB 자격증명과 수집 원본은 Vite에서 직접 제공하지 않는다.
+
+Map building bubbles read gross area, completion year and source-reported typical
+floor area from `buildings` (`typical_floor_area_pyeong`, nullable), and NOC from
+`leasing_quarters`. NOC uses the catalog's latest quarter with its period visible;
+missing or conflicting observations stay unknown rather than falling back to an
+older quarter. Typical floor area is not estimated from gross area or floor count.
+The current source snapshot has no typical-floor or completion-date values, so
+those fields remain unknown until supplied. All four facts are visible without hover.
