@@ -10,7 +10,7 @@
     "dev": "vite --host 127.0.0.1",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview --host 127.0.0.1",
-    "test": "node --experimental-strip-types --test src/lib/domain.test.ts supabase/tests/policies.test.mjs"
+    "test": "node --experimental-strip-types --test src/lib/domain.test.ts supabase/tests/*.test.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "2.116.0",
