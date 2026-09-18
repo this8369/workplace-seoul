@@ -477,6 +477,7 @@ header {
 .building-art {
   width: 56px;
   height: 64px;
+  border: 0.5px solid rgb(63 75 95 / 25%);
   background: var(--surface-muted);
   display: flex;
   align-items: center;
