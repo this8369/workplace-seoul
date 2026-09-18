@@ -8,6 +8,7 @@ import {
   Compass,
   FileText,
   Layers3,
+  LogOut,
   MapPin,
   Search,
   SlidersHorizontal,
@@ -189,9 +190,11 @@ export default function App() {
     <div className="app">
       <aside className="sidebar">
         <a className="brand" href={import.meta.env.BASE_URL}>
-          <span className="brand-mark">w.</span>
-          <span>
-            Workplace<span className="brand-city">Seoul</span>
+          <span className="brand-mark" aria-hidden="true">
+            w.
+          </span>
+          <span className="brand-name">
+            Workplace <span className="brand-city">Seoul</span>
           </span>
         </a>
         <div className="nav-label">WORKSPACE</div>
@@ -238,21 +241,26 @@ export default function App() {
             <br />한 건물씩, 깊이 있게.
           </p>
         </div>
-        {session && (
-          <div className="account-identity">
-            <span title={session.user.email}>{session.user.email}</span>
-            <small>
-              {load !== "ready"
-                ? "로그인됨"
-                : catalog.review
-                  ? "검수 계정"
-                  : "일반 계정"}
-            </small>
-          </div>
-        )}
         <div className="account">
-          <span className="avatar">{session ? "M" : "W"}</span>
+          <span className="avatar" aria-hidden="true">
+            {session ? session.user.email?.[0].toUpperCase() || "W" : "W"}
+          </span>
+          {session && (
+            <div className="account-identity">
+              <span title={session.user.email}>{session.user.email}</span>
+              <small>
+                {load !== "ready"
+                  ? "로그인됨"
+                  : catalog.review
+                    ? "검수 계정"
+                    : "일반 계정"}
+              </small>
+            </div>
+          )}
           <button
+            className={session ? "account-action" : "account-login"}
+            aria-label={session ? "로그아웃" : "로그인"}
+            title={session ? "로그아웃" : "로그인"}
             onClick={() =>
               session
                 ? supabase?.auth.signOut().then(({ error }) => {
@@ -261,8 +269,14 @@ export default function App() {
                 : setLogin(true)
             }
           >
-            {session ? "로그아웃" : "로그인"}
-            <ArrowUpRight size={14} />
+            {session ? (
+              <LogOut size={16} />
+            ) : (
+              <>
+                로그인
+                <ArrowUpRight size={14} />
+              </>
+            )}
           </button>
         </div>
       </aside>
@@ -437,16 +451,18 @@ export default function App() {
                         className="card-main"
                         onClick={() => select(b.id)}
                       >
-                        <span className="building-art">
-                          <Building2 size={32} />
+                        <span className="building-art" aria-hidden="true">
+                          <Building2 size={26} />
                         </span>
                         <span className="card-info">
                           <span className="eyebrow">
                             {b.region} ·{" "}
                             {b.status === "operating" ? "운영 중" : "개발 중"}
                           </span>
-                          <strong>{b.name}</strong>
-                          <span className="address">{b.address}</span>
+                          <strong title={b.name}>{b.name}</strong>
+                          <span className="address" title={b.address}>
+                            {b.address}
+                          </span>
                           <span className="area">
                             {formatArea(b.gross_area_m2)}
                             <span>
