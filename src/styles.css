@@ -501,6 +501,15 @@ header {
   background: var(--accent-soft);
   box-shadow: inset 3px 0 var(--accent);
 }
+.building-card.is-development {
+  background: color-mix(in srgb, #b4232c 4%, var(--surface));
+}
+.building-card.is-development:hover {
+  background: color-mix(in srgb, #b4232c 7%, var(--surface));
+}
+.building-card.is-development.selected {
+  background: color-mix(in srgb, #b4232c 9%, var(--surface));
+}
 .card-main {
   padding: 0;
   width: 100%;
@@ -586,6 +595,14 @@ header {
 .card-noc small {
   font-size: 12px;
   color: var(--text-secondary);
+}
+.card-owner .card-metric-label {
+  flex-shrink: 0;
+}
+.card-owner .card-metric-value {
+  min-width: 0;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 .card-actions {
   display: flex;

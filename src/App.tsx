@@ -675,7 +675,7 @@ export default function App() {
                   cardResults.map((b) => (
                     <article
                       key={b.id}
-                      className={`building-card ${b.id === selected ? "selected" : ""}`}
+                      className={`building-card ${b.status === "development" ? "is-development" : ""} ${b.id === selected ? "selected" : ""}`}
                     >
                       <button
                         className="card-main"
@@ -707,10 +707,19 @@ export default function App() {
                                 {cardMetrics.get(b.id)?.floor ?? "미확인"}
                               </span>
                             </span>
-                            <span className="card-metric card-noc">
-                              <span className="card-metric-label">F.NOC</span>
+                            <span
+                              className={`card-metric ${b.status === "development" ? "card-owner" : "card-noc"}`}
+                            >
+                              <span className="card-metric-label">
+                                {b.status === "development"
+                                  ? "소유주"
+                                  : "F.NOC"}
+                              </span>
                               <span className="card-metric-value">
-                                {cardMetrics.get(b.id)?.noc ?? "미확인"}
+                                {b.status === "development"
+                                  ? developmentSummary.get(b.id)?.developer ||
+                                    "미확인"
+                                  : (cardMetrics.get(b.id)?.noc ?? "미확인")}
                               </span>
                               {b.status === "operating" &&
                                 cardMetrics.get(b.id)?.period && (
