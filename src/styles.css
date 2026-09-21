@@ -1848,10 +1848,10 @@ button:disabled {
   box-shadow: none;
 }
 .map-marker.is-development .map-marker-bubble {
-  --bubble-background: #fbddd4;
-  --bubble-border: #b75649;
-  --bubble-heading: #cd8980;
-  color: #5c2b27;
+  --bubble-background: color-mix(in srgb, #b4232c 15%, white);
+  --bubble-border: #922b32;
+  --bubble-heading: #922b32;
+  color: #111;
 }
 .map-marker-area {
   display: block;
@@ -1931,13 +1931,13 @@ button:disabled {
 }
 .map-marker.is-development:is(.active, :hover, :focus-visible)
   .map-marker-bubble {
-  --bubble-background: #cb8980;
-  --bubble-border: #8f4138;
-  --bubble-heading: #b17a74;
-  color: #5c2b27;
+  --bubble-background: color-mix(in srgb, #b4232c 15%, white);
+  --bubble-border: #74212a;
+  --bubble-heading: #922b32;
+  color: #111;
 }
 .map-marker.is-development .map-marker-area {
-  color: #3b1b18;
+  color: white;
 }
 .map-marker.is-development .map-marker-fact-value {
   white-space: normal;
@@ -1963,6 +1963,9 @@ button:disabled {
   padding-bottom: 4px;
   margin-bottom: 4px;
   border-bottom: 0.5px solid rgb(255 255 255 / 30%);
+}
+.map-marker.is-development:is(:hover, :focus-visible) .map-marker-name {
+  border-bottom-color: rgb(146 43 50 / 25%);
 }
 .map-region-tooltip {
   position: absolute;
