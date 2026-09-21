@@ -550,6 +550,7 @@ export default function App() {
           <div className="workspace">
             <section className="results" aria-label="건물 목록">
               <div className="results-heading">
+                <h1>{view === "all" ? "오피스 둘러보기" : "관심 건물"}</h1>
                 <div
                   className="results-sort"
                   role="group"
