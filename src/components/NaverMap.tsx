@@ -350,6 +350,11 @@ export default function NaverMap({
         dot.setAttribute("aria-hidden", "true");
         const bubble = document.createElement("span");
         bubble.className = "map-marker-bubble";
+        const area = document.createElement("span");
+        area.className = "map-marker-area";
+        area.textContent = `${b.area_basis === "planned" ? "계획 " : ""}${formatArea(b.gross_area_m2)}`;
+        area.title = `${b.area_basis === "planned" ? "계획 연면적" : "연면적"} ${formatArea(b.gross_area_m2)}`;
+        bubble.append(area);
         const name = document.createElement("strong");
         name.className = "map-marker-name";
         name.textContent = b.name.split(/\s*[（(]/)[0].trim() || b.name;

@@ -1847,6 +1847,20 @@ button:disabled {
 .map-marker.is-development .map-marker-bubble {
   --bubble-background: #eef1fa;
 }
+.map-marker-area {
+  position: absolute;
+  bottom: 100%;
+  left: 7px;
+  padding: 1px 6px;
+  border-radius: 4px 4px 0 0;
+  background: var(--brand);
+  color: white;
+  font-size: 10px;
+  line-height: 16px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
 .map-marker-bubble::before,
 .map-marker-bubble::after {
   content: "";
