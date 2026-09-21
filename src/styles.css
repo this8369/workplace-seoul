@@ -1848,9 +1848,9 @@ button:disabled {
   box-shadow: none;
 }
 .map-marker.is-development .map-marker-bubble {
-  --bubble-background: #f9cfc2;
+  --bubble-background: #fbddd4;
   --bubble-border: #b75649;
-  --bubble-heading: #b75649;
+  --bubble-heading: #cd8980;
   color: #5c2b27;
 }
 .map-marker-area {
@@ -1931,10 +1931,13 @@ button:disabled {
 }
 .map-marker.is-development:is(.active, :hover, :focus-visible)
   .map-marker-bubble {
-  --bubble-background: #b45749;
+  --bubble-background: #cb8980;
   --bubble-border: #8f4138;
-  --bubble-heading: #8f4138;
-  color: white;
+  --bubble-heading: #b17a74;
+  color: #5c2b27;
+}
+.map-marker.is-development .map-marker-area {
+  color: #3b1b18;
 }
 .map-marker.is-development .map-marker-fact-value {
   white-space: normal;
@@ -1954,7 +1957,7 @@ button:disabled {
 }
 .map-marker.is-development:is(.active, :hover, :focus-visible)
   .map-marker-fact-label {
-  color: #ffebe6;
+  color: #5c2b27;
 }
 .map-marker:is(:hover, :focus-visible) .map-marker-name {
   padding-bottom: 4px;
