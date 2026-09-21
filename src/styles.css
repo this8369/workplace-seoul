@@ -427,6 +427,7 @@ header {
   z-index: 1;
 }
 .results-heading {
+  background: var(--canvas);
   height: var(--results-heading-height, var(--toolbar-height));
   min-height: var(--results-heading-height, var(--toolbar-height));
   border-bottom: var(--separator);
