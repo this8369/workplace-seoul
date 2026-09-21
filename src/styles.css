@@ -1871,6 +1871,14 @@ button:disabled {
   line-height: 17px;
   font-variant-numeric: tabular-nums;
 }
+.map-marker-scope {
+  display: block;
+  margin-top: 4px;
+  padding-top: 4px;
+  border-top: 0.5px solid currentColor;
+  font-size: 10px;
+  line-height: 15px;
+}
 .map-marker-fact {
   display: flex;
   justify-content: space-between;

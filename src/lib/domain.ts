@@ -21,6 +21,7 @@ export type Building = {
   typical_floor_area_pyeong?: number | null;
   typical_floor_rentable_pyeong?: number | null;
   typical_floor_exclusive_pyeong?: number | null;
+  typical_floor_scope?: string | null;
   typical_floor_source_url?: string | null;
   typical_floor_source_period?: string | null;
   typical_floor_collected_at?: string | null;

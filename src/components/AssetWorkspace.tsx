@@ -627,6 +627,9 @@ export function AssetWorkspace({
                     }}
                   />
                 )}
+                {b.typical_floor_scope && (
+                  <p className="context-note">{b.typical_floor_scope}</p>
+                )}
                 {b.typical_floor_source_url && (
                   <Source
                     item={{

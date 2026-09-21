@@ -391,12 +391,19 @@ export default function NaverMap({
           row.append(label, value);
           facts.append(row);
         }
+        if (b.typical_floor_scope) {
+          const scope = document.createElement("span");
+          scope.className = "map-marker-scope";
+          scope.textContent = b.typical_floor_scope;
+          facts.append(scope);
+        }
         bubble.append(facts);
         button.append(dot, bubble);
         button.setAttribute(
           "aria-description",
           values
             .map((f) => `${f.label} ${f.value}${f.note ? ` (${f.note})` : ""}`)
+            .concat(b.typical_floor_scope ? [b.typical_floor_scope] : [])
             .join(", "),
         );
       } else {

@@ -114,7 +114,10 @@ export function mapMarkerFacts(
   const rentable = {
     label: "기준층 임대면적",
     value: floor(building.typical_floor_rentable_pyeong),
-    title: building.typical_floor_source_period || undefined,
+    title:
+      [building.typical_floor_source_period, building.typical_floor_scope]
+        .filter(Boolean)
+        .join(" · ") || undefined,
   };
   const completion = {
     label: "준공년도",
@@ -160,7 +163,10 @@ export function mapMarkerFacts(
     {
       label: "기준층 전용면적",
       value: floor(building.typical_floor_exclusive_pyeong),
-      title: building.typical_floor_source_period || undefined,
+      title:
+        [building.typical_floor_source_period, building.typical_floor_scope]
+          .filter(Boolean)
+          .join(" · ") || undefined,
     },
     completion,
   ];
