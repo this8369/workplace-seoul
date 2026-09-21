@@ -13,6 +13,7 @@ import {
   markerDevelopmentIndex,
 } from "../lib/map-marker-facts";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { MapPin, RefreshCw, X } from "lucide-react";
 import { formatArea, type Building } from "../lib/domain";
 import {
@@ -120,7 +121,8 @@ export default function NaverMap({
     value === null
       ? "미확인"
       : `${Math.round(value).toLocaleString("ko-KR")} 원/평`;
-  const [overlap, setOverlap] = useState<string[]>([]);
+  const [overlap, setOverlap] = useState<MapGroup | null>(null);
+  const [overlapHost] = useState(() => document.createElement("div"));
   const [activeDistrict, setActiveDistrict] = useState<DistrictKey | null>(
     camera.current?.district ?? null,
   );
@@ -177,7 +179,7 @@ export default function NaverMap({
           };
           setViewport((v) => v + 1);
         });
-        n.Event.addListener(instance, "click", () => setOverlap([]));
+        n.Event.addListener(instance, "click", () => setOverlap(null));
         observer = new ResizeObserver(() => {
           // Resizing on every rail-animation frame makes the SDK rebuild overlays.
           clearTimeout(resizeTimer);
@@ -206,7 +208,7 @@ export default function NaverMap({
     if (!map.current || !sdk.current) return;
     const center = homeMapCenter();
     setHoveredDistrict(null);
-    setOverlap([]);
+    setOverlap(null);
     activeDistrictRef.current = null;
     setActiveDistrict(null);
     focusingDistrict.current = false;
@@ -230,7 +232,7 @@ export default function NaverMap({
     const boundary = boundaries.find((b) => b.properties.key === key)!;
     const [west, south, east, north] = boundary.bbox;
     const n = sdk.current;
-    setOverlap([]);
+    setOverlap(null);
     activeDistrictRef.current = key;
     focusingDistrict.current = true;
     setActiveDistrict(key);
@@ -263,11 +265,16 @@ export default function NaverMap({
   }, [region, phase]);
   function focus(group: MapGroup) {
     if (!map.current) return;
-    setOverlap([]);
+    setOverlap(null);
     const located = group.buildings.filter(hasLocation);
     if (!located.length) return;
-    if (zoom >= 19) {
-      setOverlap(group.buildings.map((b) => b.id));
+    const coincident = located.every(
+      (b) =>
+        Math.abs(b.latitude - located[0].latitude) < 0.00001 &&
+        Math.abs(b.longitude - located[0].longitude) < 0.00001,
+    );
+    if (zoom >= 19 || coincident) {
+      setOverlap(group);
       return;
     }
     const lat =
@@ -492,6 +499,8 @@ export default function NaverMap({
         icon: { content: button, anchor: new n.Point(0, 0) },
         zIndex: group.label ? 100 : single ? (active ? 300 : 10) : 50,
       });
+      if (!single && !group.label && overlap?.id === group.id)
+        marker.setVisible(false);
       // Decide placement before hover so expansion cannot move away from the
       // pointer and cause a repeated mouseenter/mouseleave loop.
       const positionFrame = requestAnimationFrame(() => {
@@ -548,8 +557,61 @@ export default function NaverMap({
     onSelect,
     viewport,
     overview,
+    overlap,
   ]);
-  const overlapping = buildings.filter((b) => overlap.includes(b.id));
+  const overlapping = overlap
+    ? mapBuildings
+        .filter((b) => overlap.buildings.some((item) => item.id === b.id))
+        .sort((a, b) => a.name.localeCompare(b.name, "ko", { numeric: true }))
+    : [];
+  useEffect(() => {
+    if (phase !== "ready" || !map.current || !overlap || !overlapping.length)
+      return;
+    const n = sdk.current;
+    const marker = new n.Marker({
+      map: map.current,
+      position: new n.LatLng(overlap.latitude, overlap.longitude),
+      icon: { content: overlapHost, anchor: new n.Point(8, 8) },
+      zIndex: 1100,
+    });
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setOverlap(null);
+    };
+    document.addEventListener("keydown", closeOnEscape);
+    // Pan the map just enough to keep the anchored bubble inside the viewport.
+    // The geographic point and its pointer move together; no detached panel.
+    const frame = requestAnimationFrame(() => {
+      const bounds = container.current?.getBoundingClientRect();
+      const bubble = overlapHost.querySelector<HTMLElement>(
+        ".map-coincident-bubble",
+      );
+      if (!bounds || !bubble) return;
+      bubble.style.width = `${Math.min(360, bounds.width - 24)}px`;
+      bubble.style.maxHeight = `${Math.max(100, bounds.height - 48)}px`;
+      const rect = bubble.getBoundingClientRect();
+      const dx =
+        rect.right > bounds.right - 12
+          ? rect.right - bounds.right + 12
+          : rect.left < bounds.left + 12
+            ? rect.left - bounds.left - 12
+            : 0;
+      const dy =
+        rect.top < bounds.top + 12
+          ? rect.top - bounds.top - 12
+          : rect.bottom > bounds.bottom - 24
+            ? rect.bottom - bounds.bottom + 24
+            : 0;
+      if (dx || dy) map.current.panBy(new n.Point(dx, dy));
+      bubble
+        .querySelector<HTMLButtonElement>(".map-coincident-item")
+        ?.focus({ preventScroll: true });
+    });
+    return () => {
+      cancelAnimationFrame(frame);
+      document.removeEventListener("keydown", closeOnEscape);
+      marker.setMap(null);
+    };
+  }, [phase, overlap, overlapHost, overlapping.length]);
   return (
     <div
       className="map-shell"
@@ -613,25 +675,62 @@ export default function NaverMap({
               <p>현재 검색·필터 결과 기준</p>
             </section>
           )}
-          {overlapping.length > 0 && (
-            <section className="map-overlap" aria-label="가까운 위치의 자산">
-              <header>
-                <strong>이 위치의 자산 {overlapping.length}개</strong>
-                <button aria-label="목록 닫기" onClick={() => setOverlap([])}>
-                  <X size={16} />
-                </button>
-              </header>
-              {overlapping.map((b) => (
-                <button key={b.id} onClick={() => onSelect(b.id)}>
-                  <strong>{b.name}</strong>
-                  <span>
-                    {b.status === "development" ? "개발 예정" : "기성"} ·{" "}
-                    {formatArea(b.gross_area_m2)} · {b.address}
-                  </span>
-                </button>
-              ))}
-            </section>
-          )}
+          {overlap &&
+            overlapping.length > 0 &&
+            createPortal(
+              <div
+                className="map-coincident"
+                onClick={(event) => event.stopPropagation()}
+                onPointerDown={(event) => event.stopPropagation()}
+                onDoubleClick={(event) => event.stopPropagation()}
+                onKeyDown={(event) => {
+                  if (event.key === "Escape") {
+                    event.stopPropagation();
+                    setOverlap(null);
+                  }
+                }}
+              >
+                <span className="map-marker-dot" aria-hidden="true" />
+                <section
+                  className="map-marker-bubble map-coincident-bubble"
+                  aria-label="같은 위치의 자산"
+                >
+                  <header className="map-coincident-heading">
+                    <strong>
+                      이 위치의 자산 <b>{overlapping.length}</b>
+                    </strong>
+                    <button
+                      type="button"
+                      aria-label="자산 말풍선 닫기"
+                      onClick={() => setOverlap(null)}
+                    >
+                      <X size={14} />
+                    </button>
+                  </header>
+                  <div className="map-coincident-grid">
+                    {overlapping.map((b) => (
+                      <button
+                        key={b.id}
+                        type="button"
+                        className={`map-coincident-item ${b.status === "development" ? "is-development" : ""}`}
+                        aria-label={`${b.name} 선택`}
+                        onClick={() => onSelect(b.id)}
+                      >
+                        <span className="map-coincident-area">
+                          {b.area_basis === "planned" ? "계획 " : ""}
+                          {formatArea(b.gross_area_m2)}
+                        </span>
+                        <strong>{b.name}</strong>
+                        <span className="map-coincident-status">
+                          {b.status === "development" ? "개발중" : "실물"}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </section>
+              </div>,
+              overlapHost,
+            )}
         </>
       )}
       {phase !== "ready" && (
