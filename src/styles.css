@@ -1829,13 +1829,16 @@ button:disabled {
 .map-marker-bubble {
   --bubble-background: var(--surface);
   --bubble-border: var(--brand);
+  --bubble-heading: var(--brand);
+  --bubble-padding-y: 4.5px;
+  --bubble-padding-x: 7.2px;
   position: absolute;
   bottom: 18.5px;
   left: 50%;
   display: block;
   width: max-content;
   max-width: 220px;
-  padding: 5px 8px;
+  padding: var(--bubble-padding-y) var(--bubble-padding-x);
   text-align: left;
   white-space: normal;
   border-radius: 6px 6px 6px 0;
@@ -1845,15 +1848,18 @@ button:disabled {
   box-shadow: none;
 }
 .map-marker.is-development .map-marker-bubble {
-  --bubble-background: #eef1fa;
+  --bubble-background: #f9cfc2;
+  --bubble-border: #b75649;
+  --bubble-heading: #b75649;
+  color: #5c2b27;
 }
 .map-marker-area {
-  position: absolute;
-  bottom: 100%;
-  left: 7px;
-  padding: 1px 6px;
-  border-radius: 4px 4px 0 0;
-  background: var(--brand);
+  display: block;
+  margin: calc(-1 * var(--bubble-padding-y))
+    calc(-1 * var(--bubble-padding-x)) 4.5px;
+  padding: 0.9px var(--bubble-padding-x);
+  border-radius: 4.5px 4.5px 0 0;
+  background: var(--bubble-heading);
   color: white;
   font-size: 10px;
   line-height: 16px;
@@ -1925,8 +1931,10 @@ button:disabled {
 }
 .map-marker.is-development:is(.active, :hover, :focus-visible)
   .map-marker-bubble {
-  --bubble-background: #354879;
-  --bubble-border: #354879;
+  --bubble-background: #b45749;
+  --bubble-border: #8f4138;
+  --bubble-heading: #8f4138;
+  color: white;
 }
 .map-marker.is-development .map-marker-fact-value {
   white-space: normal;
@@ -1935,13 +1943,18 @@ button:disabled {
 }
 .map-marker:is(:hover, :focus-visible) .map-marker-bubble {
   min-width: 220px;
-  padding: 7px 9px;
+  --bubble-padding-y: 6.3px;
+  --bubble-padding-x: 8.1px;
 }
 .map-marker:is(:hover, :focus-visible) .map-marker-facts {
   display: flex;
 }
 .map-marker:is(.active, :hover, :focus-visible) .map-marker-fact-label {
   color: #e2e7f8;
+}
+.map-marker.is-development:is(.active, :hover, :focus-visible)
+  .map-marker-fact-label {
+  color: #ffebe6;
 }
 .map-marker:is(:hover, :focus-visible) .map-marker-name {
   padding-bottom: 4px;
