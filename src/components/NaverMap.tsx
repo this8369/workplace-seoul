@@ -366,7 +366,8 @@ export default function NaverMap({
           markerNoc.get(b.id),
           markerDevelopment.get(b.id),
         );
-        for (const fact of values) {
+        // Gross floor area is already visible in the bubble's header.
+        for (const fact of values.slice(1)) {
           const row = document.createElement("span");
           row.className = "map-marker-fact";
           const label = document.createElement("span");
