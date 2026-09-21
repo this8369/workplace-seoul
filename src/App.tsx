@@ -4,6 +4,7 @@ import {
   mapMarkerFacts,
 } from "./lib/map-marker-facts";
 import PhotoManager from "./components/PhotoManager";
+import AssetTypeSelect from "./components/AssetTypeSelect";
 import BuildingPhoto from "./components/BuildingPhoto";
 import { fetchBuildingImages, primaryImage } from "./lib/building-images";
 import { districts } from "./lib/map-regions";
@@ -589,7 +590,7 @@ export default function App() {
           <div className="workspace">
             <section className="results" aria-label="건물 목록">
               <div className="results-heading">
-                <h1>{view === "all" ? "오피스 둘러보기" : "관심 건물"}</h1>
+                {view === "all" ? <AssetTypeSelect /> : <h1>관심 건물</h1>}
                 <div
                   className="results-sort"
                   role="group"
