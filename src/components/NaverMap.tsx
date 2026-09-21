@@ -397,7 +397,6 @@ export default function NaverMap({
         const area = document.createElement("span");
         area.className = "map-marker-area";
         area.textContent = `${b.area_basis === "planned" ? "계획 " : ""}${formatArea(b.gross_area_m2)}`;
-        area.title = `${b.area_basis === "planned" ? "계획 연면적" : "연면적"} ${formatArea(b.gross_area_m2)}`;
         bubble.append(area);
         const name = document.createElement("strong");
         name.className = "map-marker-name";
@@ -434,7 +433,6 @@ export default function NaverMap({
           const value = document.createElement("span");
           value.className = "map-marker-fact-value";
           value.textContent = fact.value;
-          if (fact.title) row.title = fact.title;
           row.append(label, value);
           facts.append(row);
         }
@@ -469,7 +467,6 @@ export default function NaverMap({
           ? `${b.name} 선택`
           : `${group.label || "인근"} 자산 ${group.buildings.length}개 확대`,
       );
-      if (single) button.title = b.name;
       const activate = (event: MouseEvent) => {
         event.stopPropagation();
         if (group.label) focusDistrict(group.id as DistrictKey);
