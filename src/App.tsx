@@ -262,7 +262,7 @@ export default function App() {
             value={region}
             onChange={(e) => setRegion(e.target.value)}
           >
-            <option value="">전국</option>
+            <option value="">전체</option>
             {regions.map((r) => (
               <option key={r}>{r}</option>
             ))}
@@ -276,9 +276,9 @@ export default function App() {
               value={status}
               onChange={(e) => setStatus(e.target.value)}
             >
-              <option value="">전체 상태</option>
-              <option value="operating">운영 중</option>
-              <option value="development">개발 중</option>
+              <option value="">실물+개발</option>
+              <option value="operating">실물</option>
+              <option value="development">개발중</option>
             </select>
           </label>
         )}
