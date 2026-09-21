@@ -27,6 +27,9 @@
   --content-inset: 16px;
   --control-height: 32px;
   --control-radius: 6px;
+  --toolbar-control-radius: 11px;
+  --toolbar-control-fill: #eceef2;
+  --toolbar-control-hover: #e3e6ec;
   --map-tabs-inset: 12px;
   --text-secondary: #636e80;
   --text-tertiary: #828b9b;
@@ -421,6 +424,27 @@ header {
 .filters select:hover {
   border-color: var(--text-secondary);
 }
+.toolbar .search,
+.toolbar .filters select {
+  border: 1px solid transparent;
+  border-radius: var(--toolbar-control-radius);
+  background-color: var(--toolbar-control-fill);
+  transition: background-color 150ms ease, border-color 150ms ease;
+}
+.toolbar .filters label {
+  background: transparent;
+  border-radius: var(--toolbar-control-radius);
+}
+.toolbar .search:hover,
+.toolbar .filters select:hover {
+  background-color: var(--toolbar-control-hover);
+}
+.toolbar .search:focus-within,
+.toolbar .filters select:focus-visible {
+  background-color: var(--toolbar-control-fill);
+  border-color: var(--accent);
+  box-shadow: none;
+}
 .fixed-filter {
   border-color: transparent;
   color: var(--text-tertiary);
@@ -479,17 +503,17 @@ header {
   padding: 0 11px;
   justify-content: space-between;
   gap: 18px;
-  border: 1px solid rgb(76 88 107 / 28%);
-  border-radius: 7px;
-  background: var(--surface);
+  border: 1px solid transparent;
+  border-radius: var(--toolbar-control-radius);
+  background: var(--toolbar-control-fill);
   color: var(--brand);
   font-size: 15px;
   font-weight: 650;
   letter-spacing: 0.5px;
+  transition: background-color 150ms ease, color 150ms ease;
 }
 .asset-type-trigger:is(:hover, [aria-expanded="true"]) {
-  border-color: var(--accent);
-  background: var(--accent-soft);
+  background: var(--toolbar-control-hover);
   color: var(--accent);
 }
 .asset-type-trigger svg {
@@ -503,10 +527,10 @@ header {
   top: calc(100% + 7px);
   left: 0;
   width: 212px;
-  padding: 5px;
-  border: 1px solid rgb(76 88 107 / 35%);
-  border-radius: 9px;
-  background: var(--surface);
+  padding: 6px;
+  border: 1px solid rgb(76 88 107 / 10%);
+  border-radius: 14px;
+  background: #f0f2f6;
 }
 .asset-type-menu button {
   width: 100%;
@@ -514,6 +538,7 @@ header {
   justify-content: space-between;
   padding: 0 10px;
   font-size: 14px;
+  border-radius: 9px;
   color: var(--brand);
 }
 .asset-type-menu button[aria-checked="true"] {
