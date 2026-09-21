@@ -725,12 +725,6 @@ export default function App() {
                                     : cardMetrics.get(b.id)?.noc,
                                 )}
                               </span>
-                              {b.status === "operating" &&
-                                cardMetrics.get(b.id)?.period && (
-                                  <small>
-                                    · {cardMetrics.get(b.id)?.period}
-                                  </small>
-                                )}
                             </span>
                           </span>
                         </span>
