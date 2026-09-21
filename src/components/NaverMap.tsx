@@ -1,6 +1,10 @@
-import type { Leasing } from "../lib/catalog";
+import type { Leasing, Development } from "../lib/catalog";
 import { regionStats } from "../lib/region-stats";
-import { mapMarkerFacts, markerNocIndex } from "../lib/map-marker-facts";
+import {
+  mapMarkerFacts,
+  markerNocIndex,
+  markerDevelopmentIndex,
+} from "../lib/map-marker-facts";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { MapPin, RefreshCw, X } from "lucide-react";
 import { formatArea, type Building } from "../lib/domain";
@@ -59,6 +63,7 @@ function loadSdk(): Promise<any> {
 export default function NaverMap({
   buildings,
   leasing,
+  developments,
   selected,
   onSelect,
   camera,
@@ -66,6 +71,7 @@ export default function NaverMap({
 }: {
   buildings: Building[];
   leasing: Leasing[];
+  developments: Development[];
   selected: string | null;
   onSelect: (id: string) => void;
   camera: { current: MapCamera | null };
@@ -87,6 +93,10 @@ export default function NaverMap({
     () =>
       hoveredDistrict ? regionStats(buildings, leasing, hoveredDistrict) : null,
     [buildings, leasing, hoveredDistrict],
+  );
+  const markerDevelopment = useMemo(
+    () => markerDevelopmentIndex(developments),
+    [developments],
   );
   const markerNoc = useMemo(() => markerNocIndex(leasing), [leasing]);
   const nocText = (value: number | null) =>
@@ -330,7 +340,7 @@ export default function NaverMap({
       const button = document.createElement("button");
       button.type = "button";
       button.className = single
-        ? `map-marker ${selected === b.id ? "active" : ""}`
+        ? `map-marker ${b.status === "development" ? "is-development" : ""} ${selected === b.id ? "active" : ""}`
         : group.label
           ? `map-region-label${group.id === "Others" ? " is-others" : ""}`
           : "map-cluster";
@@ -346,7 +356,11 @@ export default function NaverMap({
         bubble.append(name);
         const facts = document.createElement("span");
         facts.className = "map-marker-facts";
-        const values = mapMarkerFacts(b, markerNoc.get(b.id));
+        const values = mapMarkerFacts(
+          b,
+          markerNoc.get(b.id),
+          markerDevelopment.get(b.id),
+        );
         for (const fact of values) {
           const row = document.createElement("span");
           row.className = "map-marker-fact";
@@ -434,7 +448,16 @@ export default function NaverMap({
           marker.setMap(null);
         },
       );
-  }, [phase, buildings, markerNoc, selected, onSelect, viewport, overview]);
+  }, [
+    phase,
+    buildings,
+    markerNoc,
+    markerDevelopment,
+    selected,
+    onSelect,
+    viewport,
+    overview,
+  ]);
   const overlapping = buildings.filter((b) => overlap.includes(b.id));
   return (
     <div

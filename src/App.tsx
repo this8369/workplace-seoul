@@ -654,6 +654,7 @@ export default function App() {
                   homeRequest={homeRequest}
                   buildings={results}
                   leasing={catalog.leasing}
+                  developments={catalog.developments}
                   selected={selected}
                   onSelect={select}
                 />

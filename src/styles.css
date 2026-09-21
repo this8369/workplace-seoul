@@ -1844,6 +1844,9 @@ button:disabled {
   color: var(--brand);
   box-shadow: none;
 }
+.map-marker.is-development .map-marker-bubble {
+  --bubble-background: #eef1fa;
+}
 .map-marker-bubble::before,
 .map-marker-bubble::after {
   content: "";
@@ -1906,8 +1909,18 @@ button:disabled {
   --bubble-border: var(--accent);
   color: white;
 }
+.map-marker.is-development:is(.active, :hover, :focus-visible)
+  .map-marker-bubble {
+  --bubble-background: #354879;
+  --bubble-border: #354879;
+}
+.map-marker.is-development .map-marker-fact-value {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  text-align: right;
+}
 .map-marker:is(:hover, :focus-visible) .map-marker-bubble {
-  min-width: 184px;
+  min-width: 220px;
   padding: 7px 9px;
 }
 .map-marker:is(:hover, :focus-visible) .map-marker-facts {

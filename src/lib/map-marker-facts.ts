@@ -1,6 +1,6 @@
 import type { Building } from "./domain.ts";
 import { formatArea } from "./domain.ts";
-import type { Leasing } from "./catalog.ts";
+import type { Leasing, Development } from "./catalog.ts";
 
 const quarter = (period: string) => {
   const match = /^(\d{4})[.\s-]*([1-4])Q$/i.exec(period);
@@ -40,13 +40,90 @@ export function markerNocIndex(leasing: Leasing[]) {
   }
   return result;
 }
-export function mapMarkerFacts(building: Building, noc?: MarkerNoc) {
-  const floor = building.typical_floor_area_pyeong;
+export type MarkerDevelopment = {
+  developer: string;
+  contractor: string;
+  source: string;
+};
+export function markerDevelopmentIndex(developments: Development[]) {
+  const grouped = new Map<string, Development[]>();
+  for (const row of developments)
+    grouped.set(row.building_id, [
+      ...(grouped.get(row.building_id) || []),
+      row,
+    ]);
+  return new Map(
+    [...grouped].map(([id, rows]) => {
+      const latest = rows
+        .map((r) => r.as_of || "")
+        .sort()
+        .at(-1);
+      const current = rows.filter((r) => (r.as_of || "") === latest);
+      const unique = (key: "developer" | "contractor") => {
+        const values = [...new Set(current.map((r) => r[key]?.trim() || ""))];
+        return values.length === 1 ? values[0] : "";
+      };
+      return [
+        id,
+        {
+          developer: unique("developer"),
+          contractor: unique("contractor"),
+          source: current
+            .map((r) => [r.source_name, r.as_of].filter(Boolean).join(" · "))
+            .join(" / "),
+        },
+      ];
+    }),
+  );
+}
+type MarkerFact = {
+  label: string;
+  value: string;
+  note?: string;
+  title?: string;
+};
+export function mapMarkerFacts(
+  building: Building,
+  noc?: MarkerNoc,
+  development?: MarkerDevelopment,
+): MarkerFact[] {
+  const floor = (value: number | null | undefined) =>
+    value != null && Number.isFinite(value) && value > 0
+      ? `${value.toLocaleString("ko-KR", { maximumFractionDigits: 1 })}평`
+      : "미확인";
+  const area = {
+    label: building.area_basis === "planned" ? "계획 연면적" : "연면적",
+    value: formatArea(building.gross_area_m2),
+  };
+  const rentable = {
+    label: "기준층 임대면적",
+    value: floor(building.typical_floor_rentable_pyeong),
+    title: building.typical_floor_source_period || undefined,
+  };
+  const completion = {
+    label: "준공년도",
+    value: building.completion_year
+      ? `${building.completion_year}년`
+      : "미확인",
+  };
+  if (building.status === "development")
+    return [
+      area,
+      {
+        label: "소유주·시행주체",
+        value: development?.developer || "미확인",
+        title: development?.source,
+      },
+      rentable,
+      {
+        label: "시공사",
+        value: development?.contractor || "미확인",
+        title: development?.source,
+      },
+      completion,
+    ];
   return [
-    {
-      label: building.area_basis === "planned" ? "계획 연면적" : "연면적",
-      value: formatArea(building.gross_area_m2),
-    },
+    area,
     {
       label: "NOC",
       value:
@@ -56,18 +133,12 @@ export function mapMarkerFacts(building: Building, noc?: MarkerNoc) {
       note: noc?.period,
       title: noc ? `${noc.period} · ${noc.basis}` : "NOC 자료 미확인",
     },
+    rentable,
     {
-      label: "기준층 면적",
-      value:
-        floor != null && Number.isFinite(floor) && floor > 0
-          ? `${floor.toLocaleString("ko-KR", { maximumFractionDigits: 1 })}평`
-          : "미확인",
+      label: "기준층 전용면적",
+      value: floor(building.typical_floor_exclusive_pyeong),
+      title: building.typical_floor_source_period || undefined,
     },
-    {
-      label: "준공년도",
-      value: building.completion_year
-        ? `${building.completion_year}년`
-        : "미확인",
-    },
+    completion,
   ];
 }

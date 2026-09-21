@@ -587,11 +587,32 @@ export function AssetWorkspace({
                     <dd>{b.completion_year || "미확인"}</dd>
                   </div>
                   <div>
+                    <dt>기준층 임대면적</dt>
+                    <dd>
+                      {numeric(b.typical_floor_rentable_pyeong ?? null, "평")}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt>기준층 전용면적</dt>
+                    <dd>
+                      {numeric(b.typical_floor_exclusive_pyeong ?? null, "평")}
+                    </dd>
+                  </div>
+                  <div>
                     <dt>주차</dt>
                     <dd>{numeric(b.parking_spaces, "대")}</dd>
                   </div>
                 </dl>
                 <Source item={evidence} />
+                {b.typical_floor_source_url && (
+                  <Source
+                    item={{
+                      source_name: "기준층 면적 · 오피스파인드",
+                      source_url: b.typical_floor_source_url,
+                      as_of: b.typical_floor_source_period ?? null,
+                    }}
+                  />
+                )}
               </section>
               <section className="info-panel">
                 <div className="section-heading">
