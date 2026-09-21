@@ -1,3 +1,4 @@
+@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500&text=Workplace%20Seoul&display=swap");
 /* NAVER's official Nanum Barun Gothic webfonts: regular and real bold. */
 @font-face {
   font-family: "Nanum Barun Gothic";
@@ -183,6 +184,7 @@ svg {
   padding: 0 8px 8px;
 }
 .brand {
+  font-family: "IBM Plex Sans KR", -apple-system, BlinkMacSystemFont, sans-serif;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -196,12 +198,13 @@ svg {
   white-space: nowrap;
 }
 .brand-mark {
-  font-family: var(--font-ui);
+  font-family: Georgia, serif;
   font-size: 28px;
-  font-weight: 700;
+  font-weight: 600;
   color: var(--brand);
   letter-spacing: -3px;
   padding-right: 3px;
+  transform: translateY(-3px);
 }
 .brand-name {
   line-height: 20px;
