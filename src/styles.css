@@ -583,7 +583,7 @@ header {
 .card-metrics {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 1px;
   margin-top: 6px;
   font-variant-numeric: tabular-nums;
 }
