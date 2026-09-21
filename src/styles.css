@@ -2,8 +2,8 @@
 :root {
   /* Verified against fin.land.naver.com on 2026-09-21. */
   --font-ui:
-    -apple-system, BlinkMacSystemFont, helvetica, "Apple SD Gothic Neo", "나눔고딕",
-    NanumGothic, "맑은 고딕", MalgunGothic, sans-serif;
+    -apple-system, BlinkMacSystemFont, helvetica, "Apple SD Gothic Neo",
+    "나눔고딕", NanumGothic, "맑은 고딕", MalgunGothic, sans-serif;
   font-family: var(--font-ui);
   color: var(--brand);
   background: var(--canvas);
@@ -170,7 +170,11 @@ svg {
   padding: 0 8px 8px;
 }
 .brand {
-  font-family: "IBM Plex Sans KR", -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family:
+    "IBM Plex Sans KR",
+    -apple-system,
+    BlinkMacSystemFont,
+    sans-serif;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -2664,4 +2668,101 @@ button:disabled {
 }
 .sidebar-note + .admin-navigation {
   margin-top: 0;
+}
+
+.register-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+.register-heading h2 {
+  margin: 0 0 6px;
+  font-size: 20px;
+}
+.register-heading p,
+.register-provenance {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+.register-heading a {
+  color: var(--accent);
+  font-size: 13px;
+}
+.register-records {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.register-records button {
+  padding: 8px 12px;
+  border: 0.5px solid var(--divider);
+  border-radius: 6px;
+}
+.register-records button[aria-pressed="true"] {
+  color: white;
+  background: var(--accent);
+}
+.register-groups {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
+  gap: 18px;
+}
+.register-groups h3 {
+  margin: 0 0 12px;
+  font-size: 16px;
+}
+.register-groups dl {
+  font-size: 14px;
+}
+.register-groups dd {
+  overflow-wrap: anywhere;
+}
+.register-detail {
+  border-top: var(--separator);
+  padding: 16px 0;
+}
+.register-detail summary {
+  cursor: pointer;
+  font-size: 15px;
+  font-weight: 700;
+}
+.register-detail summary span {
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 400;
+  margin-left: 8px;
+}
+.register-detail p {
+  color: var(--text-secondary);
+}
+.register-table {
+  overflow-x: auto;
+}
+.register-table table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+.register-table th,
+.register-table td {
+  padding: 10px 12px;
+  border-bottom: var(--separator);
+  text-align: left;
+}
+.register-table th {
+  background: var(--surface-muted);
+  white-space: nowrap;
+}
+.register-provenance {
+  margin-top: 18px;
+}
+@media (max-width: 900px) {
+  .register-groups {
+    grid-template-columns: 1fr;
+  }
 }

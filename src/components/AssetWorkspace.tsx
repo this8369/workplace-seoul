@@ -1,3 +1,4 @@
+import BuildingRegister from "./BuildingRegister";
 import { markerDevelopmentIndex } from "../lib/map-marker-facts";
 import { towersFor, towerFloorText } from "../lib/building-towers";
 import BuildingPhoto from "./BuildingPhoto";
@@ -362,6 +363,7 @@ export function Transactions({
 }
 const tabs = [
   "개요",
+  "건축물대장",
   "임대 정보",
   "임차기업",
   "거래 이력",
@@ -550,6 +552,9 @@ export function AssetWorkspace({
         role="tabpanel"
         aria-labelledby={`asset-tab-${tabs.indexOf(tab)}`}
       >
+        {tab === "건축물대장" && (
+          <BuildingRegister key={b.id} buildingId={b.id} />
+        )}
         {tab === "개요" && (
           <>
             <div className="overview-grid">
