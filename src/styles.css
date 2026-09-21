@@ -630,7 +630,7 @@ header {
   gap: 4px;
 }
 .building-card.is-development .card-actions {
-  padding-top: 4px;
+  padding-top: 0;
 }
 .card-actions button {
   min-height: 28px;
