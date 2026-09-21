@@ -694,6 +694,9 @@ export default function App() {
                           <BuildingPhoto
                             image={primaryImage(catalog.images, b.id)}
                           />
+                          {b.status === "development" && (
+                            <span className="building-development-badge">개발</span>
+                          )}
                         </span>
                         <span className="card-info">
                           <strong>{b.name}</strong>
