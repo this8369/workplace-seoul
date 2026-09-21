@@ -126,7 +126,7 @@ test("planned completion uses development schedule and never becomes an actual a
     { building_id: "b", year: "미정", quarter: "", as_of: "2026.06" },
   ] as Development[];
   const index = markerDevelopmentIndex(rows);
-  assert.equal(index.get("a")?.completion, "2028년 3분기");
+  assert.equal(index.get("a")?.completion, "2028년");
   assert.equal(index.get("b")?.completion, "미정");
   const b = {
     status: "development",
@@ -136,5 +136,5 @@ test("planned completion uses development schedule and never becomes an actual a
   } as Building;
   const fact = mapMarkerFacts(b, undefined, index.get("a")).at(-1);
   assert.equal(fact?.label, "준공 예정");
-  assert.equal(fact?.value, "2028년 3분기");
+  assert.equal(fact?.value, "2028년");
 });

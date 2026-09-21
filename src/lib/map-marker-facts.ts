@@ -78,8 +78,7 @@ export function markerDevelopmentIndex(developments: Development[]) {
                   if (year === "미정") return "미정";
                   if (!year || !/^(18|19|20|21|22)\d{2}$/.test(year))
                     return "미확인";
-                  const quarter = /^([1-4])Q$/i.exec(r.quarter?.trim() || "");
-                  return `${year}년${quarter ? ` ${quarter[1]}분기` : ""}`;
+                  return `${year}년`;
                 }),
               ),
             ];

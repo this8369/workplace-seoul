@@ -1019,7 +1019,10 @@ export function AssetWorkspace({
                 <div className="info-panel" key={d.id}>
                   <p className="eyebrow">계획 기준 · 현행 진행상황 별도 확인</p>
                   <h2 className="development-year">
-                    {d.year} {d.quarter} 준공 예정
+                    {/^\d{4}$/.test(d.year?.trim() || "")
+                      ? `${d.year.trim()}년`
+                      : d.year || "미확인"}{" "}
+                    준공 예정
                   </h2>
                   <dl>
                     {[
