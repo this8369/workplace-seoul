@@ -77,8 +77,11 @@ export default function App() {
           building.id,
           {
             floor:
-              facts.find((fact) => fact.label === "기준층 임대면적")?.value ??
-              "미확인",
+              building.typical_floor_exclusive_pyeong != null &&
+              Number.isFinite(building.typical_floor_exclusive_pyeong) &&
+              building.typical_floor_exclusive_pyeong > 0
+                ? `${building.typical_floor_exclusive_pyeong.toLocaleString("ko-KR", { maximumFractionDigits: 1 })}평`
+                : "미확인",
             noc: facts.find((fact) => fact.label === "NOC")?.value ?? "—",
             period: noc.get(building.id)?.period,
             completion:
@@ -688,7 +691,7 @@ export default function App() {
                           <span className="address" title={b.address}>
                             {b.address}
                           </span>
-                          <span className="card-areas">
+                          <span className="card-metrics">
                             <span className="card-metric">
                               <span className="card-metric-label">
                                 {b.area_basis === "planned"
@@ -701,21 +704,24 @@ export default function App() {
                             </span>
                             <span className="card-metric">
                               <span className="card-metric-label">
-                                기준층(임대)
+                                기준층(전용)
                               </span>
                               <span className="card-metric-value">
                                 {cardMetrics.get(b.id)?.floor ?? "미확인"}
                               </span>
                             </span>
-                          </span>
-                          <span className="card-noc">
-                            <span className="card-metric-label">NOC</span>
-                            <span>
-                              {cardMetrics.get(b.id)?.noc ?? "미확인"}
+                            <span className="card-metric card-noc">
+                              <span className="card-metric-label">F.NOC</span>
+                              <span className="card-metric-value">
+                                {cardMetrics.get(b.id)?.noc ?? "미확인"}
+                              </span>
+                              {b.status === "operating" &&
+                                cardMetrics.get(b.id)?.period && (
+                                  <small>
+                                    · {cardMetrics.get(b.id)?.period}
+                                  </small>
+                                )}
                             </span>
-                            {b.status === "operating" && (
-                              <small>{cardMetrics.get(b.id)?.period}</small>
-                            )}
                           </span>
                         </span>
                       </button>
