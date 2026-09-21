@@ -41,6 +41,8 @@ import { filterBuildings, formatArea, type Building } from "./lib/domain";
 import { AssetWorkspace, Transactions } from "./components/AssetWorkspace";
 import { emptyCatalog, type Catalog } from "./lib/catalog";
 const initialQuery = new URLSearchParams(location.search).get("q") || "";
+const cardValue = (value: string | null | undefined) =>
+  !value || value === "미확인" || value === "—" ? "-" : value;
 export default function App() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
     if (window.matchMedia("(max-width: 760px)").matches) return true;
@@ -704,7 +706,7 @@ export default function App() {
                                 기준층(전용)
                               </span>
                               <span className="card-metric-value">
-                                {cardMetrics.get(b.id)?.floor ?? "미확인"}
+                                {cardValue(cardMetrics.get(b.id)?.floor)}
                               </span>
                             </span>
                             <span
@@ -716,10 +718,11 @@ export default function App() {
                                   : "F.NOC"}
                               </span>
                               <span className="card-metric-value">
-                                {b.status === "development"
-                                  ? developmentSummary.get(b.id)?.developer ||
-                                    "미확인"
-                                  : (cardMetrics.get(b.id)?.noc ?? "미확인")}
+                                {cardValue(
+                                  b.status === "development"
+                                    ? developmentSummary.get(b.id)?.developer
+                                    : cardMetrics.get(b.id)?.noc,
+                                )}
                               </span>
                               {b.status === "operating" &&
                                 cardMetrics.get(b.id)?.period && (
@@ -758,7 +761,7 @@ export default function App() {
                         </button>
                         <span>
                           {b.status === "development" ? "준공 예정" : "준공"}{" "}
-                          {cardMetrics.get(b.id)?.completion ?? "미확인"}
+                          {cardValue(cardMetrics.get(b.id)?.completion)}
                         </span>
                       </div>
                     </article>
