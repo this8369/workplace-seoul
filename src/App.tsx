@@ -702,7 +702,7 @@ export default function App() {
                                 {formatArea(b.gross_area_m2)}
                               </span>
                             </span>
-                            <span className="card-metric">
+                            <span className="card-metric card-floor">
                               <span className="card-metric-label">
                                 기준층(전용)
                               </span>

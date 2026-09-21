@@ -675,6 +675,9 @@ header {
   font-size: 13px;
   color: var(--text-secondary);
 }
+.card-floor {
+  border-block: 0.5px solid rgb(76 88 107 / 16%);
+}
 .card-metric-value {
   margin-left: auto;
   text-align: right;
