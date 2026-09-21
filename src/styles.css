@@ -539,6 +539,7 @@ header {
   width: 82px;
   height: auto;
   align-self: stretch;
+  margin-bottom: 5px;
   position: relative;
   border: 0.5px solid rgb(63 75 95 / 25%);
   background: var(--surface-muted);
