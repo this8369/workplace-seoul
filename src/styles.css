@@ -710,7 +710,8 @@ header {
     inset 0 -0.5px rgb(76 88 107 / 16%);
 }
 .card-floor,
-.card-noc {
+.card-noc,
+.card-owner {
   padding-bottom: 2px;
 }
 .card-metric-value {
