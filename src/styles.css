@@ -417,7 +417,7 @@ header {
   flex: 1;
 }
 .results {
-  width: 348px;
+  width: 368px;
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
