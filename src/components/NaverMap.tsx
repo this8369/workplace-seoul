@@ -324,7 +324,7 @@ export default function NaverMap({
           fillColor: district.color,
           fillOpacity: overview
             ? district.key === "Others"
-              ? 0.09
+              ? 0.18
               : 0.58
             : 0.07,
           strokeColor: district.color,
@@ -355,11 +355,11 @@ export default function NaverMap({
         polygon.setOptions({
           fillOpacity: highlighted
             ? districtKey === "Others"
-              ? 0.18
+              ? 0.3
               : 0.78
             : overview
               ? districtKey === "Others"
-                ? 0.09
+                ? 0.18
                 : 0.58
               : 0.07,
           strokeWeight: (overview ? 3 : 2.5) + (highlighted ? 0.5 : 0),
