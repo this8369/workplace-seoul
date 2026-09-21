@@ -77,6 +77,7 @@ export default function App() {
   const [homeRequest, setHomeRequest] = useState(0);
   function goHome() {
     setView("all");
+    setRegion("");
     setSelected(null);
     mapCamera.current = null;
     setHomeRequest((value) => value + 1);
@@ -657,6 +658,7 @@ export default function App() {
                 <NaverMap
                   camera={mapCamera}
                   homeRequest={homeRequest}
+                  region={region}
                   buildings={results}
                   complexes={catalog.complexes}
                   towers={catalog.towers}

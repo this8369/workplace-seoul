@@ -25,7 +25,6 @@
   --content-inset: 16px;
   --control-height: 32px;
   --control-radius: 6px;
-  --map-tabs-height: 30px;
   --map-tabs-inset: 12px;
   --text-secondary: #636e80;
   --text-tertiary: #828b9b;
@@ -2070,42 +2069,6 @@ button:disabled {
 .map-cluster:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 3px;
-}
-.map-districts {
-  position: absolute;
-  top: var(--map-tabs-inset);
-  left: var(--map-tabs-inset);
-  width: max-content;
-  max-width: calc(100% - 24px);
-  display: flex;
-  gap: 6px;
-  overflow-x: auto;
-  scrollbar-width: none;
-  pointer-events: auto;
-}
-.map-districts button {
-  flex-shrink: 0;
-  pointer-events: auto;
-  padding: 0 9px;
-  background: var(--surface);
-  border: 1px solid var(--divider);
-  border-radius: 6px;
-  color: var(--brand);
-  font-size: 11px;
-  box-shadow: none;
-  height: var(--map-tabs-height);
-}
-.map-districts b {
-  color: inherit;
-  margin-left: 4px;
-  font-weight: 500;
-}
-.map-districts button[aria-pressed="true"],
-.map-districts button:hover,
-.map-districts button:focus-visible {
-  background: var(--brand);
-  border-color: var(--brand);
-  color: white;
 }
 .map-boundary-source {
   position: absolute;

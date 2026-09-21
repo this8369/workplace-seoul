@@ -17,7 +17,6 @@ import { MapPin, RefreshCw, X } from "lucide-react";
 import { formatArea, type Building } from "../lib/domain";
 import {
   districts,
-  districtGroups,
   spatialGroups,
   hasLocation,
   type MapGroup,
@@ -32,6 +31,7 @@ export type MapCamera = {
   longitude: number;
   zoom: number;
   district?: DistrictKey | null;
+  filterRegion?: string;
 };
 // The SDK is loaded only from Naver's official endpoint.
 declare global {
@@ -77,6 +77,7 @@ export default function NaverMap({
   onSelect,
   camera,
   homeRequest,
+  region,
 }: {
   buildings: Building[];
   complexes?: BuildingComplex[];
@@ -87,6 +88,7 @@ export default function NaverMap({
   onSelect: (id: string) => void;
   camera: { current: MapCamera | null };
   homeRequest: number;
+  region: string;
 }) {
   const container = useRef<HTMLDivElement>(null),
     map = useRef<any>(null),
@@ -124,6 +126,7 @@ export default function NaverMap({
   );
   const activeDistrictRef = useRef(activeDistrict);
   const lastHomeRequest = useRef(homeRequest);
+  const lastRegion = useRef(camera.current?.filterRegion ?? "");
   const focusingDistrict = useRef(false);
   const highlightBoundary = useRef<(key: DistrictKey | null) => void>(() => {});
   const zoom = map.current?.getZoom() ?? camera.current?.zoom ?? 12;
@@ -171,6 +174,7 @@ export default function NaverMap({
             longitude: center.lng(),
             zoom: instance.getZoom(),
             district: activeDistrictRef.current,
+            filterRegion: lastRegion.current,
           };
           setViewport((v) => v + 1);
         });
@@ -251,6 +255,13 @@ export default function NaverMap({
       );
     }
   }
+  useEffect(() => {
+    if (phase !== "ready" || lastRegion.current === region) return;
+    lastRegion.current = region;
+    const district = districts.find((item) => item.key === region);
+    if (district) focusDistrict(district.key);
+    else if (!region) focusHome();
+  }, [region, phase]);
   function focus(group: MapGroup) {
     if (!map.current) return;
     setOverlap([]);
@@ -561,29 +572,6 @@ export default function NaverMap({
       <div className="map-canvas" ref={container} aria-label="네이버 지도" />
       {phase === "ready" && (
         <>
-          <div className="map-districts" aria-label="지도 권역">
-            {districts.map((d) => {
-              const group = districtGroups(buildings).find(
-                (g) => g.id === d.key,
-              );
-              return (
-                <button
-                  key={d.key}
-                  aria-pressed={activeDistrict === d.key}
-                  aria-label={`${d.label} · ${d.name}`}
-                  onMouseEnter={() => highlightDistrict(d.key)}
-                  onMouseLeave={() => highlightDistrict(null)}
-                  onFocus={() => highlightDistrict(d.key)}
-                  onBlur={() => highlightDistrict(null)}
-                  onClick={() => focusDistrict(d.key)}
-                >
-                  {d.label}
-                  <b>{group?.buildings.length ?? 0}</b>
-                </button>
-              );
-            })}
-            <button onClick={focusHome}>전체</button>
-          </div>
           {hoveredDistrict && stats && (
             <section
               className="map-region-tooltip"
