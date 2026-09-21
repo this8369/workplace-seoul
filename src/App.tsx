@@ -358,7 +358,7 @@ export default function App() {
             value={region}
             onChange={(e) => setRegion(e.target.value)}
           >
-            <option value="">전체</option>
+            <option value="">권역 전체</option>
             {regions.map((r) => (
               <option key={r}>{r}</option>
             ))}
