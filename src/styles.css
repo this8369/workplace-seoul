@@ -526,6 +526,7 @@ header {
   background: #e6e6e6;
 }
 .card-main {
+  display: flex;
   padding: 0;
   width: 100%;
   align-items: flex-start;
@@ -625,12 +626,9 @@ header {
 .card-actions {
   display: flex;
   align-items: center;
-  padding-top: 6px;
+  padding-top: 0;
   color: var(--text-secondary);
   gap: 4px;
-}
-.building-card.is-development .card-actions {
-  padding-top: 0;
 }
 .card-actions button {
   min-height: 28px;
