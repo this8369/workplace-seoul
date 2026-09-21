@@ -231,8 +231,21 @@ export default function App() {
     );
     if (!error) setLogin(false);
   }
+  const alignToolbar = useCallback((node: HTMLElement | null) => {
+    const workspace = node?.closest<HTMLElement>(".workspace");
+    if (!node || !workspace) return;
+    const align = () =>
+      workspace.style.setProperty(
+        "--results-heading-height",
+        `${node.getBoundingClientRect().height}px`,
+      );
+    const observer = new ResizeObserver(align);
+    observer.observe(node);
+    align();
+    return () => observer.disconnect();
+  }, []);
   const searchToolbar = (
-    <section className="toolbar" aria-label="검색 및 필터">
+    <section ref={alignToolbar} className="toolbar" aria-label="검색 및 필터">
       <div className="search">
         <Search size={18} />
         <input
