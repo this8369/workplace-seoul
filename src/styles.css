@@ -337,7 +337,7 @@ header {
 .toolbar {
   flex-shrink: 0;
   min-height: var(--toolbar-height);
-  padding: 10px calc(var(--content-inset) + 2px);
+  padding: 10px var(--content-inset);
   display: flex;
   gap: 12px;
   align-items: center;
@@ -471,7 +471,7 @@ header {
   min-height: var(--results-heading-height, var(--toolbar-height));
   border-bottom: var(--separator);
   flex-shrink: 0;
-  padding: 12px calc(var(--content-inset) + 2px);
+  padding: 12px var(--content-inset);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -660,6 +660,7 @@ header {
   letter-spacing: 0;
 }
 .card-info > strong {
+  padding-inline: 2px;
   font-size: 18px;
   line-height: 24px;
   font-weight: 700;
@@ -693,7 +694,7 @@ header {
   gap: 8px;
   min-width: 0;
   min-height: 22px;
-  padding-block: 1px;
+  padding: 1px 2px;
   line-height: 20px;
   white-space: nowrap;
 }
@@ -802,7 +803,7 @@ header {
 }
 .map-column .toolbar {
   flex-wrap: wrap;
-  padding-left: calc(var(--map-tabs-inset) + 2px);
+  padding-left: var(--map-tabs-inset);
   border-bottom-color: var(--map-divider);
 }
 .map-column .search {
