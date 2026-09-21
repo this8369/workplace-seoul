@@ -2254,6 +2254,9 @@ button:disabled {
   font-weight: 500;
   letter-spacing: 0;
 }
+.map-region-label.is-others {
+  color: var(--brand);
+}
 .map-region-label:hover,
 .map-region-label:focus-visible {
   background: transparent;
