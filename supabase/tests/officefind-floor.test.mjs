@@ -82,3 +82,24 @@ test("combined complex data cannot be filled from one component tower", () => {
     false,
   );
 });
+
+test("approval parser excludes forecasts and invalid dates, preserves original approval before remodeling", async () => {
+  const { parseApproval } = await import("../../scripts/officefind/parser.mjs");
+  const approval = (text) => `<th>사용승인</th><td>${text}</td>`;
+  const parsed = parseApproval(
+    approval("1997-03-03 / 2006-11 리모델링 완료 (30yg)"),
+    "2026-09-21",
+  );
+  assert.equal(parsed.year, 1997);
+  assert.equal(parsed.date, "1997-03-03");
+  for (const text of [
+    "2028년 준공예정",
+    "2020-10-31 / 예정",
+    "2027-01-01",
+    "2020-02-30",
+    "0000-00-00",
+    "미확인",
+  ])
+    assert.equal(parseApproval(approval(text), "2026-09-21").date, null);
+  assert.equal(parseApproval(approval("2020-02-29"), "2026-09-21").year, 2020);
+});

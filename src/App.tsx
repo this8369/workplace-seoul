@@ -1,3 +1,4 @@
+import { markerDevelopmentIndex } from "./lib/map-marker-facts";
 import PhotoManager from "./components/PhotoManager";
 import BuildingPhoto from "./components/BuildingPhoto";
 import { fetchBuildingImages, primaryImage } from "./lib/building-images";
@@ -47,6 +48,10 @@ export default function App() {
     }
   }
   const [catalog, setCatalog] = useState<Catalog>(emptyCatalog);
+  const developmentSummary = useMemo(
+    () => markerDevelopmentIndex(catalog.developments),
+    [catalog.developments],
+  );
   const [buildings, setBuildings] = useState<Building[]>([]),
     [load, setLoad] = useState<"loading" | "ready" | "error" | "setup">(
       supabase ? "loading" : "setup",
@@ -697,7 +702,13 @@ export default function App() {
                       b.area_basis === "actual" ? "실제" : "계획",
                   ],
                   ["주소", (b: Building) => b.address],
-                  ["준공연도", (b: Building) => b.completion_year ?? "미확인"],
+                  [
+                    "준공연도 / 예정",
+                    (b: Building) =>
+                      b.status === "development"
+                        ? `${developmentSummary.get(b.id)?.completion || "미확인"} (예정)`
+                        : (b.completion_year ?? "미확인"),
+                  ],
                   ["주차 대수", (b: Building) => b.parking_spaces ?? "미확인"],
                   ["확인일", (b: Building) => b.verified_on ?? "검수 전"],
                 ].map(([label, fn]) => (

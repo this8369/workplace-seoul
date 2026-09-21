@@ -1,3 +1,4 @@
+import { markerDevelopmentIndex } from "../lib/map-marker-facts";
 import BuildingPhoto from "./BuildingPhoto";
 import { primaryImage } from "../lib/building-images";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -407,6 +408,7 @@ export function AssetWorkspace({
   const developments = catalog.developments.filter(
     (t) => t.building_id === b.id,
   );
+  const developmentSummary = markerDevelopmentIndex(developments).get(b.id);
   const { confirmed, other } = occupancyGroups(catalog.occupancies, b.id);
   const moves = catalog.movements
     .filter((t) => t.from_building_id === b.id || t.to_building_id === b.id)
@@ -583,8 +585,20 @@ export function AssetWorkspace({
                     </dd>
                   </div>
                   <div>
-                    <dt>준공연도</dt>
-                    <dd>{b.completion_year || "미확인"}</dd>
+                    <dt>
+                      {b.status === "development" ? "준공 예정" : "준공연도"}
+                    </dt>
+                    <dd
+                      title={
+                        b.usage_approved_on
+                          ? `사용승인일 ${b.usage_approved_on}`
+                          : undefined
+                      }
+                    >
+                      {b.status === "development"
+                        ? developmentSummary?.completion || "미확인"
+                        : b.completion_year || "미확인"}
+                    </dd>
                   </div>
                   <div>
                     <dt>기준층 임대면적</dt>
@@ -604,6 +618,15 @@ export function AssetWorkspace({
                   </div>
                 </dl>
                 <Source item={evidence} />
+                {b.completion_source_url && (
+                  <Source
+                    item={{
+                      source_name: "준공연도 · 오피스파인드 사용승인일 기준",
+                      source_url: b.completion_source_url,
+                      as_of: null,
+                    }}
+                  />
+                )}
                 {b.typical_floor_source_url && (
                   <Source
                     item={{

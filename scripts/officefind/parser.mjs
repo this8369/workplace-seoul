@@ -164,3 +164,28 @@ export function identityMatch(building, source, siblings = []) {
     reason: nameMatches ? "name-and-address" : "unique-address-renamed",
   };
 }
+
+export function parseApproval(
+  html,
+  today = new Date().toISOString().slice(0, 10),
+) {
+  const raw = plain(row(html, "사용승인"));
+  // A source can put future completion plans in its approval row.
+  if (/예정|계획/.test(raw))
+    return { raw, date: null, year: null, reason: "planned-date" };
+  const match = /^(\d{4})-(\d{2})-(\d{2})(?=\s|\/|$)/.exec(raw);
+  if (!match)
+    return { raw, date: null, year: null, reason: "missing-or-invalid-date" };
+  const date = match[0];
+  const year = Number(match[1]);
+  const parsed = new Date(date + "T00:00:00Z");
+  if (
+    year < 1800 ||
+    !Number.isFinite(parsed.getTime()) ||
+    parsed.toISOString().slice(0, 10) !== date
+  )
+    return { raw, date: null, year: null, reason: "invalid-date" };
+  if (date > today)
+    return { raw, date: null, year: null, reason: "future-date" };
+  return { raw, date, year, reason: "usage-approval" };
+}

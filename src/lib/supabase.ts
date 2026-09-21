@@ -16,7 +16,7 @@ export async function fetchBuildings(): Promise<Building[]> {
     const { data, error } = await supabase
       .from("buildings")
       .select(
-        "id,name,address,standard_address,road_address,region,status,gross_area_m2,area_basis,latitude,longitude,overview,floors_above,floors_below,completion_year,typical_floor_rentable_pyeong,typical_floor_exclusive_pyeong,typical_floor_source_url,typical_floor_source_period,typical_floor_collected_at,parking_spaces,source_name,source_url,verified_on,source_as_of",
+        "id,name,address,standard_address,road_address,region,status,gross_area_m2,area_basis,latitude,longitude,overview,floors_above,floors_below,completion_year,usage_approved_on,completion_source_url,completion_collected_at,typical_floor_rentable_pyeong,typical_floor_exclusive_pyeong,typical_floor_source_url,typical_floor_source_period,typical_floor_collected_at,parking_spaces,source_name,source_url,verified_on,source_as_of",
       )
       .order("id")
       .range(from, from + 499);

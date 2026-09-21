@@ -44,6 +44,7 @@ export type MarkerDevelopment = {
   developer: string;
   contractor: string;
   source: string;
+  completion?: string;
 };
 export function markerDevelopmentIndex(developments: Development[]) {
   const grouped = new Map<string, Development[]>();
@@ -68,6 +69,21 @@ export function markerDevelopmentIndex(developments: Development[]) {
         {
           developer: unique("developer"),
           contractor: unique("contractor"),
+          completion: (() => {
+            const values = [
+              ...new Set(
+                current.map((r) => {
+                  const year = r.year?.trim();
+                  if (year === "미정") return "미정";
+                  if (!year || !/^(18|19|20|21|22)\d{2}$/.test(year))
+                    return "미확인";
+                  const quarter = /^([1-4])Q$/i.exec(r.quarter?.trim() || "");
+                  return `${year}년${quarter ? ` ${quarter[1]}분기` : ""}`;
+                }),
+              ),
+            ];
+            return values.length === 1 ? values[0] : "미확인";
+          })(),
           source: current
             .map((r) => [r.source_name, r.as_of].filter(Boolean).join(" · "))
             .join(" / "),
@@ -102,6 +118,9 @@ export function mapMarkerFacts(
   };
   const completion = {
     label: "준공년도",
+    title: building.usage_approved_on
+      ? `사용승인일 ${building.usage_approved_on}`
+      : undefined,
     value: building.completion_year
       ? `${building.completion_year}년`
       : "미확인",
@@ -120,7 +139,11 @@ export function mapMarkerFacts(
         value: development?.contractor || "미확인",
         title: development?.source,
       },
-      completion,
+      {
+        label: "준공 예정",
+        value: development?.completion || "미확인",
+        title: development?.source,
+      },
     ];
   return [
     area,

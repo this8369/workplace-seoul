@@ -86,7 +86,13 @@ test("development bubbles use owner/developer and contractor, never operating me
   );
   assert.deepEqual(
     facts.map((f) => f.label),
-    ["계획 연면적", "소유주·시행주체", "기준층 임대면적", "시공사", "준공년도"],
+    [
+      "계획 연면적",
+      "소유주·시행주체",
+      "기준층 임대면적",
+      "시공사",
+      "준공 예정",
+    ],
   );
   assert.equal(facts[1].value, "테스트 소유주");
   assert.equal(facts[2].value, "미확인");
@@ -112,4 +118,23 @@ test("development facts use the latest source date without silently choosing con
   const current = markerDevelopmentIndex(rows).get("a");
   assert.equal(current?.developer, "현재");
   assert.equal(current?.contractor, "");
+});
+
+test("planned completion uses development schedule and never becomes an actual approval year", () => {
+  const rows = [
+    { building_id: "a", year: "2028", quarter: "3Q", as_of: "2026.06" },
+    { building_id: "b", year: "미정", quarter: "", as_of: "2026.06" },
+  ] as Development[];
+  const index = markerDevelopmentIndex(rows);
+  assert.equal(index.get("a")?.completion, "2028년 3분기");
+  assert.equal(index.get("b")?.completion, "미정");
+  const b = {
+    status: "development",
+    area_basis: "planned",
+    gross_area_m2: 40000,
+    completion_year: 1990,
+  } as Building;
+  const fact = mapMarkerFacts(b, undefined, index.get("a")).at(-1);
+  assert.equal(fact?.label, "준공 예정");
+  assert.equal(fact?.value, "2028년 3분기");
 });

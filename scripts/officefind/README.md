@@ -21,3 +21,7 @@ node --use-system-ca scripts/officefind/verify-floor-areas.mjs
 - 검증기는 저장한 원문과 DB 값을 다시 대조한다. `--repair`는 신원 대조에 실패한 **이번 수집 값이 그대로 남아 있을 때만** 해당 면적을 비우고 검토 대상으로 변경한다. 독립적으로 수정된 값은 덮어쓰지 않는다.
 
 지도에서는 운영 자산에 임대·전용면적을 모두 표시한다. 개발 자산에는 NOC와 전용면적 대신 `development_records`의 소유주·시행주체 및 시공사를 표시한다. 개발 자산 배경색은 운영 자산과 구분한다. 상세 개요에는 두 면적과 별도의 출처 링크가 표시된다.
+
+## 준공연도 보완
+
+`node --use-system-ca scripts/officefind/import-completion.mjs`는 이미 저장한 상세 페이지의 사용승인일을 다시 읽어 운영 자산의 `completion_year`와 `usage_approved_on`, 별도 출처·수집시점을 저장한다. 추가 웹 요청은 하지 않는다. 원문이 예정일이거나 미래 날짜인 경우 제외하며, 리모델링 연도로 최초 사용승인연도를 덮어쓰지 않는다. 개발 자산은 실제 준공연도에 예정일을 넣지 않고 기존 `development_records.year/quarter`를 지도·상세·비교 화면의 ‘준공 예정’으로 표시한다.

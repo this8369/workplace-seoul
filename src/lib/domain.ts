@@ -15,6 +15,9 @@ export type Building = {
   floors_above: number | null;
   floors_below: number | null;
   completion_year: number | null;
+  usage_approved_on?: string | null;
+  completion_source_url?: string | null;
+  completion_collected_at?: string | null;
   typical_floor_area_pyeong?: number | null;
   typical_floor_rentable_pyeong?: number | null;
   typical_floor_exclusive_pyeong?: number | null;
