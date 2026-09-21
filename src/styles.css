@@ -1,10 +1,24 @@
-@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;450;500;600;700&display=swap");
+/* NAVER's official Nanum Barun Gothic webfonts: regular and real bold. */
+@font-face {
+  font-family: "Nanum Barun Gothic";
+  src: url("https://hangeul.pstatic.net/hangeul_static/webfont/NanumBarunGothic/NanumBarunGothicWeb.woff")
+    format("woff");
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Nanum Barun Gothic";
+  src: url("https://hangeul.pstatic.net/hangeul_static/webfont/NanumBarunGothic/NanumBarunGothicWebBold.woff")
+    format("woff");
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+}
 :root {
-  font-family:
-    "IBM Plex Sans KR",
-    -apple-system,
-    BlinkMacSystemFont,
-    sans-serif;
+  --font-ui:
+    "Nanum Barun Gothic", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+  font-family: var(--font-ui);
   color: var(--brand);
   background: var(--canvas);
   font-synthesis: none;
@@ -38,9 +52,18 @@
 body {
   margin: 0;
 }
+/* Map SDK containers may set their own font; keep our overlays consistent. */
+.map-marker,
+.map-cluster,
+.map-region-label,
+.map-region-tooltip,
+.map-coincident {
+  font-family: var(--font-ui);
+}
 button,
 input,
-select {
+select,
+textarea {
   font: inherit;
 }
 button,
@@ -173,13 +196,12 @@ svg {
   white-space: nowrap;
 }
 .brand-mark {
-  font-family: Georgia, serif;
+  font-family: var(--font-ui);
   font-size: 28px;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--brand);
   letter-spacing: -3px;
   padding-right: 3px;
-  transform: translateY(-3px);
 }
 .brand-name {
   line-height: 20px;
