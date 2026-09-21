@@ -723,6 +723,7 @@ header {
 }
 .card-actions {
   display: flex;
+  position: relative;
   align-items: center;
   padding-top: 0;
   color: var(--text-secondary);
@@ -744,10 +745,11 @@ header {
   margin-left: -4px;
   padding-left: 4.5px;
 }
-.card-actions > span {
-  font-size: 12px;
-  margin-left: auto;
-  color: var(--text-tertiary);
+.card-actions .card-completion {
+  position: absolute;
+  left: 94px;
+  right: 0;
+  border-top: 0.5px solid rgb(76 88 107 / 16%);
 }
 .card-actions button {
   border-radius: 5px;

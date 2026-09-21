@@ -758,11 +758,15 @@ export default function App() {
                           ) : (
                             <Layers3 size={14} />
                           )}
-                          {compare.includes(b.id) ? "비교 선택됨" : "비교"}
+                          비교
                         </button>
-                        <span>
-                          {b.status === "development" ? "준공 예정" : "준공"}{" "}
-                          {cardValue(cardMetrics.get(b.id)?.completion)}
+                        <span className="card-metric card-completion">
+                          <span className="card-metric-label">
+                            {b.status === "development" ? "준공 예정" : "준공"}
+                          </span>
+                          <span className="card-metric-value">
+                            {cardValue(cardMetrics.get(b.id)?.completion)}
+                          </span>
                         </span>
                       </div>
                     </article>
