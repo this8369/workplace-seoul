@@ -2230,7 +2230,7 @@ button:disabled {
   width: 50.6px;
   height: 50.6px;
   border-radius: 50%;
-  background: var(--brand);
+  background: color-mix(in srgb, var(--brand) 80%, transparent);
   color: var(--surface);
   border: 0;
   box-shadow: none;
@@ -2283,7 +2283,7 @@ button:disabled {
 }
 .map-cluster:hover,
 .map-cluster:focus-visible {
-  background: var(--accent);
+  background: color-mix(in srgb, var(--accent) 80%, transparent);
 }
 .map-cluster:focus-visible {
   outline: 2px solid var(--accent);
