@@ -21,11 +21,11 @@ npm run dev
 - Naver Maps JavaScript API: 실제 지도와 건물 위치
 - GitHub Actions: 커밋·PR의 테스트와 빌드 자동 검사
 
-화면은 따뜻한 미색, 절제된 테라코타 강조색, 얇은 구분선으로 구성합니다.
+화면은 남색(`#1C2435`), 파란 강조색(`#253985`), 얇은 구분선으로 구성합니다.
 
 ## 연결 설정
 
-1. 전용 Supabase 프로젝트에 `supabase/migrations/202609180001_core.sql`을 적용합니다.
+1. 전용 Supabase 프로젝트에 `supabase/migrations/`의 마이그레이션을 순서대로 적용합니다.
 2. `.env.local`에 프로젝트 URL과 **publishable key**를 설정합니다. `service_role`, secret key, DB 비밀번호는 프런트엔드에 사용하지 않습니다.
 3. Supabase Auth에 실제 서비스 URL과 로컬 개발 URL을 등록합니다. 공개 운영 전에는 메일 발송 설정을 확인합니다.
 4. Naver Cloud Maps 애플리케이션에서 Dynamic Map을 활성화하고 웹 서비스 URL을 등록한 후 client ID를 설정합니다. SDK는 `ncpKeyId`를 사용합니다.
@@ -36,7 +36,17 @@ npm run dev
 | VITE_SUPABASE_PUBLISHABLE_KEY | 공개 클라이언트용 키      |
 | VITE_NAVER_MAP_CLIENT_ID      | 네이버 Maps 클라이언트 ID |
 
-미설정·연결 실패·검색 결과 없음은 별도 상태로 표시하며 예시 데이터로 대체하지 않습니다. 실제 데이터는 아직 포함하지 않았습니다. 사이트 호스팅과 API 연결은 별도 설정 후 활성화합니다.
+미설정·연결 실패·검색 결과 없음은 별도 상태로 표시하며 예시 데이터로 대체하지 않습니다. 자산·사진 메타데이터·권역 정보는 Supabase에서 조회합니다.
+
+## 외부 배포
+
+서비스 주소: https://this8369.github.io/workplace-seoul/
+
+`main`에 push하면 `.github/workflows/deploy.yml`이 테스트와 빌드 후 GitHub Pages에 배포합니다. Node.js 22와 `BASE_PATH=/workplace-seoul/`을 사용합니다. 위의 세 가지 공개 클라이언트 환경변수는 GitHub Actions repository variables에 설정합니다. 서버 비밀키나 DB 접속 정보는 배포하지 않습니다.
+
+Supabase Auth의 Site URL과 Redirect URLs에 서비스 주소를 등록하고, 로컬 개발을 위해 `http://127.0.0.1:5173/`도 Redirect URLs에 유지합니다. Naver Maps의 웹 서비스 URL에는 배포 도메인을 허용해야 합니다.
+
+사이트 배포는 데이터 공개 상태를 변경하지 않습니다. 비공개 검수 자산은 기존 권한이 있는 계정으로 로그인해야 볼 수 있습니다. 데이터 공개 범위는 DB의 게시 상태와 RLS 정책에서 관리합니다.
 
 ## 데이터 원칙
 
