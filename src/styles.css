@@ -1,29 +1,15 @@
 @import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500&text=Workplace%20Seoul&display=swap");
-/* NAVER's official Nanum Barun Gothic webfonts: regular and real bold. */
-@font-face {
-  font-family: "Nanum Barun Gothic";
-  src: url("https://hangeul.pstatic.net/hangeul_static/webfont/NanumBarunGothic/NanumBarunGothicWeb.woff")
-    format("woff");
-  font-style: normal;
-  font-weight: 400;
-  font-display: swap;
-}
-@font-face {
-  font-family: "Nanum Barun Gothic";
-  src: url("https://hangeul.pstatic.net/hangeul_static/webfont/NanumBarunGothic/NanumBarunGothicWebBold.woff")
-    format("woff");
-  font-style: normal;
-  font-weight: 700;
-  font-display: swap;
-}
 :root {
+  /* Verified against fin.land.naver.com on 2026-09-21. */
   --font-ui:
-    "Nanum Barun Gothic", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+    -apple-system, BlinkMacSystemFont, helvetica, "Apple SD Gothic Neo", "나눔고딕",
+    NanumGothic, "맑은 고딕", MalgunGothic, sans-serif;
   font-family: var(--font-ui);
   color: var(--brand);
   background: var(--canvas);
   font-synthesis: none;
   font-size: 13px;
+  letter-spacing: -0.3px;
   --brand: #1c2435;
   --accent: #253985;
   --accent-soft: #e9edf8;
@@ -572,13 +558,13 @@ header {
 .card-info > strong {
   font-size: 17px;
   line-height: 24px;
-  font-weight: 500;
+  font-weight: 700;
   margin: 0 0 3px;
   overflow: hidden;
   display: block;
   white-space: nowrap;
   text-overflow: ellipsis;
-  letter-spacing: -0.2px;
+  letter-spacing: -0.5px;
 }
 .address {
   font-size: 11px;
