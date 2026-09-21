@@ -517,13 +517,13 @@ header {
   box-shadow: inset 3px 0 var(--accent);
 }
 .building-card.is-development {
-  background: color-mix(in srgb, #b4232c 4%, var(--surface));
+  background: #f5f5f5;
 }
 .building-card.is-development:hover {
-  background: color-mix(in srgb, #b4232c 7%, var(--surface));
+  background: #ededed;
 }
 .building-card.is-development.selected {
-  background: color-mix(in srgb, #b4232c 9%, var(--surface));
+  background: #e6e6e6;
 }
 .card-main {
   padding: 0;
