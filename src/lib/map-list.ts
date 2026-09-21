@@ -7,7 +7,8 @@ export type MapBounds = {
   north: number;
   east: number;
 };
-export type BuildingSort = "area-desc" | "area-asc" | "year-desc" | "year-asc";
+export type BuildingSort =
+  "area-desc" | "area-asc" | "noc-desc" | "noc-asc" | "year-desc" | "year-asc";
 
 export function visibleBuildings(
   buildings: Building[],
@@ -29,13 +30,18 @@ export function sortBuildings(
   buildings: Building[],
   sort: BuildingSort,
   developmentYears: ReadonlyMap<string, number | null> = new Map(),
+  nocValues: ReadonlyMap<string, number | null> = new Map(),
 ) {
   const year = (b: Building) =>
     b.status === "development"
       ? (developmentYears.get(b.id) ?? null)
       : b.completion_year;
-  const value = (b: Building) =>
-    sort.startsWith("area-") ? b.gross_area_m2 : year(b);
+  const value = (b: Building) => {
+    if (sort.startsWith("area-")) return b.gross_area_m2;
+    if (sort.startsWith("noc-"))
+      return b.status === "development" ? null : (nocValues.get(b.id) ?? null);
+    return year(b);
+  };
   return [...buildings].sort((a, b) => {
     const av = value(a),
       bv = value(b);

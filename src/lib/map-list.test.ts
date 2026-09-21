@@ -14,6 +14,41 @@ const b = (id: string, overrides: Partial<Building> = {}) =>
     ...overrides,
   }) as Building;
 const bounds: MapBounds = { south: 37.5, north: 37.6, west: 126.9, east: 127 };
+test("NOC sorts numerically in both directions, leaving missing values and developments last", () => {
+  const rows = [
+    b("missing"),
+    b("high"),
+    b("low"),
+    b("development", { status: "development" }),
+    b("invalid"),
+  ];
+  const values = new Map([
+    ["high", 410000],
+    ["low", 95000],
+    ["development", 500000],
+    ["invalid", NaN],
+  ]);
+  const ids = (sort: "noc-asc" | "noc-desc") =>
+    sortBuildings(rows, sort, new Map(), values).map((row) => row.id);
+  assert.deepEqual(ids("noc-desc"), [
+    "high",
+    "low",
+    "development",
+    "invalid",
+    "missing",
+  ]);
+  assert.deepEqual(ids("noc-asc"), [
+    "low",
+    "high",
+    "development",
+    "invalid",
+    "missing",
+  ]);
+  assert.deepEqual(
+    rows.map((row) => row.id),
+    ["missing", "high", "low", "development", "invalid"],
+  );
+});
 test("viewport cards include boundary points, exclude outside and unknown coordinates, and recover after panning", () => {
   const rows = [
     b("center"),

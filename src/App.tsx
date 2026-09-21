@@ -67,8 +67,12 @@ export default function App() {
     () => markerDevelopmentIndex(catalog.developments),
     [catalog.developments],
   );
+  const noc = useMemo(() => markerNocIndex(catalog.leasing), [catalog.leasing]);
+  const nocValues = useMemo(
+    () => new Map([...noc].map(([id, record]) => [id, record.value])),
+    [noc],
+  );
   const cardMetrics = useMemo(() => {
-    const noc = markerNocIndex(catalog.leasing);
     return new Map(
       catalog.buildings.map((building) => {
         const facts = mapMarkerFacts(
@@ -99,7 +103,7 @@ export default function App() {
         ];
       }),
     );
-  }, [catalog.buildings, catalog.leasing, developmentSummary]);
+  }, [catalog.buildings, noc, developmentSummary]);
   const [buildings, setBuildings] = useState<Building[]>([]),
     [load, setLoad] = useState<"loading" | "ready" | "error" | "setup">(
       supabase ? "loading" : "setup",
@@ -241,8 +245,9 @@ export default function App() {
         visibleBuildings(results, mapBounds),
         buildingSort,
         developmentYears,
+        nocValues,
       ),
-    [results, mapBounds, buildingSort, developmentYears],
+    [results, mapBounds, buildingSort, developmentYears, nocValues],
   );
   useEffect(() => {
     if (resultsScroll.current) resultsScroll.current.scrollTop = 0;
@@ -599,6 +604,7 @@ export default function App() {
                   {(
                     [
                       ["area", "연면적"],
+                      ["noc", "NOC"],
                       ["year", "연도"],
                     ] as const
                   ).map(([key, label]) => {
