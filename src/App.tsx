@@ -688,9 +688,6 @@ export default function App() {
                         </span>
                         <span className="card-info">
                           <strong>{b.name}</strong>
-                          <span className="address" title={b.address}>
-                            {b.address}
-                          </span>
                           <span className="card-metrics">
                             <span className="card-metric">
                               <span className="card-metric-label">
