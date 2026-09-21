@@ -278,9 +278,12 @@ export default function NaverMap({
   useEffect(() => {
     if (phase !== "ready" || lastRegion.current === region) return;
     lastRegion.current = region;
+    if (!region || region === "Others") {
+      focusHome();
+      return;
+    }
     const district = districts.find((item) => item.key === region);
     if (district) focusDistrict(district.key);
-    else if (!region) focusHome();
   }, [region, phase]);
   function focus(group: MapGroup) {
     if (!map.current) return;
