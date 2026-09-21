@@ -1,4 +1,8 @@
-import { markerDevelopmentIndex } from "./lib/map-marker-facts";
+import {
+  markerDevelopmentIndex,
+  markerNocIndex,
+  mapMarkerFacts,
+} from "./lib/map-marker-facts";
 import PhotoManager from "./components/PhotoManager";
 import BuildingPhoto from "./components/BuildingPhoto";
 import { fetchBuildingImages, primaryImage } from "./lib/building-images";
@@ -60,6 +64,36 @@ export default function App() {
     () => markerDevelopmentIndex(catalog.developments),
     [catalog.developments],
   );
+  const cardMetrics = useMemo(() => {
+    const noc = markerNocIndex(catalog.leasing);
+    return new Map(
+      catalog.buildings.map((building) => {
+        const facts = mapMarkerFacts(
+          building,
+          noc.get(building.id),
+          developmentSummary.get(building.id),
+        );
+        return [
+          building.id,
+          {
+            floor:
+              facts.find((fact) => fact.label === "기준층 임대면적")?.value ??
+              "미확인",
+            noc: facts.find((fact) => fact.label === "NOC")?.value ?? "—",
+            period: noc.get(building.id)?.period,
+            completion:
+              facts.find(
+                (fact) =>
+                  fact.label ===
+                  (building.status === "development"
+                    ? "준공 예정"
+                    : "준공년도"),
+              )?.value ?? "미확인",
+          },
+        ];
+      }),
+    );
+  }, [catalog.buildings, catalog.leasing, developmentSummary]);
   const [buildings, setBuildings] = useState<Building[]>([]),
     [load, setLoad] = useState<"loading" | "ready" | "error" | "setup">(
       supabase ? "loading" : "setup",
@@ -650,20 +684,38 @@ export default function App() {
                           />
                         </span>
                         <span className="card-info">
-                          <span className="eyebrow">
-                            {b.region} ·{" "}
-                            {b.status === "operating" ? "운영 중" : "개발 중"}
-                          </span>
-                          <strong title={b.name}>{b.name}</strong>
+                          <strong>{b.name}</strong>
                           <span className="address" title={b.address}>
                             {b.address}
                           </span>
-                          <span className="area">
-                            {formatArea(b.gross_area_m2)}
-                            <span>
-                              연면적
-                              {b.area_basis === "planned" ? " · 계획" : ""}
+                          <span className="card-areas">
+                            <span className="card-metric">
+                              <span className="card-metric-label">
+                                {b.area_basis === "planned"
+                                  ? "계획 연면적"
+                                  : "연면적"}
+                              </span>
+                              <span className="card-metric-value">
+                                {formatArea(b.gross_area_m2)}
+                              </span>
                             </span>
+                            <span className="card-metric">
+                              <span className="card-metric-label">
+                                기준층(임대)
+                              </span>
+                              <span className="card-metric-value">
+                                {cardMetrics.get(b.id)?.floor ?? "미확인"}
+                              </span>
+                            </span>
+                          </span>
+                          <span className="card-noc">
+                            <span className="card-metric-label">NOC</span>
+                            <span>
+                              {cardMetrics.get(b.id)?.noc ?? "미확인"}
+                            </span>
+                            {b.status === "operating" && (
+                              <small>{cardMetrics.get(b.id)?.period}</small>
+                            )}
                           </span>
                         </span>
                       </button>
@@ -692,9 +744,8 @@ export default function App() {
                           {compare.includes(b.id) ? "비교 선택됨" : "비교"}
                         </button>
                         <span>
-                          {b.verified_on
-                            ? `확인 ${b.verified_on}`
-                            : `원본 ${b.source_as_of || "기준일 미확인"}`}
+                          {b.status === "development" ? "준공 예정" : "준공"}{" "}
+                          {cardMetrics.get(b.id)?.completion ?? "미확인"}
                         </span>
                       </div>
                     </article>

@@ -535,16 +535,15 @@ header {
   color: var(--text-secondary);
   letter-spacing: 0;
 }
-.card-info strong {
-  font-size: 13px;
-  line-height: 20px;
+.card-info > strong {
+  font-size: 15px;
+  line-height: 22px;
   font-weight: 500;
-  margin: 3px 0;
+  margin: 0 0 3px;
   overflow: hidden;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow-wrap: anywhere;
+  display: block;
+  white-space: nowrap;
+  text-overflow: ellipsis;
   letter-spacing: -0.2px;
 }
 .address {
@@ -557,16 +556,39 @@ header {
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.area {
-  font-size: 12px;
-  line-height: 18px;
+.card-areas {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
   margin-top: 6px;
   font-variant-numeric: tabular-nums;
 }
-.area span {
-  font-size: 10px;
+.card-metric {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.card-metric-label {
+  font-size: 11px;
+  line-height: 17px;
   color: var(--text-secondary);
-  margin-left: 6px;
+}
+.card-metric-value {
+  font-size: 13px;
+  line-height: 19px;
+}
+.card-noc {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin-top: 4px;
+  font-size: 13px;
+  line-height: 19px;
+  font-variant-numeric: tabular-nums;
+}
+.card-noc small {
+  font-size: 11px;
+  color: var(--text-secondary);
 }
 .card-actions {
   display: flex;
@@ -583,7 +605,7 @@ header {
   gap: 5px;
 }
 .card-actions > span {
-  font-size: 10px;
+  font-size: 12px;
   margin-left: auto;
   color: var(--text-tertiary);
 }
