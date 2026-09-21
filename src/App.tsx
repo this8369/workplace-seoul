@@ -424,7 +424,7 @@ export default function App() {
               <LogOut size={16} />
             ) : (
               <>
-                로그인
+                <span className="account-login-label">로그인</span>
                 <ArrowUpRight size={14} />
               </>
             )}

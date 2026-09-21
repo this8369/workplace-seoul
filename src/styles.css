@@ -151,7 +151,7 @@ svg {
 .sidebar {
   width: var(--sidebar-width);
   overflow: hidden;
-  transition: width 240ms cubic-bezier(0.2, 0.7, 0.2, 1);
+  transition: width 260ms cubic-bezier(0.4, 0, 0.2, 1);
   flex-shrink: 0;
   background: var(--surface-muted);
   border-right: 0.5px solid var(--vertical-divider);
@@ -165,7 +165,7 @@ svg {
   gap: 8px;
   flex-shrink: 0;
   height: var(--toolbar-height);
-  padding: 0 8px;
+  padding: 0 4.5px;
   font-size: 15px;
   font-weight: 500;
   line-height: 1;
@@ -929,52 +929,19 @@ tbody th {
 /* The compact rail keeps every action available and leaves the map more room. */
 .sidebar.is-collapsed {
   width: 56px;
-  padding: 0 8px 8px;
 }
 .sidebar.is-collapsed .sidebar-note,
 .sidebar.is-collapsed .nav-count,
 .sidebar.is-collapsed .account-identity,
-.sidebar.is-collapsed .avatar {
-  display: none;
-}
-.sidebar.is-collapsed .sidebar-heading {
-  justify-content: flex-end;
-}
-.sidebar.is-collapsed nav button {
-  padding: 6px 0;
-  gap: 0;
-  justify-content: center;
-}
-.sidebar.is-collapsed .nav-text,
-.sidebar.is-collapsed .brand-name {
-  position: absolute;
-}
-.sidebar.is-collapsed .brand {
-  justify-content: center;
-  padding-inline: 0;
-  gap: 0;
-}
-.sidebar.is-collapsed .sidebar-toggle {
-  margin-inline: auto;
-}
+.sidebar.is-collapsed .avatar,
+.sidebar.is-collapsed .account-login-label,
 .sidebar.is-collapsed nav button svg:last-child:not(:first-child) {
-  display: none;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
 }
 .sidebar.is-collapsed .account {
-  margin-top: auto;
-  padding: 4px;
-  min-height: 36px;
-  justify-content: center;
-  border: 0;
-}
-.sidebar.is-collapsed .account-login {
-  font-size: 0;
-  gap: 0;
-  justify-content: center;
-}
-.sidebar.is-collapsed .account-login svg {
-  width: 16px;
-  height: 16px;
+  border-color: transparent;
 }
 @media (max-width: 760px) {
   :root {
@@ -1855,8 +1822,8 @@ button:disabled {
 }
 .map-marker-area {
   display: block;
-  margin: calc(-1 * var(--bubble-padding-y))
-    calc(-1 * var(--bubble-padding-x)) 4.5px;
+  margin: calc(-1 * var(--bubble-padding-y)) calc(-1 * var(--bubble-padding-x))
+    4.5px;
   padding: 0.9px var(--bubble-padding-x);
   border-radius: 4.5px 4.5px 0 0;
   background: var(--bubble-heading);
@@ -2170,44 +2137,111 @@ button:disabled {
   color: var(--text-secondary);
 }
 
-/* Keep the logo and toggle on their own fixed-height rows during rail motion. */
-.brand-mark {
+/* Only the rail width changes layout. Its contents keep their anchors and heights. */
+.brand-mark,
+.brand-name,
+.nav-text {
   flex-shrink: 0;
 }
 .brand-name,
 .nav-text,
-.nav-label {
-  transition: opacity 160ms ease;
+.nav-label,
+.nav-count,
+.sidebar-note,
+.account-identity,
+.avatar,
+.account-login-label,
+.sidebar nav button svg:last-child:not(:first-child) {
+  transition:
+    opacity 160ms ease,
+    visibility 160ms;
   white-space: nowrap;
+}
+.sidebar-note {
+  width: calc(var(--sidebar-width) - 17px);
+  flex-shrink: 0;
 }
 .sidebar-heading {
   position: relative;
   flex-shrink: 0;
+  height: 36px;
+  width: 100%;
+}
+.sidebar-heading .nav-label {
+  position: absolute;
+  left: 0;
 }
 .sidebar-toggle {
-  flex-shrink: 0;
-  margin-left: auto;
-  margin-right: 5px;
+  position: absolute;
+  right: 5px;
+  top: 4px;
+  margin: 0;
 }
 .sidebar.is-collapsed .brand-name,
 .sidebar.is-collapsed .nav-text,
 .sidebar.is-collapsed .nav-label {
   opacity: 0;
+  visibility: hidden;
   pointer-events: none;
 }
-.sidebar.is-collapsed .nav-label {
-  position: absolute;
-}
 .sidebar nav button {
+  position: relative;
+  padding-inline: 11.5px;
   white-space: nowrap;
   align-items: center;
   overflow: hidden;
 }
+.sidebar nav button svg:last-child:not(:first-child),
+.sidebar .nav-count {
+  position: absolute;
+  right: 10px;
+}
+.sidebar .account {
+  position: relative;
+  height: 52px;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+.sidebar .account .avatar {
+  position: absolute;
+  left: 8px;
+  top: 12px;
+}
+.sidebar .account-identity {
+  position: absolute;
+  left: 42px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 100px;
+}
+.sidebar .account-login,
+.sidebar .account-action {
+  position: absolute;
+  top: 0;
+  right: 0;
+  height: 100%;
+  padding: 0;
+}
+.sidebar .account-login {
+  width: 100%;
+  justify-content: flex-start;
+}
+.sidebar .account-login-label {
+  margin-left: 42px;
+}
+.sidebar .account-action {
+  width: 37px;
+}
+.sidebar .account button svg {
+  position: absolute;
+  right: 10.5px;
+  top: calc(50% - 8px);
+  width: 16px;
+  height: 16px;
+}
 @media (prefers-reduced-motion: reduce) {
   .sidebar,
-  .brand-name,
-  .nav-text,
-  .nav-label {
+  .sidebar * {
     transition: none;
   }
 }
@@ -2508,12 +2542,5 @@ button:disabled {
   margin-top: auto;
 }
 .sidebar-note + .admin-navigation {
-  margin-top: 0;
-}
-.sidebar.is-collapsed .admin-navigation {
-  margin-top: auto;
-}
-
-.sidebar.is-collapsed .admin-navigation + .account {
   margin-top: 0;
 }

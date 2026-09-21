@@ -118,6 +118,7 @@ export default function NaverMap({
     if (!import.meta.env.VITE_NAVER_MAP_CLIENT_ID) return;
     let cancelled = false;
     let observer: ResizeObserver | undefined;
+    let resizeTimer: ReturnType<typeof setTimeout> | undefined;
     let instance: any;
     setPhase("loading");
     loadSdk()
@@ -159,9 +160,13 @@ export default function NaverMap({
           setViewport((v) => v + 1);
         });
         n.Event.addListener(instance, "click", () => setOverlap([]));
-        observer = new ResizeObserver(() =>
-          n.Event.trigger(instance, "resize"),
-        );
+        observer = new ResizeObserver(() => {
+          // Resizing on every rail-animation frame makes the SDK rebuild overlays.
+          clearTimeout(resizeTimer);
+          resizeTimer = setTimeout(() => {
+            if (!cancelled) n.Event.trigger(instance, "resize");
+          }, 80);
+        });
         observer.observe(container.current);
         setPhase("ready");
       })
@@ -171,6 +176,7 @@ export default function NaverMap({
     return () => {
       cancelled = true;
       observer?.disconnect();
+      clearTimeout(resizeTimer);
       if (instance) {
         sdk.current.Event.clearInstanceListeners(instance);
         instance.destroy();
