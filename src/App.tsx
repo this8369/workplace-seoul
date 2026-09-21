@@ -742,6 +742,7 @@ export default function App() {
                             size={15}
                             fill={saved.has(b.id) ? "currentColor" : "none"}
                           />
+                          저장
                         </button>
                         <button
                           aria-label={`${b.name} 비교 ${compare.includes(b.id) ? "해제" : "선택"}`}
