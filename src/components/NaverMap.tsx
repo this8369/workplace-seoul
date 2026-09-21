@@ -15,7 +15,7 @@ import {
 } from "../lib/map-marker-facts";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { MapPin, RefreshCw, X } from "lucide-react";
+import { Crosshair, MapPin, Minus, Plus, RefreshCw, X } from "lucide-react";
 import { formatArea, type Building } from "../lib/domain";
 import {
   districts,
@@ -101,6 +101,8 @@ export default function NaverMap({
     import.meta.env.VITE_NAVER_MAP_CLIENT_ID ? "loading" : "missing",
   );
   const [attempt, setAttempt] = useState(0);
+  const [locating, setLocating] = useState(false);
+  const [locationError, setLocationError] = useState("");
   const [viewport, setViewport] = useState(0);
   const [hoveredDistrict, setHoveredDistrict] = useState<DistrictKey | null>(
     null,
@@ -155,8 +157,7 @@ export default function NaverMap({
           zoom: camera.current?.zoom ?? 12,
           minZoom: 7,
           maxZoom: 21,
-          zoomControl: true,
-          zoomControlOptions: { position: n.Position.RIGHT_BOTTOM },
+          zoomControl: false,
         });
         map.current = instance;
         const publishBounds = () => {
@@ -235,6 +236,40 @@ export default function NaverMap({
       new sdk.current.LatLng(center.latitude, center.longitude),
     );
     map.current.setZoom(12);
+  }
+  function locateUser() {
+    if (locating || !map.current) return;
+    setLocationError("");
+    if (!navigator.geolocation) {
+      setLocationError("이 브라우저에서는 현재 위치를 확인할 수 없습니다.");
+      return;
+    }
+    const instance = map.current;
+    setLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      ({ coords }) => {
+        setLocating(false);
+        if (map.current !== instance) return;
+        setHoveredDistrict(null);
+        setOverlap(null);
+        activeDistrictRef.current = null;
+        setActiveDistrict(null);
+        instance.setCenter(
+          new sdk.current.LatLng(coords.latitude, coords.longitude),
+        );
+        instance.setZoom(16);
+      },
+      (error) => {
+        setLocating(false);
+        if (map.current !== instance) return;
+        setLocationError(
+          error.code === 1
+            ? "브라우저에서 위치 접근을 허용해 주세요."
+            : "현재 위치를 확인하지 못했습니다. 다시 시도해 주세요.",
+        );
+      },
+      { timeout: 10000, maximumAge: 60000 },
+    );
   }
   useEffect(() => {
     if (phase !== "ready" || lastHomeRequest.current === homeRequest) return;
@@ -652,6 +687,52 @@ export default function NaverMap({
       <div className="map-canvas" ref={container} aria-label="네이버 지도" />
       {phase === "ready" && (
         <>
+          <div className="map-controls" role="group" aria-label="지도 조작">
+            <button
+              type="button"
+              className="map-location-control"
+              aria-label="현재 위치로 이동"
+              aria-busy={locating}
+              disabled={locating}
+              onClick={locateUser}
+            >
+              <Crosshair size={22} strokeWidth={1.7} aria-hidden="true" />
+            </button>
+            <div className="map-zoom-controls">
+              <button
+                type="button"
+                aria-label="지도 확대"
+                disabled={zoom >= 21}
+                onClick={() =>
+                  map.current?.setZoom(Math.min(21, map.current.getZoom() + 1))
+                }
+              >
+                <Plus size={23} strokeWidth={1.7} aria-hidden="true" />
+              </button>
+              <button
+                type="button"
+                aria-label="지도 축소"
+                disabled={zoom <= 7}
+                onClick={() =>
+                  map.current?.setZoom(Math.max(7, map.current.getZoom() - 1))
+                }
+              >
+                <Minus size={23} strokeWidth={1.7} aria-hidden="true" />
+              </button>
+            </div>
+          </div>
+          {locationError && (
+            <div className="map-control-message" role="status">
+              {locationError}
+              <button
+                type="button"
+                aria-label="위치 안내 닫기"
+                onClick={() => setLocationError("")}
+              >
+                <X size={14} />
+              </button>
+            </div>
+          )}
           {hoveredDistrict && stats && (
             <section
               className="map-region-tooltip"

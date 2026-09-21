@@ -429,7 +429,9 @@ header {
   border: 1px solid transparent;
   border-radius: var(--toolbar-control-radius);
   background-color: var(--toolbar-control-fill);
-  transition: background-color 150ms ease, border-color 150ms ease;
+  transition:
+    background-color 150ms ease,
+    border-color 150ms ease;
 }
 .toolbar .filters label {
   background: transparent;
@@ -510,7 +512,9 @@ header {
   font-size: 15px;
   font-weight: 650;
   letter-spacing: 0.5px;
-  transition: background-color 150ms ease, color 150ms ease;
+  transition:
+    background-color 150ms ease,
+    color 150ms ease;
 }
 .asset-type-trigger:is(:hover, [aria-expanded="true"]) {
   background: var(--toolbar-control-hover);
@@ -2224,6 +2228,72 @@ button:disabled {
   font-size: 10px;
   color: var(--text-secondary);
   line-height: 1.6;
+}
+.map-controls {
+  position: absolute;
+  right: 16px;
+  bottom: 40px;
+  z-index: 1200;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.map-controls button {
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  color: var(--brand);
+  background: #fff;
+  border-radius: 0;
+}
+.map-controls .map-location-control,
+.map-zoom-controls {
+  border-radius: 12px;
+  background: #fff;
+  border: 0.5px solid rgb(63 75 95 / 12%);
+  box-shadow: 0 2px 8px rgb(0 0 0 / 16%);
+}
+.map-zoom-controls {
+  display: flex;
+  flex-direction: column;
+}
+.map-zoom-controls button:first-child {
+  border-radius: 12px 12px 0 0;
+  border-bottom: 0.5px solid rgb(63 75 95 / 10%);
+}
+.map-zoom-controls button:last-child {
+  border-radius: 0 0 12px 12px;
+}
+.map-controls button:hover:not(:disabled) {
+  background: var(--hover);
+  color: var(--accent);
+}
+.map-controls button:disabled {
+  opacity: 1;
+  color: #b8bec8;
+  cursor: default;
+}
+.map-controls button[aria-busy="true"] {
+  cursor: progress;
+}
+.map-control-message {
+  position: absolute;
+  right: 68px;
+  bottom: 40px;
+  z-index: 1200;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: calc(100% - 84px);
+  padding: 10px 12px;
+  border: 0.5px solid var(--line);
+  border-radius: 10px;
+  background: #fff;
+  font-size: 12px;
+}
+.map-control-message button {
+  padding: 4px;
+  flex-shrink: 0;
 }
 .map-cluster {
   transform: translate(-50%, -50%);
