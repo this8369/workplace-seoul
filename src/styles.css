@@ -435,23 +435,49 @@ header {
   padding: 12px var(--content-inset);
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
   color: var(--text-tertiary);
 }
-.results-heading h1 {
-  font-size: 14px;
-  line-height: 20px;
-  letter-spacing: -0.3px;
-  color: var(--brand);
-  font-weight: 500;
+.results-sort {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: -6px;
+  flex-shrink: 0;
 }
-.results-heading p {
-  font-size: 11px;
-  line-height: 16px;
+.results-sort button {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 28px;
+  padding: 0 6px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
   color: var(--text-secondary);
-  margin: 0;
+  font-size: 11px;
   white-space: nowrap;
-  text-align: right;
+  cursor: pointer;
+}
+.results-sort button[aria-pressed="true"] {
+  color: var(--accent);
+  font-weight: 600;
+}
+.results-sort button:is(:hover, :focus-visible) {
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+.sort-arrows {
+  display: flex;
+  flex-direction: column;
+  color: #aab1bd;
+}
+.sort-arrows svg + svg {
+  margin-top: -3px;
+}
+.sort-arrows .is-active {
+  color: var(--accent);
+  stroke-width: 3;
 }
 .results-scroll {
   overflow: auto;
@@ -1001,9 +1027,6 @@ tbody th {
   }
   .results-heading {
     padding: 10px var(--content-inset);
-  }
-  .results-heading h1 {
-    font-size: 14px;
   }
   .empty {
     padding: 24px;

@@ -10,6 +10,8 @@ import {
   Building2,
   Check,
   ChevronRight,
+  ChevronUp,
+  ChevronDown,
   Compass,
   FileText,
   ImagePlus,
@@ -24,6 +26,12 @@ import {
 } from "lucide-react";
 import type { Session } from "@supabase/supabase-js";
 import NaverMap, { type MapCamera } from "./components/NaverMap";
+import {
+  visibleBuildings,
+  sortBuildings,
+  type MapBounds,
+  type BuildingSort,
+} from "./lib/map-list";
 import { fetchCatalog, supabase } from "./lib/supabase";
 import { filterBuildings, formatArea, type Building } from "./lib/domain";
 import { AssetWorkspace, Transactions } from "./components/AssetWorkspace";
@@ -74,6 +82,20 @@ export default function App() {
   const dialog = useRef<HTMLDialogElement>(null),
     search = useRef<HTMLInputElement>(null);
   const mapCamera = useRef<MapCamera | null>(null);
+  const [mapBounds, setMapBounds] = useState<MapBounds | null>(null);
+  const [buildingSort, setBuildingSort] = useState<BuildingSort>("area-desc");
+  const resultsScroll = useRef<HTMLDivElement>(null);
+  const updateMapBounds = useCallback((bounds: MapBounds) => {
+    setMapBounds((previous) =>
+      previous &&
+      previous.south === bounds.south &&
+      previous.north === bounds.north &&
+      previous.west === bounds.west &&
+      previous.east === bounds.east
+        ? previous
+        : bounds,
+    );
+  }, []);
   const [homeRequest, setHomeRequest] = useState(0);
   function goHome() {
     setView("all");
@@ -163,6 +185,28 @@ export default function App() {
       ),
     [buildings, query, region, status, view, saved],
   );
+  const developmentYears = useMemo(
+    () =>
+      new Map(
+        [...developmentSummary].map(([id, record]) => {
+          const match = /^(\d{4})년/.exec(record.completion || "");
+          return [id, match ? Number(match[1]) : null] as const;
+        }),
+      ),
+    [developmentSummary],
+  );
+  const cardResults = useMemo(
+    () =>
+      sortBuildings(
+        visibleBuildings(results, mapBounds),
+        buildingSort,
+        developmentYears,
+      ),
+    [results, mapBounds, buildingSort, developmentYears],
+  );
+  useEffect(() => {
+    if (resultsScroll.current) resultsScroll.current.scrollTop = 0;
+  }, [mapBounds, buildingSort, query, region, status, view]);
   const active = buildings.find((b) => b.id === selected),
     regions = [
       ...new Set([
@@ -506,14 +550,48 @@ export default function App() {
           <div className="workspace">
             <section className="results" aria-label="건물 목록">
               <div className="results-heading">
-                <h1>{view === "all" ? "오피스 둘러보기" : "관심 건물"}</h1>
-                <p>
-                  {load === "ready"
-                    ? `${results.length.toLocaleString()}개의 공간`
-                    : "공간의 안팎을 연결합니다"}
-                </p>
+                <div
+                  className="results-sort"
+                  role="group"
+                  aria-label="카드 정렬"
+                >
+                  {(
+                    [
+                      ["area", "연면적"],
+                      ["year", "연도"],
+                    ] as const
+                  ).map(([key, label]) => {
+                    const active = buildingSort.startsWith(key);
+                    const ascending = active && buildingSort.endsWith("asc");
+                    return (
+                      <button
+                        key={key}
+                        type="button"
+                        aria-pressed={active}
+                        aria-label={`${label} 정렬${active ? (ascending ? ", 오름차순" : ", 내림차순") : ""}`}
+                        onClick={() =>
+                          setBuildingSort(
+                            active && !ascending ? `${key}-asc` : `${key}-desc`,
+                          )
+                        }
+                      >
+                        {label}
+                        <span className="sort-arrows" aria-hidden="true">
+                          <ChevronUp
+                            className={ascending ? "is-active" : ""}
+                            size={10}
+                          />
+                          <ChevronDown
+                            className={active && !ascending ? "is-active" : ""}
+                            size={10}
+                          />
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
-              <div className="results-scroll">
+              <div className="results-scroll" ref={resultsScroll}>
                 {load !== "ready" ? (
                   <div className="empty">
                     <Building2 size={30} />
@@ -535,26 +613,28 @@ export default function App() {
                       <button onClick={refresh}>다시 시도</button>
                     )}
                   </div>
-                ) : results.length === 0 ? (
+                ) : cardResults.length === 0 ? (
                   <div className="empty">
                     <Search size={26} />
                     <h2>
-                      {view === "saved"
+                      {view === "saved" && saved.size === 0
                         ? "저장한 건물이 없습니다"
                         : buildings.length === 0
                           ? "공간 정보를 공개 준비 중입니다"
-                          : "조건에 맞는 건물이 없습니다"}
+                          : !mapBounds
+                            ? "지도 범위를 확인하고 있습니다"
+                            : "현재 지도 범위에 자산이 없습니다"}
                     </h2>
                     <p>
-                      {view === "saved"
+                      {view === "saved" && saved.size === 0
                         ? "관심 있는 건물의 북마크를 눌러보세요."
                         : buildings.length === 0
                           ? "검수 계정으로 로그인하면 수집된 자료를 확인할 수 있습니다."
-                          : "다른 검색어나 지역으로 살펴보세요."}
+                          : "지도를 이동하거나 축소하고, 검색 조건을 확인해 주세요."}
                     </p>
                   </div>
                 ) : (
-                  results.map((b) => (
+                  cardResults.map((b) => (
                     <article
                       key={b.id}
                       className={`building-card ${b.id === selected ? "selected" : ""}`}
@@ -670,6 +750,7 @@ export default function App() {
                   camera={mapCamera}
                   homeRequest={homeRequest}
                   region={region}
+                  onBoundsChange={updateMapBounds}
                   buildings={results}
                   complexes={catalog.complexes}
                   towers={catalog.towers}

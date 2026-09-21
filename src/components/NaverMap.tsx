@@ -1,4 +1,5 @@
 import type { Leasing, Development } from "../lib/catalog";
+import type { MapBounds } from "../lib/map-list";
 import {
   complexMapBuildings,
   towersFor,
@@ -79,6 +80,7 @@ export default function NaverMap({
   camera,
   homeRequest,
   region,
+  onBoundsChange,
 }: {
   buildings: Building[];
   complexes?: BuildingComplex[];
@@ -90,6 +92,7 @@ export default function NaverMap({
   camera: { current: MapCamera | null };
   homeRequest: number;
   region: string;
+  onBoundsChange: (bounds: MapBounds) => void;
 }) {
   const container = useRef<HTMLDivElement>(null),
     map = useRef<any>(null),
@@ -156,6 +159,17 @@ export default function NaverMap({
           zoomControlOptions: { position: n.Position.RIGHT_BOTTOM },
         });
         map.current = instance;
+        const publishBounds = () => {
+          const bounds = instance.getBounds();
+          const sw = bounds.getSW(),
+            ne = bounds.getNE();
+          onBoundsChange({
+            south: sw.lat(),
+            west: sw.lng(),
+            north: ne.lat(),
+            east: ne.lng(),
+          });
+        };
         n.Event.addListener(instance, "idle", () => {
           setHoveredDistrict(null);
           const center = instance.getCenter();
@@ -177,6 +191,7 @@ export default function NaverMap({
             district: activeDistrictRef.current,
             filterRegion: lastRegion.current,
           };
+          publishBounds();
           setViewport((v) => v + 1);
         });
         n.Event.addListener(instance, "click", () => setOverlap(null));
@@ -184,10 +199,14 @@ export default function NaverMap({
           // Resizing on every rail-animation frame makes the SDK rebuild overlays.
           clearTimeout(resizeTimer);
           resizeTimer = setTimeout(() => {
-            if (!cancelled) n.Event.trigger(instance, "resize");
+            if (!cancelled) {
+              n.Event.trigger(instance, "resize");
+              publishBounds();
+            }
           }, 80);
         });
         observer.observe(container.current);
+        publishBounds();
         setPhase("ready");
       })
       .catch(() => {
@@ -203,7 +222,7 @@ export default function NaverMap({
       }
       map.current = null;
     };
-  }, [attempt]);
+  }, [attempt, onBoundsChange]);
   function focusHome() {
     if (!map.current || !sdk.current) return;
     const center = homeMapCenter();
