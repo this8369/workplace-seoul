@@ -644,6 +644,10 @@ header {
   margin-left: -8.5px;
   gap: 2px;
 }
+.card-actions > button:nth-child(2) {
+  margin-left: -4px;
+  padding-left: 4.5px;
+}
 .card-actions > span {
   font-size: 12px;
   margin-left: auto;
