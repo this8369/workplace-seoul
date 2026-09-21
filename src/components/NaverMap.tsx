@@ -131,7 +131,6 @@ export default function NaverMap({
   const highlightBoundary = useRef<(key: DistrictKey | null) => void>(() => {});
   const zoom = map.current?.getZoom() ?? camera.current?.zoom ?? 12;
   const overview = zoom <= 12 && !activeDistrict;
-  const missing = buildings.filter((b) => !hasLocation(b)).length;
   useEffect(() => {
     if (!import.meta.env.VITE_NAVER_MAP_CLIENT_ID) return;
     let cancelled = false;
@@ -614,28 +613,6 @@ export default function NaverMap({
               <p>현재 검색·필터 결과 기준</p>
             </section>
           )}
-          {missing > 0 && (
-            <div className="map-location-status">위치 확인 중 {missing}개</div>
-          )}
-          <div className="map-boundary-source">
-            <a
-              href="http://www.gisdeveloper.co.kr/?p=2332"
-              target="_blank"
-              rel="noreferrer"
-              title="지오서비스 법정동 경계 · 2023.07 · 지도 표시용 단순화"
-            >
-              경계 © 지오서비스
-            </a>
-            <span> · </span>
-            <a
-              href="https://www.openstreetmap.org/copyright"
-              target="_blank"
-              rel="noreferrer"
-              title="도로 선형 © OpenStreetMap contributors · ODbL"
-            >
-              도로 © OpenStreetMap
-            </a>
-          </div>
           {overlapping.length > 0 && (
             <section className="map-overlap" aria-label="가까운 위치의 자산">
               <header>

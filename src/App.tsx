@@ -648,9 +648,7 @@ export default function App() {
                     <ChevronRight size={14} />
                   </button>
                 </section>
-              ) : (
-                <footer>기준이 명확한 공간, 근거가 있는 정보.</footer>
-              )}
+              ) : null}
             </section>
             <div className="map-column">
               {searchToolbar}
