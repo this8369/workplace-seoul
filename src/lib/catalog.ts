@@ -1,6 +1,7 @@
 import type { BuildingImage } from "./building-images";
 import type { Building } from "./domain.ts";
 import { toPyeong } from "./domain.ts";
+import type { BuildingComplex, BuildingTower } from "./building-towers.ts";
 export type Evidence = {
   source_name: string;
   source_url: string | null;
@@ -76,6 +77,8 @@ export type Development = Evidence & {
   progress: string;
 };
 export type Catalog = {
+  complexes: BuildingComplex[];
+  towers: BuildingTower[];
   buildings: Building[];
   transactions: Transaction[];
   companies: Company[];
@@ -87,6 +90,8 @@ export type Catalog = {
   review: boolean;
 };
 export const emptyCatalog: Catalog = {
+  complexes: [],
+  towers: [],
   buildings: [],
   transactions: [],
   companies: [],

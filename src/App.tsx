@@ -658,6 +658,8 @@ export default function App() {
                   camera={mapCamera}
                   homeRequest={homeRequest}
                   buildings={results}
+                  complexes={catalog.complexes}
+                  towers={catalog.towers}
                   leasing={catalog.leasing}
                   developments={catalog.developments}
                   selected={selected}

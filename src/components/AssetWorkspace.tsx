@@ -1,4 +1,5 @@
 import { markerDevelopmentIndex } from "../lib/map-marker-facts";
+import { towersFor, towerFloorText } from "../lib/building-towers";
 import BuildingPhoto from "./BuildingPhoto";
 import { primaryImage } from "../lib/building-images";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -387,6 +388,7 @@ export function AssetWorkspace({
     [tenantView, setTenantView] = useState("list"),
     [companyId, setCompanyId] = useState<string | null>(null);
   const title = useRef<HTMLHeadingElement>(null);
+  const towerRows = towersFor(b, catalog.towers || []);
   useEffect(() => {
     setTab("개요");
     setCompanyId(null);
@@ -603,13 +605,23 @@ export function AssetWorkspace({
                   <div>
                     <dt>기준층 임대면적</dt>
                     <dd>
-                      {numeric(b.typical_floor_rentable_pyeong ?? null, "평")}
+                      {towerRows.length
+                        ? towerFloorText(towerRows, "rentable")
+                        : numeric(
+                            b.typical_floor_rentable_pyeong ?? null,
+                            "평",
+                          )}
                     </dd>
                   </div>
                   <div>
                     <dt>기준층 전용면적</dt>
                     <dd>
-                      {numeric(b.typical_floor_exclusive_pyeong ?? null, "평")}
+                      {towerRows.length
+                        ? towerFloorText(towerRows, "exclusive")
+                        : numeric(
+                            b.typical_floor_exclusive_pyeong ?? null,
+                            "평",
+                          )}
                     </dd>
                   </div>
                   <div>
@@ -627,10 +639,10 @@ export function AssetWorkspace({
                     }}
                   />
                 )}
-                {b.typical_floor_scope && (
+                {b.typical_floor_scope && !towerRows.length && (
                   <p className="context-note">{b.typical_floor_scope}</p>
                 )}
-                {b.typical_floor_source_url && (
+                {b.typical_floor_source_url && !towerRows.length && (
                   <Source
                     item={{
                       source_name: "기준층 면적 · 오피스파인드",
@@ -639,6 +651,16 @@ export function AssetWorkspace({
                     }}
                   />
                 )}
+                {towerRows.map((t) => (
+                  <Source
+                    key={t.id}
+                    item={{
+                      source_name: `${t.label} 기준층 · ${t.source_url ? "오피스파인드" : "자료 미확인"}`,
+                      source_url: t.source_url,
+                      as_of: t.source_period,
+                    }}
+                  />
+                ))}
               </section>
               <section className="info-panel">
                 <div className="section-heading">

@@ -1854,6 +1854,22 @@ button:disabled {
   height: 10px;
   background: var(--bubble-background);
 }
+.map-marker.opens-left .map-marker-bubble {
+  left: auto;
+  right: 50%;
+  border-radius: 6px 6px 0 6px;
+}
+.map-marker.opens-left .map-marker-bubble::before,
+.map-marker.opens-left .map-marker-bubble::after {
+  left: auto;
+  clip-path: polygon(0 0, 100% 0, 100% 100%);
+}
+.map-marker.opens-left .map-marker-bubble::before {
+  right: -1.5px;
+}
+.map-marker.opens-left .map-marker-bubble::after {
+  right: 0;
+}
 .map-marker-name {
   display: block;
   overflow: hidden;
@@ -1926,6 +1942,15 @@ button:disabled {
 }
 .map-marker:is(:hover, :focus-visible) .map-marker-facts {
   display: flex;
+}
+.map-marker.has-towers:is(:hover, :focus-visible) .map-marker-bubble {
+  min-width: min(310px, calc(100vw - 84px));
+  max-width: min(370px, calc(100vw - 84px));
+}
+.map-marker.has-towers .map-marker-fact-value {
+  white-space: normal;
+  text-align: right;
+  overflow-wrap: anywhere;
 }
 .map-marker:is(.active, :hover, :focus-visible) .map-marker-fact-label {
   color: #e2e7f8;

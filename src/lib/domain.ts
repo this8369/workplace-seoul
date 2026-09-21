@@ -1,5 +1,6 @@
 export type Building = {
   id: string;
+  complex_id?: string | null;
   name: string;
   address: string;
   source_address?: string;

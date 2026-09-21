@@ -16,7 +16,7 @@ export async function fetchBuildings(): Promise<Building[]> {
     const { data, error } = await supabase
       .from("buildings")
       .select(
-        "id,name,address,standard_address,road_address,region,status,gross_area_m2,area_basis,latitude,longitude,overview,floors_above,floors_below,completion_year,usage_approved_on,completion_source_url,completion_collected_at,typical_floor_rentable_pyeong,typical_floor_exclusive_pyeong,typical_floor_scope,typical_floor_source_url,typical_floor_source_period,typical_floor_collected_at,parking_spaces,source_name,source_url,verified_on,source_as_of",
+        "id,complex_id,name,address,standard_address,road_address,region,status,gross_area_m2,area_basis,latitude,longitude,overview,floors_above,floors_below,completion_year,usage_approved_on,completion_source_url,completion_collected_at,typical_floor_rentable_pyeong,typical_floor_exclusive_pyeong,typical_floor_scope,typical_floor_source_url,typical_floor_source_period,typical_floor_collected_at,parking_spaces,source_name,source_url,verified_on,source_as_of",
       )
       .order("id")
       .range(from, from + 499);
@@ -65,6 +65,8 @@ export async function fetchCatalog(): Promise<Catalog> {
     leasing,
     developments,
     images,
+    complexes,
+    towers,
   ] = await Promise.all([
     fetchBuildings(),
     all("transactions"),
@@ -74,6 +76,8 @@ export async function fetchCatalog(): Promise<Catalog> {
     all("leasing_quarters"),
     all("development_records"),
     fetchBuildingImages(),
+    all("building_complexes"),
+    all("building_towers"),
   ]);
   const {
     data: { session },
@@ -91,6 +95,8 @@ export async function fetchCatalog(): Promise<Catalog> {
     leasing,
     developments,
     images,
+    complexes,
+    towers,
     review: access.data === true,
   } as Catalog;
 }

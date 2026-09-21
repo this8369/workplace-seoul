@@ -1,5 +1,5 @@
-// Reviewed field-level reconciliation: the source rent stratum is not an A/B tower.
-// Keep the original asset name and NOC; disclose that these are published typical-floor values.
+// Reviewed common specifications published for physical A/B towers.
+// Keep independent NOC observations unchanged.
 import pg from "pg";
 import assert from "node:assert/strict";
 import { readFile, writeFile } from "node:fs/promises";
@@ -7,7 +7,7 @@ import { createHash } from "node:crypto";
 import { parseOffice, parseApproval, roadKey, plain } from "./parser.mjs";
 const root = "data/private/officefind";
 const id = "598cc22d-34ce-5830-9b40-be27364484ae";
-const scope = "A·B동 공시 기준층 · 저층부 별도 미확인";
+const scope = "A·B동 공시 기준층";
 const urls = [
   "https://officefind.co.kr/남대문로5가253그랜드센트럴-a동",
   "https://officefind.co.kr/남대문로5가831그랜드센트럴-b동",
@@ -63,7 +63,7 @@ try {
   const b = (
     await db.query("select * from buildings where id=$1 for update", [id])
   ).rows[0];
-  assert.equal(b.name, "GRAND CENTRAL (구, SG타워) <저층부>");
+  assert.equal(b.name, "GRAND CENTRAL (구, SG타워)");
   assert.equal(b.status, "operating");
   assert.equal(roadKey(b.road_address), roadKey(specs[1].address));
   for (const p of pages) {
@@ -94,7 +94,7 @@ try {
     review_type: "cross-source-common-specification",
     scope,
     reason:
-      "Original record is labelled low-rise rental stratum; A/B pages have the same address, whole-building gross area, typical-floor measurements and approval date. Values are shown as published typical-floor specifications, not verified low-rise-specific measurements.",
+      "A/B pages have the same address, whole-building gross area, typical-floor measurements and approval date. Values are published common specifications for the two physical towers.",
     sources: pages.map((p, i) => ({
       url: p.url,
       hash: p.hash,

@@ -312,9 +312,7 @@ try {
       if (!chosen && !stopped) await inspect(await search(b));
       await persist(b, {
         ...(chosen || {
-          status: attempts.some(
-            (a) => a.reason === "tower-or-stratum-ambiguous",
-          )
+          status: attempts.some((a) => a.reason === "tower-ambiguous")
             ? "ambiguous"
             : "unmatched",
           observed_at: new Date().toISOString(),

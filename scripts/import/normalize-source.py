@@ -13,6 +13,13 @@ def text(v):
     return '' if v is None else str(v).strip()
 def value(row,index):
     return row[index] if len(row)>index else None
+def asset_name(v):
+    name=re.sub(r'[<(\[（]\s*[0-9]+층\s*[~∼–-]\s*[0-9]+층\s*[>)\]）]','',text(v))
+    name=re.sub(r'(?:초고|저|중|고)층(?:부)?[0-9]*(?:\s+[0-9]+층\s*[~∼–-]\s*[0-9]+층)?','',name)
+    name=re.sub(r'<\s*>|\(\s*\)|\[\s*\]|（\s*）','',name)
+    name=re.sub(r'([<(\[（])\s+',r'\1',name)
+    name=re.sub(r'\s+([>)\]）])',r'\1',name)
+    return re.sub(r'\s+',' ',name).strip()
 def normalized(v):
     return re.sub(r'[^0-9a-z가-힣]','',text(v).lower())
 def date_value(v):
@@ -34,7 +41,7 @@ def build(snapshot):
             offset=1 if dev else 0
             parts=[text(value(r,i+offset)) for i in range(4,9)]
             street=' '.join(parts[:3]); lot=parts[3]+('-'+parts[4] if parts[4] not in ('','0') else '')
-            address=(street+' '+lot).strip(); name=text(r[name_idx]); region=text(value(r,4 if dev else 3))
+            address=(street+' '+lot).strip(); name=asset_name(r[name_idx]); region=text(value(r,4 if dev else 3))
             flags=['좌표 미확인','개별 출처·현행 정보 검수 필요']
             if office and area and office<area:flags.append('복합건물 면적 범위 확인')
             if dev and value(r,17) not in ('업무시설',None,''):flags.append('오피스 해당 여부 확인')
@@ -51,7 +58,7 @@ def build(snapshot):
             else:
                 developments.append([uid('development',tab,index),id,name,text(value(r,1)),text(value(r,2)),text(value(r,10)),number(value(r,11)),number(value(r,12)),date_value(value(r,18)),date_value(value(r,19)),text(value(r,21)),text(value(r,22)),text(value(r,23)),text(value(r,24)),'2026-06','미검수','보류','미연결',None,*provenance(tab,index),digest(r)])
     def link(name,region):
-        ids=building_lookup.get((normalized(name),text(region)),[])
+        ids=building_lookup.get((normalized(asset_name(name)),text(region)),[])
         return (ids[0],'명칭·권역 일치 후보') if len(ids)==1 else ('','복수 후보' if ids else '미매칭')
     transactions=[]
     tab='매매사례 1만평+'
@@ -65,7 +72,7 @@ def build(snapshot):
     for index,r in enumerate(tabs['leases'][3:],4):
         if not value(r,3):continue
         id=uid('tenant-move',tab,index); from_id,from_state=link(value(r,8),value(r,4)); to_id,to_state=link(value(r,15),value(r,11))
-        leases.append([id,text(value(r,3)),text(value(r,1)),text(value(r,2)),from_id,text(value(r,8)),text(value(r,7)),number(value(r,9)),number(value(r,10)),to_id,text(value(r,15)),text(value(r,14)),number(value(r,16)),number(value(r,17)),text(value(r,19)),text(value(r,20)),text(value(r,18)),from_state,to_state,'미검수','보류','미연결',None,*provenance(tab,index),digest(r)])
+        leases.append([id,text(value(r,3)),text(value(r,1)),text(value(r,2)),from_id,asset_name(value(r,8)),text(value(r,7)),number(value(r,9)),number(value(r,10)),to_id,asset_name(value(r,15)),text(value(r,14)),number(value(r,16)),number(value(r,17)),text(value(r,19)),text(value(r,20)),text(value(r,18)),from_state,to_state,'미검수','보류','미연결',None,*provenance(tab,index),digest(r)])
         if not to_id:issue(id,'임차이전 연결','도착 건물 '+to_state,tab,index)
     record_names={**{r[0]:r[1] for r in buildings},**{r[0]:r[2] for r in transactions},**{r[0]:r[1] for r in leases}}
     for r in reviews: r.insert(2,record_names.get(r[1],''))

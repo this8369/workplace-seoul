@@ -1,4 +1,11 @@
 import type { Leasing, Development } from "../lib/catalog";
+import {
+  complexMapBuildings,
+  towersFor,
+  towerNocFact,
+  type BuildingComplex,
+  type BuildingTower,
+} from "../lib/building-towers";
 import { regionStats } from "../lib/region-stats";
 import {
   mapMarkerFacts,
@@ -62,6 +69,8 @@ function loadSdk(): Promise<any> {
 }
 export default function NaverMap({
   buildings,
+  complexes = [],
+  towers = [],
   leasing,
   developments,
   selected,
@@ -70,6 +79,8 @@ export default function NaverMap({
   homeRequest,
 }: {
   buildings: Building[];
+  complexes?: BuildingComplex[];
+  towers?: BuildingTower[];
   leasing: Leasing[];
   developments: Development[];
   selected: string | null;
@@ -99,6 +110,10 @@ export default function NaverMap({
     [developments],
   );
   const markerNoc = useMemo(() => markerNocIndex(leasing), [leasing]);
+  const mapBuildings = useMemo(
+    () => complexMapBuildings(buildings, complexes),
+    [buildings, complexes],
+  );
   const nocText = (value: number | null) =>
     value === null
       ? "미확인"
@@ -339,14 +354,20 @@ export default function NaverMap({
             buildings: buildings.filter((b) => b.region === d.key),
           };
         })
-      : spatialGroups(buildings, currentZoom);
+      : spatialGroups(mapBuildings, currentZoom);
     const markers = groups.map((group) => {
       const single = !group.label && group.buildings.length === 1;
       const b = group.buildings[0];
+      const towerRows = b ? towersFor(b, towers) : [];
+      const active =
+        selected === b?.id ||
+        mapBuildings
+          .find((m) => m.id === b?.id)
+          ?.member_ids?.includes(selected || "");
       const button = document.createElement("button");
       button.type = "button";
       button.className = single
-        ? `map-marker ${b.status === "development" ? "is-development" : ""} ${selected === b.id ? "active" : ""}`
+        ? `map-marker ${b.status === "development" ? "is-development" : ""} ${active ? "active" : ""} ${towerRows.length ? "has-towers" : ""}`
         : group.label
           ? `map-region-label${group.id === "Others" ? " is-others" : ""}`
           : "map-cluster";
@@ -371,7 +392,16 @@ export default function NaverMap({
           b,
           markerNoc.get(b.id),
           markerDevelopment.get(b.id),
+          towerRows,
         );
+        if (towerRows.length && b.status === "operating") {
+          const nocIndex = values.findIndex((f) => f.label === "NOC");
+          values[nocIndex] = towerNocFact(
+            mapBuildings.find((m) => m.id === b.id) || b,
+            towerRows,
+            markerNoc,
+          );
+        }
         // Gross floor area is already visible in the bubble's header.
         for (const fact of values.slice(1)) {
           const row = document.createElement("span");
@@ -391,7 +421,7 @@ export default function NaverMap({
           row.append(label, value);
           facts.append(row);
         }
-        if (b.typical_floor_scope) {
+        if (b.typical_floor_scope && !towerRows.length) {
           const scope = document.createElement("span");
           scope.className = "map-marker-scope";
           scope.textContent = b.typical_floor_scope;
@@ -432,11 +462,15 @@ export default function NaverMap({
       button.addEventListener("click", activate);
       const highlight = () => {
         if (group.label) highlightDistrict(group.id as DistrictKey);
-        else if (single) marker.setZIndex(1000);
+        else if (single) {
+          marker.setZIndex(1000);
+        }
       };
       const unhighlight = () => {
         if (group.label) highlightDistrict(null);
-        else if (single) marker.setZIndex(selected === b.id ? 300 : 10);
+        else if (single) {
+          marker.setZIndex(active ? 300 : 10);
+        }
       };
       button.addEventListener("mouseenter", highlight);
       button.addEventListener("mouseleave", unhighlight);
@@ -446,19 +480,45 @@ export default function NaverMap({
         map: map.current,
         position: new n.LatLng(group.latitude, group.longitude),
         icon: { content: button, anchor: new n.Point(0, 0) },
-        zIndex: group.label
-          ? 100
-          : single
-            ? selected === b.id
-              ? 300
-              : 10
-            : 50,
+        zIndex: group.label ? 100 : single ? (active ? 300 : 10) : 50,
       });
-      return { marker, button, activate, highlight, unhighlight };
+      // Decide placement before hover so expansion cannot move away from the
+      // pointer and cause a repeated mouseenter/mouseleave loop.
+      const positionFrame = requestAnimationFrame(() => {
+        const bounds = container.current?.getBoundingClientRect();
+        if (single && bounds) {
+          const anchor = button.getBoundingClientRect();
+          const expandedWidth = Math.min(
+            towerRows.length ? 370 : 240,
+            window.innerWidth - 84,
+          );
+          button.classList.toggle(
+            "opens-left",
+            anchor.left + expandedWidth > bounds.right - 8 &&
+              anchor.left - bounds.left > expandedWidth,
+          );
+        }
+      });
+      return {
+        marker,
+        button,
+        activate,
+        highlight,
+        unhighlight,
+        positionFrame,
+      };
     });
     return () =>
       markers.forEach(
-        ({ marker, button, activate, highlight, unhighlight }) => {
+        ({
+          marker,
+          button,
+          activate,
+          highlight,
+          unhighlight,
+          positionFrame,
+        }) => {
+          cancelAnimationFrame(positionFrame);
           button.removeEventListener("click", activate);
           button.removeEventListener("mouseenter", highlight);
           button.removeEventListener("mouseleave", unhighlight);
@@ -470,6 +530,8 @@ export default function NaverMap({
   }, [
     phase,
     buildings,
+    mapBuildings,
+    towers,
     markerNoc,
     markerDevelopment,
     selected,

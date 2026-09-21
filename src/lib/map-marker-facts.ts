@@ -1,6 +1,7 @@
 import type { Building } from "./domain.ts";
 import { formatArea } from "./domain.ts";
 import type { Leasing, Development } from "./catalog.ts";
+import { towerFloorText, type BuildingTower } from "./building-towers.ts";
 
 const quarter = (period: string) => {
   const match = /^(\d{4})[.\s-]*([1-4])Q$/i.exec(period);
@@ -102,6 +103,7 @@ export function mapMarkerFacts(
   building: Building,
   noc?: MarkerNoc,
   development?: MarkerDevelopment,
+  towers: BuildingTower[] = [],
 ): MarkerFact[] {
   const floor = (value: number | null | undefined) =>
     value != null && Number.isFinite(value) && value > 0
@@ -113,9 +115,16 @@ export function mapMarkerFacts(
   };
   const rentable = {
     label: "기준층 임대면적",
-    value: floor(building.typical_floor_rentable_pyeong),
+    value: towers.length
+      ? towerFloorText(towers, "rentable")
+      : floor(building.typical_floor_rentable_pyeong),
     title:
-      [building.typical_floor_source_period, building.typical_floor_scope]
+      (towers.length
+        ? towers.map(
+            (t) => `${t.label} · ${t.source_period || "기준시점 미확인"}`,
+          )
+        : [building.typical_floor_source_period, building.typical_floor_scope]
+      )
         .filter(Boolean)
         .join(" · ") || undefined,
   };
@@ -162,9 +171,16 @@ export function mapMarkerFacts(
     rentable,
     {
       label: "기준층 전용면적",
-      value: floor(building.typical_floor_exclusive_pyeong),
+      value: towers.length
+        ? towerFloorText(towers, "exclusive")
+        : floor(building.typical_floor_exclusive_pyeong),
       title:
-        [building.typical_floor_source_period, building.typical_floor_scope]
+        (towers.length
+          ? towers.map(
+              (t) => `${t.label} · ${t.source_period || "기준시점 미확인"}`,
+            )
+          : [building.typical_floor_source_period, building.typical_floor_scope]
+        )
           .filter(Boolean)
           .join(" · ") || undefined,
     },

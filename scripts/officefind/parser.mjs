@@ -1,3 +1,4 @@
+import { normalizeBuildingName } from "../lib/building-name.mjs";
 import { normalizeAddress } from "../db/address-normalization.mjs";
 export const plain = (value) =>
   String(value || "")
@@ -16,6 +17,7 @@ export const norm = (value) =>
 export const roadKey = (value) =>
   norm(normalizeAddress(String(value || "").split(/[（(]/)[0]));
 export function aliases(building) {
+  building = { ...building, name: normalizeBuildingName(building.name) };
   const base = building.name.split(/[<(（]/)[0].trim();
   const parts = [
     base,
@@ -99,6 +101,7 @@ export function parseOffice(html, url) {
   };
 }
 export function identityMatch(building, source, siblings = []) {
+  building = { ...building, name: normalizeBuildingName(building.name) };
   if (!source.name || !source.address)
     return { ok: false, reason: "missing-identity" };
   const addressMatches = Boolean(
@@ -122,7 +125,7 @@ export function identityMatch(building, source, siblings = []) {
     ) > 250
   )
     return { ok: false, reason: "coordinate-mismatch" };
-  // Distinct tower/stratum records at one address cannot share a generic site page.
+  // Distinct tower records at one address cannot share a generic site page.
   const multiple = siblings.filter(
     (b) =>
       b.id !== building.id &&
@@ -138,16 +141,22 @@ export function identityMatch(building, source, siblings = []) {
       new RegExp(part + "(?![a-z0-9])", "i").test(source.name),
     )
   )
-    return { ok: false, reason: "tower-or-stratum-ambiguous" };
+    return { ok: false, reason: "tower-ambiguous" };
   const scope =
     building.name.match(/<([^>]+)>/)?.[1] ||
     building.name.match(/(?:타워\s*[1-9]|[1-9]\s*동|[A-Z]동)/i)?.[0];
+  // A component tower page cannot silently fill a whole-complex record.
+  const sourceTower = source.name.match(
+    /(?:타워\s*[1-9]|[1-9]\s*동|[A-Z]동)/i,
+  )?.[0];
+  if (sourceTower && !scope && !combined)
+    return { ok: false, reason: "tower-ambiguous" };
   if (multiple.length || scope) {
     const sourceName = norm(source.name),
       targetName = norm(building.name);
     const exact = sourceName === targetName;
     if (!exact && (!scope || !sourceName.includes(norm(scope))))
-      return { ok: false, reason: "tower-or-stratum-ambiguous" };
+      return { ok: false, reason: "tower-ambiguous" };
   }
   const nameMatches = aliases(building).some((a) => {
     const n = norm(a),
@@ -158,7 +167,7 @@ export function identityMatch(building, source, siblings = []) {
     );
   });
   // A renamed asset is accepted by exact address only when there is one asset
-  // at that address and no explicit tower/stratum distinction.
+  // at that address and no explicit tower distinction.
   return {
     ok: true,
     reason: nameMatches ? "name-and-address" : "unique-address-renamed",
