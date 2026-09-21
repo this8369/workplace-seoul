@@ -21,7 +21,10 @@ try {
   const buildings = (await db.query("select * from buildings")).rows;
   const sources = (
     await db.query(
-      "select * from private.officefind_floor_imports where status in ('matched','source-missing')",
+      // Completion evidence is independent of floor-area matching status.
+      // Revalidate the building identity below, including previously ambiguous
+      // floor records, without accepting a different tower's approval date.
+      "select * from private.officefind_floor_imports where source_url is not null",
     )
   ).rows;
   const report = [];
@@ -31,11 +34,16 @@ try {
   });
   for (const r of sources) {
     const b = buildings.find((b) => b.id === r.building_id);
-    if (b.status !== "operating") continue;
+    if (!b || b.status !== "operating") continue;
     const file = createHash("sha256").update(r.source_url).digest("hex");
-    const page = JSON.parse(
-      await readFile(`${root}/pages/${file}.json`, "utf8"),
-    );
+    let page;
+    try {
+      page = JSON.parse(await readFile(`${root}/pages/${file}.json`, "utf8"));
+    } catch (error) {
+      if (error.code !== "ENOENT") throw error;
+      report.push({ id: b.id, name: b.name, status: "source-not-cached" });
+      continue;
+    }
     const spec = parseOffice(page.text, page.url);
     const identity = identityMatch(b, spec, buildings);
     if (!identity.ok) {

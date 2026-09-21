@@ -17,6 +17,7 @@ test("explicit floor areas preserve unknown basis, constrain values, and keep in
       "202609180015_typical_floor_area.sql",
       "202609180016_typical_floor_split.sql",
       "202609210001_completion_provenance.sql",
+      "202609210006_completion_sources.sql",
     ])
       await db.exec(
         await readFile(
@@ -53,6 +54,27 @@ test("explicit floor areas preserve unknown basis, constrain values, and keep in
     );
     await db.exec(
       "update buildings set completion_year=2020,usage_approved_on='2020-01-01'",
+    );
+    await db.exec(
+      "update buildings set usage_approved_on=null,completion_source_url='https://owner.example.com/history'",
+    );
+    row = (await db.query("select * from buildings")).rows[0];
+    assert.equal(row.completion_year, 2020);
+    assert.equal(
+      row.usage_approved_on,
+      null,
+      "Year-only evidence must not fabricate an approval date",
+    );
+    await assert.rejects(
+      () =>
+        db.exec(
+          "update buildings set completion_source_url='javascript:alert(1)'",
+        ),
+      /check constraint/,
+    );
+    await assert.rejects(
+      () => db.exec("update buildings set usage_approved_on='2021-01-01'"),
+      /check constraint/,
     );
     await db.exec("set role anon");
     assert.equal((await db.query("select * from buildings")).rows.length, 0);
