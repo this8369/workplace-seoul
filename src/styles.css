@@ -743,6 +743,7 @@ header {
 .card-actions button {
   min-height: 28px;
   min-width: 28px;
+  transform: translateY(-2px);
   font-size: 11px;
   padding: 4px 6px;
   gap: 5px;
