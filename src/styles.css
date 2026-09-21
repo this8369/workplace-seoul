@@ -636,6 +636,10 @@ header {
   padding: 4px 6px;
   gap: 5px;
 }
+.card-actions > button:first-child {
+  /* Align the bookmark's visible edge: 6px button padding + 2.5px SVG inset. */
+  margin-left: -8.5px;
+}
 .card-actions > span {
   font-size: 12px;
   margin-left: auto;
