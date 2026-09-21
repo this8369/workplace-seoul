@@ -2160,6 +2160,9 @@ button:disabled {
 .map-marker:is(:hover, :focus-visible) .map-marker-facts {
   display: flex;
 }
+.map-marker:is(:hover, :focus-visible) .map-marker-area {
+  text-align: right;
+}
 .map-marker.has-towers:is(:hover, :focus-visible) .map-marker-bubble {
   min-width: min(310px, calc(100vw - 84px));
   max-width: min(370px, calc(100vw - 84px));
