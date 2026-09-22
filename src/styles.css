@@ -472,16 +472,28 @@ header {
   z-index: 1;
 }
 .results-heading {
+  position: relative;
   background: var(--canvas);
   height: var(--results-heading-height, var(--toolbar-height));
   min-height: var(--results-heading-height, var(--toolbar-height));
-  border-bottom: var(--separator);
+  border-bottom: 0;
   flex-shrink: 0;
   padding: 12px var(--content-inset);
   display: flex;
   align-items: center;
   justify-content: space-between;
   color: var(--text-tertiary);
+}
+.results-heading::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -0.5px;
+  height: 0.5px;
+  background: var(--map-divider);
+  z-index: 5;
+  pointer-events: none;
 }
 .results-heading h1 {
   font-size: 14px;
@@ -952,9 +964,12 @@ header {
 .map-region::after {
   content: "";
   position: absolute;
-  inset: 0;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 0.5px;
   z-index: 5;
-  border-top: 0.5px solid var(--map-divider);
+  background: var(--map-divider);
   pointer-events: none;
 }
 .map-shell,
