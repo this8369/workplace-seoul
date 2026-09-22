@@ -678,7 +678,7 @@ header {
   align-self: stretch;
   margin-bottom: 5px;
   position: relative;
-  border: 0.5px solid rgb(63 75 95 / 25%);
+  border: 1px solid rgb(0 0 0 / 18%);
   background: var(--surface-muted);
   display: flex;
   align-items: center;
