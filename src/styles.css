@@ -678,7 +678,6 @@ header {
   align-self: stretch;
   margin-bottom: 5px;
   position: relative;
-  border: 1px solid rgb(0 0 0 / 18%);
   background: var(--surface-muted);
   display: flex;
   align-items: center;
@@ -686,6 +685,15 @@ header {
   color: var(--text-tertiary);
   border-radius: 8px;
   flex-shrink: 0;
+}
+.building-art::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border: 1px solid rgb(0 0 0 / 18%);
+  border-radius: inherit;
+  pointer-events: none;
 }
 .building-development-badge {
   position: absolute;
