@@ -21,7 +21,6 @@ import {
   FileText,
   ImagePlus,
   Layers3,
-  LogOut,
   MapPin,
   PanelLeftClose,
   PanelLeftOpen,
@@ -38,6 +37,11 @@ import {
   type BuildingSort,
 } from "./lib/map-list";
 import { fetchCatalog, supabase } from "./lib/supabase";
+import IgisLogin from "./components/IgisLogin";
+import AccountMenu from "./components/AccountMenu";
+import { igisStaffTitle } from "./lib/igis-profile";
+import { recoveryRoute, signOutIgis } from "./lib/igis-auth";
+import { useWorkplaceAccess } from "./lib/use-workplace-access";
 import { filterBuildings, formatArea, type Building } from "./lib/domain";
 import { AssetWorkspace, Transactions } from "./components/AssetWorkspace";
 import { emptyCatalog, type Catalog } from "./lib/catalog";
@@ -119,10 +123,15 @@ export default function App() {
     [showCompare, setShowCompare] = useState(false);
   const [saved, setSaved] = useState<Set<string>>(new Set()),
     [session, setSession] = useState<Session | null>(null),
-    [login, setLogin] = useState(false),
-    [email, setEmail] = useState(""),
+    [login, setLogin] = useState(
+      recoveryRoute ||
+        new URLSearchParams(location.search).get("login") === "1",
+    ),
     [notice, setNotice] = useState(""),
     [busy, setBusy] = useState(false);
+  const [loginMode, setLoginMode] = useState<"email" | "change">("email");
+  const access = useWorkplaceAccess(session, setNotice);
+  const can = (permission: string) => access.permissions.includes(permission);
   const dialog = useRef<HTMLDialogElement>(null),
     search = useRef<HTMLInputElement>(null);
   const mapCamera = useRef<MapCamera | null>(null);
@@ -167,7 +176,7 @@ export default function App() {
         if (generation === loadGeneration.current) setLoad("error");
       });
   }, []);
-  useEffect(refresh, [refresh, session?.user.id]);
+  useEffect(refresh, [refresh]);
   useEffect(() => {
     if (!supabase) return;
     let alive = true;
@@ -270,6 +279,10 @@ export default function App() {
       setLogin(true);
       return;
     }
+    if (!can("favorites.write")) {
+      setNotice("저장 기능을 사용할 권한이 없습니다.");
+      return;
+    }
     if (busy) return;
     setBusy(true);
     const exists = saved.has(id);
@@ -303,22 +316,6 @@ export default function App() {
     );
     if (compare.length === 3 && !compare.includes(id))
       setNotice("최대 3개 건물을 비교할 수 있습니다.");
-  }
-  async function signIn(event: React.FormEvent) {
-    event.preventDefault();
-    if (!supabase) return;
-    setBusy(true);
-    const { error } = await supabase.auth.signInWithOtp({
-      email,
-      options: { emailRedirectTo: location.origin + import.meta.env.BASE_URL },
-    });
-    setBusy(false);
-    setNotice(
-      error
-        ? "로그인 메일을 보내지 못했습니다. 잠시 후 다시 시도해 주세요."
-        : "이메일로 로그인 링크를 보냈습니다.",
-    );
-    if (!error) setLogin(false);
   }
   const alignToolbar = useCallback((node: HTMLElement | null) => {
     const workspace = node?.closest<HTMLElement>(".workspace");
@@ -450,6 +447,10 @@ export default function App() {
             aria-label="관심 건물"
             title="관심 건물"
             onClick={() => {
+              if (!session) {
+                setLogin(true);
+                return;
+              }
               setView("saved");
               setSelected(null);
             }}
@@ -471,14 +472,7 @@ export default function App() {
             <span className="nav-text">빌딩 매매사례</span>
           </button>
         </nav>
-        <div className="sidebar-note">
-          <span>공간을 보는 새로운 기준</span>
-          <p>
-            연면적 1만 평 이상의 오피스.
-            <br />한 건물씩, 깊이 있게.
-          </p>
-        </div>
-        {catalog.review && (
+        {can("images.manage") && (
           <nav className="admin-navigation" aria-label="관리 메뉴">
             <div className="nav-label">관리</div>
             <button
@@ -495,64 +489,24 @@ export default function App() {
             </button>
           </nav>
         )}
-        <div className="account">
-          <span className="avatar" aria-hidden="true">
-            {session ? session.user.email?.[0].toUpperCase() || "W" : "W"}
-          </span>
-          {session && (
-            <div className="account-identity">
-              <span title={session.user.email}>{session.user.email}</span>
-              <small>
-                {load !== "ready"
-                  ? "로그인됨"
-                  : catalog.review
-                    ? "검수 계정"
-                    : "일반 계정"}
-              </small>
-            </div>
-          )}
-          <button
-            className={session ? "account-action" : "account-login"}
-            aria-label={session ? "로그아웃" : "로그인"}
-            title={session ? "로그아웃" : "로그인"}
-            onClick={() =>
-              session
-                ? supabase?.auth.signOut().then(({ error }) => {
-                    if (error) setNotice("로그아웃하지 못했습니다.");
-                  })
-                : setLogin(true)
-            }
-          >
-            {session ? (
-              <LogOut size={16} />
-            ) : (
-              <>
-                <span className="account-login-label">로그인</span>
-                <ArrowUpRight size={14} />
-              </>
-            )}
-          </button>
-        </div>
+        <AccountMenu
+          name={access.display_name || ""}
+          email={session?.user.email}
+          title={igisStaffTitle(access.display_name || "")}
+          onLogin={() => {
+            setLoginMode("email");
+            setLogin(true);
+          }}
+          onPassword={() => {
+            setLoginMode("change");
+            setLogin(true);
+          }}
+          onLogout={signOutIgis}
+        />
       </aside>
       <main>
-        {session &&
-          load === "ready" &&
-          !catalog.review &&
-          buildings.length === 0 && (
-            <div className="access-notice" role="status">
-              <div>
-                <strong>
-                  로그인은 완료됐지만 검수 자료를 볼 권한이 없습니다.
-                </strong>
-                <p>
-                  {session.user.email} · 권한이 등록된 계정인지 확인해 주세요.
-                </p>
-              </div>
-              <button onClick={refresh}>권한 다시 확인</button>
-            </div>
-          )}
         {!active && view === "transactions" && searchToolbar}
-        {view === "images" && catalog.review && !active ? (
+        {view === "images" && can("images.manage") && !active ? (
           <PhotoManager
             buildings={buildings}
             images={catalog.images}
@@ -676,7 +630,7 @@ export default function App() {
                       {view === "saved" && saved.size === 0
                         ? "관심 있는 건물의 북마크를 눌러보세요."
                         : buildings.length === 0
-                          ? "검수 계정으로 로그인하면 수집된 자료를 확인할 수 있습니다."
+                          ? "등록된 자산 정보를 준비하고 있습니다."
                           : "지도를 이동하거나 축소하고, 검색 조건을 확인해 주세요."}
                     </p>
                   </div>
@@ -695,7 +649,9 @@ export default function App() {
                             image={primaryImage(catalog.images, b.id)}
                           />
                           {b.status === "development" && (
-                            <span className="building-development-badge">개발</span>
+                            <span className="building-development-badge">
+                              개발
+                            </span>
                           )}
                         </span>
                         <span className="card-info">
@@ -901,30 +857,22 @@ export default function App() {
         )}
       </dialog>
       {login && (
-        <LoginModal onClose={() => setLogin(false)}>
-          <h2>Workplace Seoul에 로그인</h2>
-          <p>이메일로 받은 링크를 통해 로그인합니다.</p>
-          {supabase ? (
-            <form onSubmit={signIn}>
-              <label>
-                이메일
-                <input
-                  type="email"
-                  required
-                  autoComplete="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="you@example.com"
-                />
-              </label>
-              <button className="primary" disabled={busy}>
-                {busy ? "전송 중…" : "로그인 링크 받기"}
-              </button>
-            </form>
-          ) : (
-            <p className="muted">회원 서비스를 준비하고 있습니다.</p>
-          )}
-        </LoginModal>
+        <IgisLogin
+          initialMode={loginMode}
+          initialEmail={
+            loginMode === "change" ? session?.user.email : undefined
+          }
+          initialName={loginMode === "change" ? access.display_name || "" : ""}
+          onClose={() => {
+            setLogin(false);
+            setLoginMode("email");
+          }}
+          onSuccess={() => {
+            setLogin(false);
+            setLoginMode("email");
+            refresh();
+          }}
+        />
       )}
       {notice && (
         <div className="toast" role="status">
@@ -932,29 +880,5 @@ export default function App() {
         </div>
       )}
     </div>
-  );
-}
-function LoginModal({
-  children,
-  onClose,
-}: {
-  children: React.ReactNode;
-  onClose: () => void;
-}) {
-  const ref = useRef<HTMLDialogElement>(null);
-  useEffect(() => {
-    ref.current?.showModal();
-  }, []);
-  return (
-    <dialog ref={ref} className="login-dialog" onClose={onClose}>
-      <button
-        className="close"
-        aria-label="로그인 닫기"
-        onClick={() => ref.current?.close()}
-      >
-        <X size={19} />
-      </button>
-      {children}
-    </dialog>
   );
 }

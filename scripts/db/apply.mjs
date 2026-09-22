@@ -30,6 +30,12 @@ try {
       .filter((f) => f.endsWith(".sql"))
       .sort()) {
       const version = file.split("_")[0];
+      const through = process.argv
+        .find((arg) => arg.startsWith("--through="))
+        ?.split("=")[1];
+      if (through && !/^\d{12}$/.test(through))
+        throw new Error("Invalid migration version");
+      if (through && version > through) continue;
       if (
         (
           await db.query(

@@ -339,12 +339,12 @@ export function Transactions({
           title={
             base.length
               ? "조건에 맞는 거래가 없습니다"
-              : "거래 정보를 공개 준비 중입니다"
+              : "등록된 거래 정보가 없습니다"
           }
         >
           {base.length
             ? "검색어나 필터를 변경해 보세요."
-            : "검수 계정으로 로그인하면 수집된 거래 기록을 확인할 수 있습니다."}
+            : "거래 정보가 등록되면 이곳에서 확인할 수 있습니다."}
         </Blank>
       )}
       <p className="context-note">

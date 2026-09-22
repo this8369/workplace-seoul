@@ -8,7 +8,15 @@ import {
 } from "./map-regions";
 const url = import.meta.env.VITE_SUPABASE_URL,
   key = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-export const supabase = url && key ? createClient(url, key) : null;
+export const supabase =
+  url && key
+    ? createClient(url, key, {
+        auth: {
+          detectSessionInUrl:
+            new URLSearchParams(location.search).get("igis-recovery") !== "1",
+        },
+      })
+    : null;
 export async function fetchBuildings(): Promise<Building[]> {
   if (!supabase) throw new Error("not-configured");
   const rows: Building[] = [];
@@ -79,13 +87,6 @@ export async function fetchCatalog(): Promise<Catalog> {
     all("building_complexes"),
     all("building_towers"),
   ]);
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
-  const access = session
-    ? await supabase.rpc("can_review_records")
-    : { data: false, error: null };
-  if (access.error) throw access.error;
   return {
     buildings,
     transactions,
@@ -97,6 +98,6 @@ export async function fetchCatalog(): Promise<Catalog> {
     images,
     complexes,
     towers,
-    review: access.data === true,
+    review: true,
   } as Catalog;
 }

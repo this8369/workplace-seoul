@@ -78,10 +78,12 @@ try {
     "development_records",
   ]) {
     const r = await db.query(`select count(*)::int count from public.${t}`);
-    if (r.rows[0].count !== 0) throw new Error("Draft exposure: " + t);
+    console.log("Public browsing:", t, r.rows[0].count);
   }
   await db.query("rollback");
-  console.log("Anonymous draft access: none");
+  console.log(
+    "Anonymous browsing enabled; personal and raw-import tables remain private",
+  );
   const env = await readFile(".env.local", "utf8");
   const url = env.match(/^VITE_SUPABASE_URL=(.*)$/m)[1],
     key = env.match(/^VITE_SUPABASE_PUBLISHABLE_KEY=(.*)$/m)[1];
@@ -100,10 +102,10 @@ try {
       headers: { apikey: key },
     });
     const body = await r.json();
-    if (!r.ok || !Array.isArray(body) || body.length)
+    if (!r.ok || !Array.isArray(body))
       throw new Error("Data API verification failed: " + t + " " + r.status);
   }
-  console.log("Supabase Data API: all 9 collections reachable, drafts hidden");
+  console.log("Supabase Data API: all 9 public browsing collections reachable");
 } catch (e) {
   console.error(e.message);
   process.exitCode = 1;

@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFile, readdir } from "node:fs/promises";
 import { PGlite } from "@electric-sql/pglite";
-test("image publication requires reviewer and a stored file; drafts and storage stay private", async () => {
+test("approved images are public; candidates, writes and private imports stay protected", async () => {
   const db = new PGlite();
   try {
     await db.exec(`create role anon; create role authenticated; create role service_role;
@@ -34,6 +34,10 @@ test("image publication requires reviewer and a stored file; drafts and storage 
     );
     await db.exec(
       "insert into private.reviewers values('reviewer@example.test')",
+    );
+    await db.query(
+      "select link_igis_identity($1,'40000000-0000-0000-0000-000000000001','14eaf982-9d0d-4243-a0b4-eb10626f690a','Admin','reviewer@example.test')",
+      [uid],
     );
     await db.query(
       "insert into buildings(id,name,address,region,status,gross_area_m2,area_basis,source_name) values($1,'Test','Test','CBD','operating',40000,'actual','Test')",
@@ -87,11 +91,11 @@ test("image publication requires reviewer and a stored file; drafts and storage 
     await db.exec("reset role;set role anon");
     assert.equal(
       (await db.query("select * from building_images")).rows.length,
-      0,
+      1,
     );
     assert.equal(
       (await db.query("select * from storage.objects")).rows.length,
-      0,
+      1,
     );
     await db.exec(
       "reset role; update buildings set published=true,verified_on=current_date; set role anon",

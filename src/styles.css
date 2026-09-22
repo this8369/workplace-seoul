@@ -1112,6 +1112,23 @@ tbody th {
 .login-dialog .primary {
   width: 100%;
 }
+.login-dialog .login-feedback {
+  margin: 14px 0 0;
+  padding: 12px;
+  border-radius: 10px;
+  font-size: 14px;
+  overflow-wrap: anywhere;
+  background: #edf0f7;
+  color: var(--brand);
+}
+.login-dialog .login-feedback.error {
+  background: #fff0ee;
+  color: #96372c;
+}
+.login-dialog .primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
 .muted {
   margin-top: 25px;
 }
@@ -2978,5 +2995,429 @@ button:disabled {
 @media (max-width: 900px) {
   .register-groups {
     grid-template-columns: 1fr;
+  }
+}
+
+/* IGIS account flow, styled for Workplace Seoul. */
+.igis-login {
+  width: min(440px, calc(100vw - 32px));
+  max-height: calc(100dvh - 32px);
+  padding: 32px;
+  border: 0.5px solid #1c243526;
+  border-radius: 24px;
+  background: #f8f9fc;
+  color: #1c2435;
+  overflow-y: auto;
+}
+.igis-login::backdrop {
+  background: #1c243570;
+}
+.igis-login .close {
+  top: 16px;
+  right: 16px;
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  cursor: pointer;
+}
+.igis-login button {
+  cursor: pointer;
+}
+.igis-login button:disabled {
+  cursor: wait;
+  opacity: 0.55;
+}
+.igis-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 30px;
+  font-size: 18px;
+  font-weight: 700;
+}
+.igis-brand .brand-mark {
+  font-size: 38px;
+  line-height: 1;
+}
+.igis-brand > span > span {
+  color: #667085;
+  font-weight: 400;
+}
+.igis-symbol {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 16px;
+  background: #2539850e;
+  color: #253985;
+  margin: 0 auto 18px;
+}
+.igis-symbol.is-success {
+  background: #e9f3ef;
+  color: #337357;
+}
+.igis-symbol.has-photo {
+  width: 52.8px;
+  height: 52.8px;
+  border-radius: 50%;
+  overflow: hidden;
+}
+.igis-symbol > img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.igis-login h2 {
+  text-align: center;
+  font-size: 25px;
+  line-height: 1.35;
+  letter-spacing: -0.7px;
+  margin: 0 0 4px;
+}
+.igis-login .igis-description {
+  text-align: center;
+  font-size: 15px;
+  line-height: 1.6;
+  color: #667085;
+  margin: 0 0 24px;
+}
+
+/* IOTA-style account footer: the whole profile row opens its account menu. */
+.profile-account {
+  margin: auto -8px -8px;
+  flex-shrink: 0;
+}
+.admin-navigation + .profile-account {
+  margin-top: 0;
+}
+.profile-trigger {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 74px;
+  padding: 12px 10px;
+  border: 0;
+  border-top: var(--separator);
+  border-radius: 0;
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+.profile-trigger:hover,
+.profile-trigger[aria-expanded="true"] {
+  background: #2539850a;
+}
+.profile-portrait {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  flex: 0 0 36px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: #e5e8ee;
+  color: #667085;
+  border: 0.5px solid #1c243520;
+}
+.profile-portrait img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.profile-details {
+  min-width: 0;
+  flex: 1;
+  display: grid;
+  gap: 2px;
+}
+.profile-details strong,
+.profile-details small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.profile-details strong {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.25;
+}
+.profile-details small {
+  font-size: 12px;
+  line-height: 1;
+  color: #7a8494;
+}
+.profile-chevron {
+  color: #7a8494;
+}
+.sidebar.is-collapsed .profile-trigger {
+  justify-content: center;
+  padding-inline: 0;
+}
+.sidebar.is-collapsed .profile-details,
+.sidebar.is-collapsed .profile-chevron {
+  display: none;
+}
+.profile-popover {
+  position: fixed;
+  z-index: 1100;
+  width: 258px;
+  max-width: calc(100vw - 16px);
+  padding: 8px 0;
+  border: 0.5px solid #1c24352b;
+  border-radius: 16px;
+  background: #f5f6f8;
+  box-shadow: 0 8px 28px #1c24351a;
+  overflow: hidden;
+}
+.profile-popover button {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 12px;
+  width: 100%;
+  padding: 12px 16px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  text-align: left;
+  color: #1c2435;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.profile-popover button:hover,
+.profile-popover button:focus-visible {
+  background: #2539850d;
+}
+.profile-popover button svg {
+  color: #778090;
+}
+.profile-menu-divider {
+  height: 0.5px;
+  background: #1c243520;
+  margin: 4px 0;
+}
+.profile-popover .profile-logout,
+.profile-popover .profile-logout svg {
+  color: #d53b35;
+}
+.profile-dialog {
+  position: fixed;
+  width: 400px;
+  max-width: calc(100vw - 32px);
+  padding: 32px;
+  border: 0;
+  border-radius: 24px;
+  background: #f7f8fa;
+  color: #1c2435;
+  text-align: center;
+}
+.profile-dialog::backdrop {
+  background: #1c243566;
+}
+.profile-dialog h2 {
+  font-size: 22px;
+  margin: 0 0 12px;
+}
+.profile-dialog p {
+  color: #667085;
+  line-height: 1.6;
+  margin: 0 0 18px;
+}
+.profile-dialog > a {
+  display: block;
+  margin-bottom: 10px;
+  color: #253985;
+}
+.profile-dialog .close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+}
+.profile-dialog-actions {
+  display: flex;
+  gap: 10px;
+}
+.profile-dialog-actions > button {
+  flex: 1;
+  min-height: 44px;
+}
+.profile-dialog .profile-confirm {
+  background: #253985;
+  color: white;
+  border-radius: 12px;
+  padding: 12px;
+}
+.profile-dialog > .profile-confirm {
+  width: 100%;
+  margin-top: 16px;
+}
+.igis-login .igis-field {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0 0 16px;
+}
+.igis-login input {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  height: 48px;
+  padding: 0 14px;
+  border: 1px solid transparent;
+  border-radius: 13px;
+  background: #e9ecf2;
+  color: #1c2435;
+  font: inherit;
+  font-size: 16px;
+  outline: none;
+}
+.igis-login input:focus {
+  border-color: #253985;
+  background: #fff;
+}
+.igis-email-input {
+  display: flex;
+  align-items: center;
+  border: 1px solid transparent;
+  border-radius: 13px;
+  background: #e9ecf2;
+  overflow: hidden;
+}
+.igis-email-input:focus-within {
+  border-color: #253985;
+  background: #fff;
+}
+.igis-login .igis-email-input input {
+  flex: 1;
+  width: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+.igis-email-domain {
+  flex-shrink: 0;
+  padding-right: 14px;
+  font-size: 16px;
+  font-weight: 400;
+  color: #667085;
+  white-space: nowrap;
+}
+.igis-login .igis-email {
+  padding: 12px 14px;
+  background: #e9ecf2;
+  border-radius: 12px;
+  margin-bottom: 20px;
+  font-size: 15px;
+  overflow-wrap: anywhere;
+}
+.igis-password {
+  position: relative;
+  display: block;
+}
+.igis-password input {
+  padding-right: 48px;
+}
+.igis-eye {
+  position: absolute;
+  right: 4px;
+  top: 4px;
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  color: #667085;
+  background: transparent;
+  border: 0;
+  border-radius: 10px;
+}
+.igis-eye:hover {
+  background: #25398512;
+  color: #253985;
+}
+.igis-login .igis-submit {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 48px;
+  margin-top: 8px;
+  border: 0;
+  border-radius: 13px;
+  background: #253985;
+  color: white;
+  font-size: 16px;
+  font-weight: 600;
+}
+.igis-login .igis-submit:hover:not(:disabled) {
+  background: #1c2435;
+}
+.igis-login .igis-error {
+  color: #a22d35;
+  font-size: 14px;
+  line-height: 1.5;
+  padding: 12px;
+  background: #fae9eb;
+  border-radius: 12px;
+  margin: 0 0 12px;
+}
+.igis-back {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0;
+  background: none;
+  border: 0;
+  color: #667085;
+  font-size: 13px;
+  margin: 0 0 18px;
+}
+.igis-links {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin: 20px 0;
+}
+.igis-links button {
+  border: 0;
+  padding: 4px;
+  background: none;
+  color: #526078;
+  font-size: 14px;
+}
+.igis-links button:hover,
+.igis-back:hover {
+  color: #253985;
+}
+.igis-links span {
+  width: 1px;
+  height: 12px;
+  background: #1c243520;
+}
+.igis-login .igis-note {
+  margin: 26px 0 0;
+  padding-top: 20px;
+  border-top: 0.5px solid #1c243522;
+  text-align: center;
+  font-size: 12px;
+  line-height: 1.7;
+  color: #788294;
+}
+@media (max-width: 480px) {
+  .igis-login {
+    padding: 26px 22px;
+  }
+  .igis-login h2 {
+    font-size: 23px;
   }
 }
