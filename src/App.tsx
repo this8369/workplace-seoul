@@ -5,6 +5,7 @@ import {
 } from "./lib/map-marker-facts";
 import PhotoManager from "./components/PhotoManager";
 import AssetTypeSelect from "./components/AssetTypeSelect";
+import FilterSelect from "./components/FilterSelect";
 import BuildingPhoto from "./components/BuildingPhoto";
 import { fetchBuildingImages, primaryImage } from "./lib/building-images";
 import { districts } from "./lib/map-regions";
@@ -354,32 +355,28 @@ export default function App() {
         )}
       </div>
       <div className="filters">
-        <label>
-          <MapPin size={14} />
-          <select
-            aria-label="권역"
-            value={region}
-            onChange={(e) => setRegion(e.target.value)}
-          >
-            <option value="">권역 전체</option>
-            {regions.map((r) => (
-              <option key={r}>{r}</option>
-            ))}
-          </select>
-        </label>
+        <FilterSelect
+          label="권역"
+          icon={<MapPin size={14} />}
+          value={region}
+          onChange={setRegion}
+          options={[
+            { value: "", label: "권역 전체" },
+            ...regions.map((r) => ({ value: r, label: r })),
+          ]}
+        />
         {view !== "transactions" && (
-          <label>
-            <Layers3 size={14} />
-            <select
-              aria-label="건물 상태"
-              value={status}
-              onChange={(e) => setStatus(e.target.value)}
-            >
-              <option value="">실물+개발</option>
-              <option value="operating">실물</option>
-              <option value="development">개발중</option>
-            </select>
-          </label>
+          <FilterSelect
+            label="건물 상태"
+            icon={<Layers3 size={14} />}
+            value={status}
+            onChange={setStatus}
+            options={[
+              { value: "", label: "실물+개발" },
+              { value: "operating", label: "실물" },
+              { value: "development", label: "개발중" },
+            ]}
+          />
         )}
         <span className="fixed-filter">
           <SlidersHorizontal size={14} />

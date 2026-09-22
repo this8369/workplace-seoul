@@ -557,6 +557,33 @@ header {
   background: transparent;
   color: var(--text-secondary);
 }
+.filter-select-trigger {
+  min-width: 112px;
+  height: var(--control-height);
+  padding: 0 10px;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 400;
+  letter-spacing: inherit;
+  white-space: nowrap;
+}
+.filter-select-icon {
+  display: flex;
+  color: var(--text-secondary);
+}
+.filter-select-trigger[aria-expanded="true"] .filter-select-icon svg {
+  transform: none;
+}
+.filter-select-chevron {
+  margin-left: auto;
+  color: var(--text-secondary);
+}
+.filter-select-menu {
+  width: max(100%, 160px);
+}
+.filter-select-menu button {
+  font-size: 13px;
+}
 .asset-type-badge {
   padding: 2px 7px;
   border: 0.5px solid var(--line);
