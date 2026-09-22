@@ -312,24 +312,29 @@ export default function IgisLogin({
           <label className="igis-field">
             회사 이메일
             <span className="igis-email-input">
-              <input
-                type="text"
-                inputMode="email"
-                aria-label="이메일 아이디"
-                aria-describedby="igis-email-domain"
-                autoComplete="username"
-                autoCapitalize="none"
-                spellCheck={false}
-                autoFocus
-                required
-                value={email.split("@")[0]}
-                onChange={(e) => {
-                  const id = e.target.value.split("@")[0].replace(/\s/g, "");
-                  setEmail(id ? `${id}@igisam.com` : "");
-                }}
-                placeholder="아이디"
-                disabled={busy}
-              />
+              <span className="igis-email-local">
+                <span className="igis-email-measure" aria-hidden="true">
+                  {email.split("@")[0] || "아이디"}
+                </span>
+                <input
+                  type="text"
+                  inputMode="email"
+                  aria-label="이메일 아이디"
+                  aria-describedby="igis-email-domain"
+                  autoComplete="username"
+                  autoCapitalize="none"
+                  spellCheck={false}
+                  autoFocus
+                  required
+                  value={email.split("@")[0]}
+                  onChange={(e) => {
+                    const id = e.target.value.split("@")[0].replace(/\s/g, "");
+                    setEmail(id ? `${id}@igisam.com` : "");
+                  }}
+                  placeholder="아이디"
+                  disabled={busy}
+                />
+              </span>
               <span id="igis-email-domain" className="igis-email-domain">
                 @igisam.com
               </span>

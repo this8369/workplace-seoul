@@ -3287,6 +3287,7 @@ button:disabled {
 .igis-email-input {
   display: flex;
   align-items: center;
+  padding: 0 14px;
   border: 1px solid transparent;
   border-radius: 13px;
   background: #e9ecf2;
@@ -3296,18 +3297,35 @@ button:disabled {
   border-color: #253985;
   background: #fff;
 }
+.igis-email-local {
+  position: relative;
+  display: grid;
+  flex: 0 1 auto;
+  min-width: 0;
+  font-size: 16px;
+  font-weight: 700;
+}
+.igis-email-measure {
+  grid-area: 1 / 1;
+  height: 48px;
+  visibility: hidden;
+  white-space: pre;
+  padding-right: 1px;
+}
 .igis-login .igis-email-input input {
-  flex: 1;
-  width: 0;
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  padding: 0;
+  font-weight: 700;
   border: 0;
   border-radius: 0;
   background: transparent;
 }
 .igis-email-domain {
   flex-shrink: 0;
-  padding-right: 14px;
   font-size: 16px;
-  font-weight: 400;
+  font-weight: 700;
   color: #667085;
   white-space: nowrap;
 }
