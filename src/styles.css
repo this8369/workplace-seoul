@@ -27,7 +27,7 @@
   --line: rgb(76 88 107 / 24%);
   --divider: rgb(63 75 95 / 45%);
   --vertical-divider: var(--divider);
-  --map-divider: var(--divider);
+  --map-divider: rgb(0 0 0 / 40%);
   --separator: 0.5px solid var(--divider);
   --muted: #828b9b;
   --sidebar-width: 190px;
@@ -147,10 +147,6 @@ input::placeholder {
 }
 .building-card:hover {
   background: var(--hover);
-}
-.results-scroll {
-  scrollbar-width: thin;
-  scrollbar-color: #b8c0ce transparent;
 }
 button {
   padding: 7px;
@@ -471,7 +467,7 @@ header {
   display: flex;
   flex-direction: column;
   background: var(--surface);
-  border-right: var(--separator);
+  border-right: 0;
   position: relative;
   z-index: 1;
 }
@@ -636,9 +632,64 @@ header {
   color: var(--accent);
   stroke-width: 3;
 }
-.results-scroll {
-  overflow: auto;
+.card-scroll-area {
+  position: relative;
+  display: flex;
+  min-height: 0;
   flex: 1;
+  overflow: hidden;
+}
+.results-scroll {
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: none;
+  min-height: 0;
+  width: 100%;
+  flex: 1;
+}
+.results-scroll::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+.card-scroll-track {
+  position: absolute;
+  top: 4px;
+  right: 2px;
+  bottom: 4px;
+  width: 10px;
+  z-index: 3;
+  opacity: 0;
+  transition: opacity 180ms ease;
+}
+.card-scroll-area.is-scrolling .card-scroll-track,
+.card-scroll-track:hover,
+.card-scroll-track:focus-within {
+  opacity: 1;
+}
+.card-scroll-thumb {
+  width: 6px;
+  margin: 0 2px;
+  border-radius: 999px;
+  background: rgb(0 0 0 / 35%);
+  cursor: grab;
+  touch-action: none;
+}
+.card-scroll-thumb:hover,
+.card-scroll-thumb:active {
+  background: rgb(0 0 0 / 50%);
+}
+.card-scroll-thumb:active {
+  cursor: grabbing;
+}
+.card-scroll-thumb:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .card-scroll-track {
+    transition: none;
+  }
 }
 .building-card {
   border-top: var(--separator);
@@ -691,7 +742,7 @@ header {
   position: absolute;
   inset: 0;
   z-index: 1;
-  border: 1px solid rgb(0 0 0 / 18%);
+  border: 0.5px solid rgb(0 0 0 / 12%);
   border-radius: inherit;
   pointer-events: none;
 }
@@ -863,16 +914,28 @@ header {
   margin-top: 18px;
 }
 .map-column {
+  position: relative;
   display: flex;
   flex-direction: column;
   flex: 1;
   min-width: 0;
   min-height: 0;
 }
+.map-column::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 0.5px;
+  background: var(--map-divider);
+  z-index: 5;
+  pointer-events: none;
+}
 .map-column .toolbar {
   flex-wrap: wrap;
   padding-left: var(--map-tabs-inset);
-  border-bottom-color: var(--map-divider);
+  border-bottom-color: transparent;
 }
 .map-column .search {
   flex: 1 1 240px;
@@ -885,6 +948,14 @@ header {
   min-width: 0;
   position: relative;
   overflow: hidden;
+}
+.map-region::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  border-top: 0.5px solid var(--map-divider);
+  pointer-events: none;
 }
 .map-shell,
 .map-canvas {
@@ -1270,6 +1341,9 @@ tbody th {
   .map-column {
     flex: 0 0 50%;
     min-height: 230px;
+  }
+  .map-column::before {
+    display: none;
   }
   .map-column .search {
     flex: 1 1 100%;

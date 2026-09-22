@@ -7,6 +7,7 @@ import PhotoManager from "./components/PhotoManager";
 import AssetTypeSelect from "./components/AssetTypeSelect";
 import FilterSelect from "./components/FilterSelect";
 import BuildingPhoto from "./components/BuildingPhoto";
+import CardScrollArea from "./components/CardScrollArea";
 import { fetchBuildingImages, primaryImage } from "./lib/building-images";
 import { districts } from "./lib/map-regions";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -589,7 +590,7 @@ export default function App() {
                   })}
                 </div>
               </div>
-              <div className="results-scroll" ref={resultsScroll}>
+              <CardScrollArea scrollRef={resultsScroll}>
                 {load !== "ready" ? (
                   <div className="empty">
                     <Building2 size={30} />
@@ -728,7 +729,7 @@ export default function App() {
                     </article>
                   ))
                 )}
-              </div>
+              </CardScrollArea>
               {compare.length > 0 ? (
                 <section className="compare-bar" aria-label="비교할 건물">
                   <div className="compare-heading">
