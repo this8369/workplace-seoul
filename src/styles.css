@@ -1,9 +1,17 @@
 @import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500&text=Workplace%20Seoul&display=swap");
+@font-face {
+  font-family: "Pretendard Variable";
+  src: url("./assets/fonts/pretendard/PretendardVariable.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 45 920;
+  font-display: swap;
+}
 :root {
-  /* Verified against fin.land.naver.com on 2026-09-21. */
+  /* Bundle the UI font so Korean typography stays consistent across platforms. */
   --font-ui:
-    -apple-system, BlinkMacSystemFont, helvetica, "Apple SD Gothic Neo",
-    "나눔고딕", NanumGothic, "맑은 고딕", MalgunGothic, sans-serif;
+    "Pretendard Variable", -apple-system, BlinkMacSystemFont, helvetica,
+    "Apple SD Gothic Neo", "나눔고딕", NanumGothic, "맑은 고딕", MalgunGothic,
+    sans-serif;
   font-family: var(--font-ui);
   color: var(--brand);
   background: var(--canvas);
