@@ -1,6 +1,10 @@
 import type { Leasing, Development } from "../lib/catalog";
 import type { MapBounds } from "../lib/map-list";
 import {
+  cardPreviewBuilding,
+  cardPreviewGroups,
+} from "../lib/card-map-preview";
+import {
   complexMapBuildings,
   towersFor,
   towerNocFact,
@@ -17,12 +21,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Crosshair, MapPin, Minus, Plus, RefreshCw, X } from "lucide-react";
 import { formatArea, type Building } from "../lib/domain";
-import {
-  districts,
-  spatialGroups,
-  hasLocation,
-  type MapGroup,
-} from "../lib/map-clusters";
+import { districts, hasLocation, type MapGroup } from "../lib/map-clusters";
 import {
   displayBoundaries as boundaries,
   homeMapCenter,
@@ -76,6 +75,7 @@ export default function NaverMap({
   leasing,
   developments,
   selected,
+  previewed,
   onSelect,
   camera,
   homeRequest,
@@ -88,6 +88,7 @@ export default function NaverMap({
   leasing: Leasing[];
   developments: Development[];
   selected: string | null;
+  previewed: string | null;
   onSelect: (id: string) => void;
   camera: { current: MapCamera | null };
   homeRequest: number;
@@ -122,6 +123,13 @@ export default function NaverMap({
     () => complexMapBuildings(buildings, complexes),
     [buildings, complexes],
   );
+  const previewBuilding = useMemo(
+    () => cardPreviewBuilding(mapBuildings, previewed),
+    [mapBuildings, previewed],
+  );
+  // Keep the card list stable while its hover preview moves the camera.
+  // Manual map navigation resumes normal viewport-to-list synchronization.
+  const previewCamera = useRef(false);
   const nocText = (value: number | null) =>
     value === null
       ? "미확인"
@@ -161,6 +169,7 @@ export default function NaverMap({
         });
         map.current = instance;
         const publishBounds = () => {
+          if (previewCamera.current) return;
           const bounds = instance.getBounds();
           const sw = bounds.getSW(),
             ne = bounds.getNE();
@@ -196,6 +205,12 @@ export default function NaverMap({
           setViewport((v) => v + 1);
         });
         n.Event.addListener(instance, "click", () => setOverlap(null));
+        n.Event.addListener(instance, "dragstart", () => {
+          previewCamera.current = false;
+        });
+        n.Event.addListener(instance, "zoom_changed", () => {
+          previewCamera.current = false;
+        });
         observer = new ResizeObserver(() => {
           // Resizing on every rail-animation frame makes the SDK rebuild overlays.
           clearTimeout(resizeTimer);
@@ -224,8 +239,26 @@ export default function NaverMap({
       map.current = null;
     };
   }, [attempt, onBoundsChange]);
+  useEffect(() => {
+    if (phase !== "ready" || !previewBuilding || !map.current) return;
+    previewCamera.current = true;
+    setOverlap(null);
+    setHoveredDistrict(null);
+    map.current.panTo(
+      new sdk.current.LatLng(
+        previewBuilding.latitude,
+        previewBuilding.longitude,
+      ),
+      {
+        duration: window.matchMedia("(prefers-reduced-motion: reduce)").matches
+          ? 0
+          : 250,
+      },
+    );
+  }, [phase, previewBuilding]);
   function focusHome() {
     if (!map.current || !sdk.current) return;
+    previewCamera.current = false;
     const center = homeMapCenter();
     setHoveredDistrict(null);
     setOverlap(null);
@@ -245,6 +278,7 @@ export default function NaverMap({
       return;
     }
     const instance = map.current;
+    previewCamera.current = false;
     setLocating(true);
     navigator.geolocation.getCurrentPosition(
       ({ coords }) => {
@@ -282,6 +316,7 @@ export default function NaverMap({
   }
   function focusDistrict(key: DistrictKey) {
     if (!map.current) return;
+    previewCamera.current = false;
     setHoveredDistrict(null);
     const boundary = boundaries.find((b) => b.properties.key === key)!;
     const [west, south, east, north] = boundary.bbox;
@@ -322,6 +357,7 @@ export default function NaverMap({
   }, [region, phase]);
   function focus(group: MapGroup) {
     if (!map.current) return;
+    previewCamera.current = false;
     setOverlap(null);
     const located = group.buildings.filter(hasLocation);
     if (!located.length) return;
@@ -417,7 +453,7 @@ export default function NaverMap({
     if (phase !== "ready" || !map.current) return;
     const n = sdk.current;
     const currentZoom = map.current.getZoom();
-    const groups = overview
+    const groups: MapGroup[] = overview
       ? districts.map((d) => {
           const boundary = boundaries.find((b) => b.properties.key === d.key)!;
           return {
@@ -428,10 +464,19 @@ export default function NaverMap({
             buildings: buildings.filter((b) => b.region === d.key),
           };
         })
-      : spatialGroups(mapBuildings, currentZoom);
+      : cardPreviewGroups(mapBuildings, currentZoom, previewed);
+    if (overview && previewBuilding) {
+      groups.push({
+        id: previewBuilding.id,
+        latitude: previewBuilding.latitude,
+        longitude: previewBuilding.longitude,
+        buildings: [previewBuilding],
+      });
+    }
     const markers = groups.map((group) => {
       const single = !group.label && group.buildings.length === 1;
       const b = group.buildings[0];
+      const cardPreview = single && b?.id === previewBuilding?.id;
       const towerRows = b ? towersFor(b, towers) : [];
       const active =
         selected === b?.id ||
@@ -441,7 +486,7 @@ export default function NaverMap({
       const button = document.createElement("button");
       button.type = "button";
       button.className = single
-        ? `map-marker ${b.status === "development" ? "is-development" : ""} ${active ? "active" : ""} ${towerRows.length ? "has-towers" : ""}`
+        ? `map-marker ${b.status === "development" ? "is-development" : ""} ${active ? "active" : ""} ${cardPreview ? "is-card-preview" : ""} ${towerRows.length ? "has-towers" : ""}`
         : group.label
           ? `map-region-label${group.id === "Others" ? " is-others" : ""}`
           : "map-cluster";
@@ -540,7 +585,7 @@ export default function NaverMap({
       const unhighlight = () => {
         if (group.label) highlightDistrict(null);
         else if (single) {
-          marker.setZIndex(active ? 300 : 10);
+          marker.setZIndex(cardPreview ? 1100 : active ? 300 : 10);
         }
       };
       button.addEventListener("mouseenter", highlight);
@@ -551,7 +596,15 @@ export default function NaverMap({
         map: map.current,
         position: new n.LatLng(group.latitude, group.longitude),
         icon: { content: button, anchor: new n.Point(0, 0) },
-        zIndex: group.label ? 100 : single ? (active ? 300 : 10) : 50,
+        zIndex: cardPreview
+          ? 1100
+          : group.label
+            ? 100
+            : single
+              ? active
+                ? 300
+                : 10
+              : 50,
       });
       if (!single && !group.label && overlap?.id === group.id)
         marker.setVisible(false);
@@ -608,6 +661,8 @@ export default function NaverMap({
     markerNoc,
     markerDevelopment,
     selected,
+    previewed,
+    previewBuilding,
     onSelect,
     viewport,
     overview,

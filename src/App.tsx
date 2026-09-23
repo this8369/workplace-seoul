@@ -137,6 +137,9 @@ export default function App() {
   const dialog = useRef<HTMLDialogElement>(null),
     search = useRef<HTMLInputElement>(null);
   const mapCamera = useRef<MapCamera | null>(null);
+  const [previewedBuilding, setPreviewedBuilding] = useState<string | null>(
+    null,
+  );
   const [mapBounds, setMapBounds] = useState<MapBounds | null>(null);
   const [buildingSort, setBuildingSort] = useState<BuildingSort>("area-desc");
   const resultsScroll = useRef<HTMLDivElement>(null);
@@ -590,7 +593,19 @@ export default function App() {
                   })}
                 </div>
               </div>
-              <CardScrollArea scrollRef={resultsScroll}>
+              <CardScrollArea
+                scrollRef={resultsScroll}
+                onPreview={setPreviewedBuilding}
+                previewKey={JSON.stringify([
+                  query,
+                  region,
+                  status,
+                  view,
+                  buildingSort,
+                  selected,
+                  homeRequest,
+                ])}
+              >
                 {load !== "ready" ? (
                   <div className="empty">
                     <Building2 size={30} />
@@ -636,6 +651,7 @@ export default function App() {
                   cardResults.map((b) => (
                     <article
                       key={b.id}
+                      data-building-id={b.id}
                       className={`building-card ${b.status === "development" ? "is-development" : ""} ${b.id === selected ? "selected" : ""}`}
                     >
                       <button
@@ -787,6 +803,7 @@ export default function App() {
                   leasing={catalog.leasing}
                   developments={catalog.developments}
                   selected={selected}
+                  previewed={previewedBuilding}
                   onSelect={select}
                 />
               </section>

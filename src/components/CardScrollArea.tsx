@@ -9,9 +9,13 @@ import {
 export default function CardScrollArea({
   children,
   scrollRef,
+  onPreview,
+  previewKey,
 }: {
   children: ReactNode;
   scrollRef: RefObject<HTMLDivElement | null>;
+  onPreview: (id: string | null) => void;
+  previewKey: string;
 }) {
   const contentRef = useRef<HTMLDivElement>(null);
   const drag = useRef<{ y: number; scrollTop: number } | null>(null);
@@ -23,6 +27,57 @@ export default function CardScrollArea({
     max: 0,
     value: 0,
   });
+
+  useLayoutEffect(() => {
+    const viewport = scrollRef.current;
+    if (!viewport) return;
+    let pointer: { x: number; y: number } | null = null;
+    let timer: ReturnType<typeof setTimeout>;
+    let current: string | null = null;
+    const publish = (id: string | null) => {
+      if (id === current) return;
+      current = id;
+      onPreview(id);
+    };
+    const hitTest = () => {
+      if (!pointer) return null;
+      const card = document
+        .elementFromPoint(pointer.x, pointer.y)
+        ?.closest<HTMLElement>("[data-building-id]");
+      return card && viewport.contains(card)
+        ? (card.dataset.buildingId ?? null)
+        : null;
+    };
+    const settle = (delay: number) => {
+      clearTimeout(timer);
+      timer = setTimeout(() => publish(hitTest()), delay);
+    };
+    const move = (event: PointerEvent) => {
+      if (event.pointerType === "touch" || event.buttons) return;
+      pointer = { x: event.clientX, y: event.clientY };
+      if (hitTest() !== current) settle(120);
+    };
+    const scroll = () => {
+      publish(null);
+      settle(180);
+    };
+    const leave = () => {
+      pointer = null;
+      clearTimeout(timer);
+      publish(null);
+    };
+    viewport.addEventListener("pointermove", move);
+    viewport.addEventListener("pointerleave", leave);
+    viewport.addEventListener("scroll", scroll, { passive: true });
+    onPreview(null);
+    return () => {
+      clearTimeout(timer);
+      viewport.removeEventListener("pointermove", move);
+      viewport.removeEventListener("pointerleave", leave);
+      viewport.removeEventListener("scroll", scroll);
+      onPreview(null);
+    };
+  }, [scrollRef, onPreview, previewKey]);
 
   useLayoutEffect(() => {
     const viewport = scrollRef.current;

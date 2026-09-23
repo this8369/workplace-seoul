@@ -2284,6 +2284,7 @@ button:disabled {
   font-weight: 500;
   white-space: nowrap;
 }
+.map-marker.is-card-preview .map-marker-bubble,
 .map-marker.active .map-marker-bubble,
 .map-marker:hover .map-marker-bubble,
 .map-marker:focus-visible .map-marker-bubble {
@@ -2291,7 +2292,7 @@ button:disabled {
   --bubble-border: var(--accent);
   color: white;
 }
-.map-marker.is-development:is(.active, :hover, :focus-visible)
+.map-marker.is-development:is(.active, .is-card-preview, :hover, :focus-visible)
   .map-marker-bubble {
   --bubble-background: color-mix(in srgb, #b4232c 15%, white);
   --bubble-border: #74212a;
@@ -2306,18 +2307,19 @@ button:disabled {
   overflow-wrap: anywhere;
   text-align: right;
 }
-.map-marker:is(:hover, :focus-visible) .map-marker-bubble {
+.map-marker:is(.is-card-preview, :hover, :focus-visible) .map-marker-bubble {
   min-width: 220px;
   --bubble-padding-y: 6.3px;
   --bubble-padding-x: 8.1px;
 }
-.map-marker:is(:hover, :focus-visible) .map-marker-facts {
+.map-marker:is(.is-card-preview, :hover, :focus-visible) .map-marker-facts {
   display: flex;
 }
-.map-marker:is(:hover, :focus-visible) .map-marker-area {
+.map-marker:is(.is-card-preview, :hover, :focus-visible) .map-marker-area {
   text-align: right;
 }
-.map-marker.has-towers:is(:hover, :focus-visible) .map-marker-bubble {
+.map-marker.has-towers:is(.is-card-preview, :hover, :focus-visible)
+  .map-marker-bubble {
   min-width: min(310px, calc(100vw - 84px));
   max-width: min(370px, calc(100vw - 84px));
 }
@@ -2326,19 +2328,21 @@ button:disabled {
   text-align: right;
   overflow-wrap: anywhere;
 }
-.map-marker:is(.active, :hover, :focus-visible) .map-marker-fact-label {
+.map-marker:is(.active, .is-card-preview, :hover, :focus-visible)
+  .map-marker-fact-label {
   color: #e2e7f8;
 }
-.map-marker.is-development:is(.active, :hover, :focus-visible)
+.map-marker.is-development:is(.active, .is-card-preview, :hover, :focus-visible)
   .map-marker-fact-label {
   color: #5c2b27;
 }
-.map-marker:is(:hover, :focus-visible) .map-marker-name {
+.map-marker:is(.is-card-preview, :hover, :focus-visible) .map-marker-name {
   padding-bottom: 4px;
   margin-bottom: 4px;
   border-bottom: 0.5px solid rgb(255 255 255 / 30%);
 }
-.map-marker.is-development:is(:hover, :focus-visible) .map-marker-name {
+.map-marker.is-development:is(.is-card-preview, :hover, :focus-visible)
+  .map-marker-name {
   border-bottom-color: rgb(146 43 50 / 25%);
 }
 .map-region-tooltip {
