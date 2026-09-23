@@ -496,14 +496,23 @@ export default function NaverMap({
         dot.setAttribute("aria-hidden", "true");
         const bubble = document.createElement("span");
         bubble.className = "map-marker-bubble";
+        const heading = document.createElement("span");
+        heading.className = "map-marker-heading";
         const area = document.createElement("span");
         area.className = "map-marker-area";
         area.textContent = `${b.area_basis === "planned" ? "계획 " : ""}${formatArea(b.gross_area_m2)}`;
-        bubble.append(area);
         const name = document.createElement("strong");
         name.className = "map-marker-name";
         name.textContent = b.name.split(/\s*[（(]/)[0].trim() || b.name;
-        bubble.append(name);
+        heading.append(name);
+        if (b.status === "development") {
+          const badge = document.createElement("span");
+          badge.className = "map-marker-development-tag";
+          badge.textContent = "개발";
+          heading.append(badge);
+        }
+        heading.append(area);
+        bubble.append(heading);
         const facts = document.createElement("span");
         facts.className = "map-marker-facts";
         const values = mapMarkerFacts(
@@ -534,7 +543,7 @@ export default function NaverMap({
           }
           const value = document.createElement("span");
           value.className = "map-marker-fact-value";
-          value.textContent = fact.value;
+          value.textContent = fact.value === "미확인" ? "-" : fact.value;
           row.append(label, value);
           facts.append(row);
         }
@@ -617,7 +626,7 @@ export default function NaverMap({
         if (single && bounds && !cardPreview) {
           const anchor = button.getBoundingClientRect();
           const expandedWidth = Math.min(
-            towerRows.length ? 370 : 240,
+            towerRows.length ? 370 : 330,
             window.innerWidth - 84,
           );
           button.classList.toggle(
