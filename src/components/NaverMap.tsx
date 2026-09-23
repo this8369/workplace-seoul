@@ -608,11 +608,13 @@ export default function NaverMap({
       });
       if (!single && !group.label && overlap?.id === group.id)
         marker.setVisible(false);
-      // Decide placement before hover so expansion cannot move away from the
-      // pointer and cause a repeated mouseenter/mouseleave loop.
+      // Card previews are moving to the center: keep their default rightward
+      // placement throughout the pan and the idle marker rebuild. Measuring
+      // their starting screen position here caused a left-to-right flip.
+      // Other markers still open left near the map's right edge.
       const positionFrame = requestAnimationFrame(() => {
         const bounds = container.current?.getBoundingClientRect();
-        if (single && bounds) {
+        if (single && bounds && !cardPreview) {
           const anchor = button.getBoundingClientRect();
           const expandedWidth = Math.min(
             towerRows.length ? 370 : 240,
