@@ -2307,6 +2307,15 @@ button:disabled {
   overflow-wrap: anywhere;
   text-align: right;
 }
+.map-marker.is-card-preview .map-marker-bubble {
+  --bubble-border: #10182e;
+  outline: 2px solid rgb(255 255 255 / 90%);
+  outline-offset: 0;
+  filter: drop-shadow(0 3px 7px rgb(0 0 0 / 24%));
+}
+.map-marker.is-development.is-card-preview .map-marker-bubble {
+  --bubble-border: #591a20;
+}
 .map-marker:is(.is-card-preview, :hover, :focus-visible) .map-marker-bubble {
   min-width: 220px;
   --bubble-padding-y: 6.3px;
