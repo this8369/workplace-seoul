@@ -153,10 +153,10 @@ export default function NaverMap({
   const highlightBoundary = useRef<(key: DistrictKey | null) => void>(() => {});
   const zoom = map.current?.getZoom() ?? camera.current?.zoom ?? 12;
   const overview = zoom <= 12 && !activeDistrict;
-  // At street level (the supplied 100 m scale reference), show only the
+  // One zoom step wider than the supplied street-level reference, show only the
   // currently hovered asset. Opening details retains its existing boundary.
   const boundaryAsset =
-    (zoom >= 16 ? hoveredAsset || previewed : null) || selected;
+    (zoom >= 15 ? hoveredAsset || previewed : null) || selected;
   useEffect(() => {
     if (phase !== "ready" || !boundaryAsset || !supabase || !map.current)
       return;
