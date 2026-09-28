@@ -24,6 +24,30 @@ export function sourcePk(row) {
   if (!pk) throw new Error("Missing register identity");
   return pk;
 }
+// Follow the official register hierarchy; never infer a unit's building by name.
+export function registerParents(rows) {
+  const parents = new Map();
+  for (const row of rows) {
+    const child = sourcePk(row);
+    if (!text(row.mgmUpBldrgstPk)) continue;
+    const parent = sourcePk({ mgmBldrgstPk: row.mgmUpBldrgstPk });
+    if (parents.has(child) && parents.get(child) !== parent)
+      throw new Error("Conflicting register parent");
+    parents.set(child, parent);
+  }
+  return parents;
+}
+export function matchRegister(pk, records, parents) {
+  const seen = new Set();
+  while (pk && !seen.has(pk)) {
+    seen.add(pk);
+    const matching = records.filter((r) => r.register_pk === pk);
+    if (matching.length === 1) return matching[0];
+    if (matching.length > 1) return null;
+    pk = parents.get(pk);
+  }
+  return null;
+}
 const textFields = {
   building_name: "bldNm",
   dong_name: "dongNm",

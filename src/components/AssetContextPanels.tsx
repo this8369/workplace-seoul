@@ -117,6 +117,12 @@ export function LandPanel({
       <DataStatus resource={parcels} onRetry={onRetry}>
         필지 경계·토지 특성·공시지가 자료를 연결하면 이곳에 표시됩니다.
       </DataStatus>
+      {rows.length > 0 && !rows.some((p) => p.geometry) && (
+        <div className="context-status">
+          건축물대장의 대표·부속지번을 연결했습니다. 경계와 토지 속성은 VWorld
+          연결 후 표시됩니다.
+        </div>
+      )}
       {rows.length > 0 && (
         <div className="parcel-picker" aria-label="필지 선택">
           {rows.map((p) => (
@@ -150,6 +156,15 @@ export function LandPanel({
               ["지형·고저", parcel?.terrain],
               ["형상", parcel?.shape],
               ["도로조건", parcel?.road_condition],
+              ...(parcel
+                ? [
+                    ["대장상 대지면적", record?.site_area_m2, "㎡"] as [
+                      string,
+                      unknown,
+                      string,
+                    ],
+                  ]
+                : []),
             ]}
           />
           {parcel ? (

@@ -26,7 +26,7 @@
 - `public.building_register_records`: 표제부/총괄표제부 정규화. `(register_pk, record_kind)`로 식별. `record_kind=complex`와 `building`을 구분한다.
 - `public.building_register_links`: 기존 자산 및 선택적 개별 동 연결, 검증 상태, 검증 근거/시점. 주소가 같다는 이유만으로 자동 승인하지 않는다.
 - `public.building_register_floors`: 한 층에 여러 용도별 행이 있을 수 있으므로 원본 항목 순번을 보존한다.
-- `public.building_register_area_parts`: 전유/공용 구분별 면적. 호별 대장 PK가 표제부 PK와 직접 일치하지 않는 자료는 원본에 보존하고 연결을 보류한다.
+- `public.building_register_area_parts`: 전유/공용 구분별 면적. 호별 대장 PK는 기본개요의 공식 상위대장 PK(`mgmUpBldrgstPk`)를 따라 표제부에 연결한다. 관계가 불명확한 자료는 원본에 보존하고 연결을 보류한다.
 - `public.building_register_sections`: 지역지구/오수정화의 항목명을 정규화한 JSON. 원본 전체는 private에서 별도 관리한다.
 
 각 정규화 자료가 원본 snapshot을 참조한다. 데이터는 PostgreSQL/Supabase에 저장하고, 프런트엔드는 자산 상세의 ‘건축물대장’ 탭을 열 때만 조회한다. 전체 지도 로딩에 층별 대장을 함께 내려보내지 않는다.

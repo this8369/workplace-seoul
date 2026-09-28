@@ -8,6 +8,8 @@ import {
   normalizeFloor,
   normalizeArea,
   sourcePk,
+  registerParents,
+  matchRegister,
   text,
   number,
   date,
@@ -49,6 +51,23 @@ async function insert(table, row, conflict = "") {
       values,
     )
   ).rows[0];
+}
+async function insertRows(table, rows) {
+  if (!rows.length) return;
+  assert.ok(
+    [
+      "building_register_floors",
+      "building_register_area_parts",
+      "building_register_sections",
+    ].includes(table),
+  );
+  const columns = Object.keys(rows[0]).join(",");
+  for (let from = 0; from < rows.length; from += 500) {
+    await db.query(
+      `insert into public.${table} (${columns}) select ${columns} from jsonb_populate_recordset(null::public.${table},$1::jsonb)`,
+      [JSON.stringify(rows.slice(from, from + 500))],
+    );
+  }
 }
 try {
   await db.connect();
@@ -143,6 +162,9 @@ try {
         [parcelKey],
       )
     ).rows;
+    const parents = registerParents(
+      captures.find((c) => c.operation === "getBrBasisOulnInfo")?.items ?? [],
+    );
     for (const data of captures) {
       const isFloor = data.operation === "getBrFlrOulnInfo",
         isArea = data.operation === "getBrExposPubuseAreaInfo";
@@ -170,9 +192,10 @@ try {
           `delete from public.${table} where record_id=any($1::uuid[])`,
           [recordIds],
         );
+      const batchRows = [];
       for (const [i, raw] of data.items.entries()) {
-        const matching = records.filter((r) => r.register_pk === sourcePk(raw));
-        if (matching.length !== 1) {
+        const matching = matchRegister(sourcePk(raw), records, parents);
+        if (!matching) {
           counts.unmatched++;
           continue;
         }
@@ -201,14 +224,15 @@ try {
                     source_created_date: date(raw.crtnDay),
                   },
           };
-        await insert(`public.${table}`, {
-          record_id: matching[0].id,
+        batchRows.push({
+          record_id: matching.id,
           snapshot_id: data.snapshot_id,
           source_ordinal: i + 1,
           ...fields,
         });
         counts[isFloor ? "floors" : isArea ? "area_parts" : "sections"]++;
       }
+      await insertRows(table, batchRows);
     }
   }
   for (const link of plan.links ?? []) {
@@ -231,7 +255,10 @@ try {
         [String(link.register_pk), link.record_kind],
       )
     ).rows[0];
-    assert.ok(record);
+    assert.ok(
+      record,
+      `Missing current register for ${link.expected_building_name} (${link.register_pk})`,
+    );
     assert.equal(record.parcel_key, link.parcel_key);
     assert.equal(record.building_name, link.expected_register_name);
     await insert(

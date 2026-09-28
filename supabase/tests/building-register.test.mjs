@@ -2,12 +2,17 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { PGlite } from "@electric-sql/pglite";
-import { fetchRegister } from "../../scripts/building-register/client.mjs";
+import {
+  fetchRegister,
+  parseRegisterJson,
+} from "../../scripts/building-register/client.mjs";
 import {
   normalizeTitle,
   date,
   number,
   sourcePk,
+  registerParents,
+  matchRegister,
 } from "../../scripts/building-register/normalize.mjs";
 const parcel = {
   sigunguCd: "11140",
@@ -16,6 +21,46 @@ const parcel = {
   bun: "0831",
   ji: "0000",
 };
+test("unit rows follow the official parent identifier, not another building on the parcel", () => {
+  const records = [
+    { id: "a", register_pk: "100" },
+    { id: "b", register_pk: "200" },
+  ];
+  const parents = registerParents([
+    { mgmBldrgstPk: "301", mgmUpBldrgstPk: "100" },
+    { mgmBldrgstPk: "302", mgmUpBldrgstPk: "200" },
+  ]);
+  assert.equal(matchRegister("301", records, parents).id, "a");
+  assert.equal(matchRegister("302", records, parents).id, "b");
+  assert.equal(matchRegister("999", records, parents), null);
+  assert.equal(
+    matchRegister(
+      "400",
+      records,
+      new Map([
+        ["400", "500"],
+        ["500", "400"],
+      ]),
+    ),
+    null,
+  );
+  assert.throws(
+    () =>
+      registerParents([
+        { mgmBldrgstPk: "1", mgmUpBldrgstPk: "2" },
+        { mgmBldrgstPk: "1", mgmUpBldrgstPk: "3" },
+      ]),
+    /Conflicting/,
+  );
+});
+test("new long registry identifiers retain every digit before JSON decoding", () => {
+  const result = parseRegisterJson(
+    '{"mgmBldrgstPk":1000000000000004678912,"mgmUpBldrgstPk":1000000000000004678913,"totArea":40270.36}',
+  );
+  assert.equal(result.mgmBldrgstPk, "1000000000000004678912");
+  assert.equal(result.mgmUpBldrgstPk, "1000000000000004678913");
+  assert.equal(result.totArea, 40270.36);
+});
 test("API handles pagination and zero counts without leaking credentials", async () => {
   let calls = 0;
   const data = await fetchRegister("getBrTitleInfo", parcel, {

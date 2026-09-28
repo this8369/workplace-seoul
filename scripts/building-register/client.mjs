@@ -10,6 +10,16 @@ export const OPERATIONS = [
   "getBrJijiguInfo",
   "getBrWclfInfo",
 ];
+// Recent building register IDs exceed JavaScript's integer precision. Preserve
+// these identifier tokens before parsing, including in retained raw pages.
+export function parseRegisterJson(raw) {
+  return JSON.parse(
+    raw.replace(
+      /("(?:mgmBldrgstPk|mgmUpBldrgstPk)"\s*:\s*)(\d{16,})(?=\s*[,}])/g,
+      '$1"$2"',
+    ),
+  );
+}
 export function validateParcel(parcel) {
   for (const [key, pattern] of Object.entries({
     sigunguCd: /^\d{5}$/,
@@ -68,7 +78,7 @@ export async function fetchRegister(
     const text = await response.text();
     let data;
     try {
-      data = JSON.parse(text);
+      data = parseRegisterJson(text);
     } catch {
       const code = text.match(/<(?:returnReasonCode|resultCode)>([^<]*)</)?.[1];
       throw new Error(

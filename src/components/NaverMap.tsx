@@ -1,6 +1,7 @@
 import type { Leasing, Development } from "../lib/catalog";
 import { supabase } from "../lib/supabase";
 import { parcelPolygons } from "../lib/parcel-geometry";
+import type { ParcelGeometry } from "../lib/asset-context";
 import type { MapBounds } from "../lib/map-list";
 import {
   cardPreviewBuilding,
@@ -104,41 +105,10 @@ export default function NaverMap({
     import.meta.env.VITE_NAVER_MAP_CLIENT_ID ? "loading" : "missing",
   );
   const [attempt, setAttempt] = useState(0);
-  useEffect(() => {
-    if (phase !== "ready" || !selected || !supabase || !map.current) return;
-    let alive = true;
-    const polygons: any[] = [];
-    void supabase
-      .from("building_parcels")
-      .select("geometry")
-      .eq("building_id", selected)
-      .eq("verified", true)
-      .then(({ data }) => {
-        if (!alive) return;
-        const n = sdk.current;
-        for (const row of data ?? [])
-          for (const polygon of parcelPolygons(row.geometry)) {
-            polygons.push(
-              new n.Polygon({
-                map: map.current,
-                paths: polygon.map((ring) =>
-                  ring.map(([lng, lat]) => new n.LatLng(lat, lng)),
-                ),
-                strokeColor: "#3348a0",
-                strokeWeight: 2,
-                strokeOpacity: 0.95,
-                fillColor: "#5367c4",
-                fillOpacity: 0.16,
-                zIndex: 10,
-              }),
-            );
-          }
-      });
-    return () => {
-      alive = false;
-      polygons.forEach((p) => p.setMap(null));
-    };
-  }, [phase, selected]);
+  const [hoveredAsset, setHoveredAsset] = useState<string | null>(null);
+  const parcelCache = useRef(
+    new Map<string, Promise<(ParcelGeometry | null)[]>>(),
+  );
   const [locating, setLocating] = useState(false);
   const [locationError, setLocationError] = useState("");
   const [viewport, setViewport] = useState(0);
@@ -183,6 +153,69 @@ export default function NaverMap({
   const highlightBoundary = useRef<(key: DistrictKey | null) => void>(() => {});
   const zoom = map.current?.getZoom() ?? camera.current?.zoom ?? 12;
   const overview = zoom <= 12 && !activeDistrict;
+  // At street level (the supplied 100 m scale reference), show only the
+  // currently hovered asset. Opening details retains its existing boundary.
+  const boundaryAsset =
+    (zoom >= 16 ? hoveredAsset || previewed : null) || selected;
+  useEffect(() => {
+    if (phase !== "ready" || !boundaryAsset || !supabase || !map.current)
+      return;
+    let alive = true;
+    const polygons: any[] = [];
+    let request = parcelCache.current.get(boundaryAsset);
+    if (!request) {
+      request = (async () => {
+        const geometries: (ParcelGeometry | null)[] = [];
+        for (let from = 0; ; from += 500) {
+          const { data, error } = await supabase!
+            .from("building_parcels")
+            .select("geometry")
+            .eq("building_id", boundaryAsset)
+            .eq("verified", true)
+            .order("id")
+            .range(from, from + 499);
+          if (error) throw error;
+          geometries.push(...data.map((r) => r.geometry));
+          if (data.length < 500) return geometries;
+        }
+      })();
+      parcelCache.current.set(boundaryAsset, request);
+    }
+    void request
+      .then((geometries) => {
+        if (!alive) return;
+        const n = sdk.current;
+        for (const geometry of geometries)
+          for (const polygon of parcelPolygons(geometry)) {
+            polygons.push(
+              new n.Polygon({
+                map: map.current,
+                paths: polygon.map((ring) =>
+                  ring.map(([lng, lat]) => new n.LatLng(lat, lng)),
+                ),
+                strokeColor: "#3348a0",
+                strokeWeight: 2,
+                strokeOpacity: 0.95,
+                fillColor: "#5367c4",
+                fillOpacity: 0.16,
+                clickable: false,
+                zIndex: 5,
+              }),
+            );
+          }
+      })
+      .catch(() => {
+        parcelCache.current.delete(boundaryAsset);
+      });
+    return () => {
+      alive = false;
+      polygons.forEach((p) => p.setMap(null));
+    };
+  }, [phase, boundaryAsset]);
+  useEffect(() => {
+    setHoveredAsset(null);
+  }, [viewport]);
+
   useEffect(() => {
     if (!import.meta.env.VITE_NAVER_MAP_CLIENT_ID) return;
     let cancelled = false;
@@ -617,12 +650,14 @@ export default function NaverMap({
         if (group.label) highlightDistrict(group.id as DistrictKey);
         else if (single) {
           marker.setZIndex(1000);
+          setHoveredAsset(b.id);
         }
       };
       const unhighlight = () => {
         if (group.label) highlightDistrict(null);
         else if (single) {
           marker.setZIndex(cardPreview ? 1100 : active ? 300 : 10);
+          setHoveredAsset((id) => (id === b.id ? null : id));
         }
       };
       button.addEventListener("mouseenter", highlight);

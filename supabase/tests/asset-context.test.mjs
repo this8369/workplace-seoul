@@ -49,6 +49,29 @@ test("land and nearby records require both verification and a published asset; v
       () => db.exec("update building_parcels set verified=true"),
       /permission denied/,
     );
+    await db.exec("reset role");
+    await db.exec(
+      await readFile(
+        new URL(
+          "../migrations/202609280002_context_public_browsing.sql",
+          import.meta.url,
+        ),
+        "utf8",
+      ),
+    );
+    await db.exec("set role anon");
+    assert.equal(
+      (await db.query("select * from building_parcels")).rows.length,
+      2,
+    );
+    assert.equal(
+      (await db.query("select * from building_places")).rows.length,
+      2,
+    );
+    await assert.rejects(
+      () => db.exec("update building_places set verified=true"),
+      /permission denied/,
+    );
   } finally {
     await db.close();
   }
