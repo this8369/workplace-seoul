@@ -24,7 +24,11 @@ export type Parcel = {
   coowners: number | null;
   geometry: ParcelGeometry | null;
   zoning: { name: string; relation: string }[];
-  official_prices: { year: number; price_won_m2: number }[];
+  official_prices: {
+    year: number;
+    price_won_m2: number;
+    as_of?: string | null;
+  }[];
   source_name: string;
   source_url: string | null;
   as_of: string | null;

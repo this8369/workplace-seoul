@@ -11,6 +11,7 @@ import { safeSourceUrl, type Building } from "../lib/domain";
 import { registerValue, type RegisterData } from "../lib/building-register";
 import type { Parcel, Place, Resource } from "../lib/asset-context";
 import ParcelMap from "./ParcelMap";
+import OfficialLandPrices from "./OfficialLandPrices";
 
 const emptyParcels: Parcel[] = [];
 function DataStatus({
@@ -237,29 +238,10 @@ export function LandPanel({
           </p>
         )}
       </section>
-      <section className="info-panel">
-        <div className="section-heading">
-          <h3>개별공시지가</h3>
-          <span className="subtle-label">원/㎡ · 연도별</span>
-        </div>
-        {parcel?.official_prices.length ? (
-          <div className="official-price-list">
-            {[...parcel.official_prices]
-              .sort((a, b) => b.year - a.year)
-              .map((p) => (
-                <div key={p.year}>
-                  <span>{p.year}년</span>
-                  <strong>{p.price_won_m2.toLocaleString("ko-KR")}원/㎡</strong>
-                </div>
-              ))}
-          </div>
-        ) : (
-          <p className="context-note">
-            연도별 공시지가 데이터 연결 전입니다. 시세 추정값은 표시하지
-            않습니다.
-          </p>
-        )}
-      </section>
+      <OfficialLandPrices
+        key={parcel?.id ?? building.id}
+        prices={parcel?.official_prices ?? []}
+      />
     </div>
   );
 }

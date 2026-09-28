@@ -4092,11 +4092,205 @@ button:disabled {
   color: var(--text-secondary);
   font-size: 12px;
 }
-.official-price-list > div {
+.official-prices {
+  container: official-prices / inline-size;
+}
+.official-prices .section-heading .context-note {
+  margin: 5px 0 0;
+}
+.official-prices-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(300px, 1fr);
+  gap: 28px;
+  align-items: start;
+}
+.official-price-chart {
+  min-width: 0;
+}
+.official-price-summary {
   display: flex;
-  justify-content: space-between;
-  padding: 12px 0;
-  border-bottom: 1px solid var(--line);
+  align-items: center;
+  gap: 18px;
+  padding: 17px 14px;
+  border-radius: 16px;
+  background: #f1f3fa;
+  font-variant-numeric: tabular-nums;
+}
+.official-price-year {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex-shrink: 0;
+}
+.official-price-year button {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 30px;
+  border-radius: 7px;
+  color: #647089;
+}
+.official-price-year button:hover:not(:disabled) {
+  background: #e0e5f2;
+}
+.official-price-year button:disabled {
+  opacity: 0.25;
+  cursor: default;
+}
+.official-price-year strong {
+  font-size: 19px;
+}
+.official-price-year small {
+  font-size: 12px;
+  font-weight: 500;
+  margin-left: 2px;
+}
+.official-price-amount {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-left: 18px;
+  border-left: 1px solid #d9deeb;
+  min-width: 0;
+}
+.official-price-amount > span {
+  font-size: 11px;
+  color: #737e91;
+}
+.official-price-amount strong {
+  color: #3348a0;
+  font-size: clamp(16px, 2.4cqi, 22px);
+  letter-spacing: -0.035em;
+  white-space: nowrap;
+}
+.official-price-amount small {
+  margin-left: 4px;
+  font-size: 11px;
+  font-weight: 500;
+  color: #737e91;
+}
+.official-price-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  margin-top: 16px;
+  overflow: visible;
+}
+.official-price-grid {
+  stroke: #e8ecf3;
+  stroke-width: 1;
+}
+.official-price-grid.is-vertical {
+  stroke: #f0f2f6;
+}
+.official-price-axis {
+  fill: #8791a1;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+.official-price-chart-hint {
+  margin: 2px 0 0;
+  font-size: 11px;
+  text-align: center;
+  color: #8791a1;
+}
+.official-price-table-scroll {
+  max-height: 370px;
+  overflow: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #cbd1dc transparent;
+  border: 1px solid #edf0f5;
+  border-radius: 14px;
+}
+.official-price-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.official-price-table th,
+.official-price-table td {
+  min-width: 0;
+}
+.official-price-table tbody th {
+  color: inherit;
+}
+.official-price-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 14px 12px;
+  background: #f3f5f9;
+  color: #687488;
+  font-size: 11px;
+  font-weight: 600;
+  text-align: left;
+}
+.official-price-table thead th span {
+  font-weight: 400;
+}
+.official-price-table th:last-child,
+.official-price-table td:last-child {
+  text-align: right;
+}
+.official-price-table tbody th,
+.official-price-table tbody td {
+  border-bottom: 1px solid #edf0f5;
+  padding: 13px 12px;
+  text-align: left;
+  font-weight: 400;
+}
+.official-price-table tbody td:last-child {
+  text-align: right;
+  font-weight: 600;
+}
+.official-price-table tbody td:nth-child(2) {
+  color: #7b8597;
+  font-size: 11px;
+}
+.official-price-table tbody th button {
+  color: inherit;
+  font-weight: 600;
+  border-radius: 4px;
+}
+.official-price-table tbody tr.is-selected {
+  background: #edf1ff;
+  color: #3348a0;
+}
+.official-price-table tbody tr:last-child > * {
+  border-bottom: 0;
+}
+@container official-prices (max-width: 720px) {
+  .official-prices-layout {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 20px;
+  }
+  .official-price-amount strong {
+    font-size: 21px;
+  }
+  .official-price-table-scroll {
+    max-height: 300px;
+  }
+}
+@container official-prices (max-width: 380px) {
+  .official-price-summary {
+    gap: 8px;
+    padding: 13px 8px;
+  }
+  .official-price-amount {
+    padding-left: 10px;
+  }
+  .official-price-amount strong {
+    font-size: 17px;
+  }
+  .official-price-year {
+    gap: 2px;
+  }
+  .official-price-year strong {
+    font-size: 16px;
+  }
 }
 .nearby-categories,
 .nearby-preview {
