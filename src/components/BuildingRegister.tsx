@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import type { Resource } from "../lib/asset-context";
 import {
   fetchBuildingRegister,
   registerGroups,
@@ -8,14 +9,19 @@ import {
 const source = "https://www.data.go.kr/data/15134735/openapi.do";
 export default function BuildingRegister({
   buildingId,
+  resource,
+  onRetry,
 }: {
   buildingId: string;
+  resource?: Resource<RegisterData>;
+  onRetry?: () => void;
 }) {
-  const [data, setData] = useState<RegisterData | null>(null),
+  const [localData, setData] = useState<RegisterData | null>(null),
     [error, setError] = useState(false),
     [selected, setSelected] = useState(""),
     [retry, setRetry] = useState(0);
   useEffect(() => {
+    if (resource !== undefined) return;
     let active = true;
     setData(null);
     setError(false);
@@ -33,20 +39,47 @@ export default function BuildingRegister({
     return () => {
       active = false;
     };
-  }, [buildingId, retry]);
-  if (error)
+  }, [buildingId, retry, resource]);
+  const data = resource ? resource.data : localData;
+  if (resource ? resource.error : error)
     return (
       <div className="section-empty" role="alert">
         <h3>건축물대장 정보를 불러오지 못했습니다.</h3>
-        <button onClick={() => setRetry((v) => v + 1)}>다시 불러오기</button>
+        <button onClick={onRetry ?? (() => setRetry((v) => v + 1))}>
+          다시 불러오기
+        </button>
       </div>
     );
   if (!data) return <p role="status">건축물대장 정보를 불러오는 중입니다.</p>;
   if (!data.records.length)
     return (
-      <div className="section-empty">
-        <h3>연결된 건축물대장이 없습니다.</h3>
-        <p>주소와 동 정보를 확인한 건축물대장이 여기에 표시됩니다.</p>
+      <div className="register-panel">
+        <div className="section-heading">
+          <div>
+            <h2>건축물대장</h2>
+            <p>주소와 동 정보가 확인된 대장을 연결하면 항목별로 표시됩니다.</p>
+          </div>
+          <span className="connection-tag">대장 연결 전</span>
+        </div>
+        <div className="register-groups">
+          {registerGroups.map((group) => (
+            <section className="info-panel" key={group.title}>
+              <h3>{group.title}</h3>
+              <dl>
+                {group.fields.map(([key, label]) => (
+                  <div key={key}>
+                    <dt>{label}</dt>
+                    <dd>—</dd>
+                  </div>
+                ))}
+              </dl>
+            </section>
+          ))}
+        </div>
+        <div className="context-status">
+          층별 용도·면적, 전유·공용 면적, 지역·지구·구역 및 오수정화시설 정보도
+          함께 표시됩니다.
+        </div>
       </div>
     );
   const record = data.records.find((r) => r.id === selected) ?? data.records[0];
@@ -63,6 +96,22 @@ export default function BuildingRegister({
     });
   const areas = data.areas.filter((a) => a.record_id === record.id),
     sections = data.sections.filter((s) => s.record_id === record.id);
+  // Do not add a complex recap to individual buildings or excluded floor areas.
+  const uses = new Map<string, number>();
+  floors
+    .filter(
+      (f) =>
+        f.area_m2 != null &&
+        f.area_m2 > 0 &&
+        (!f.area_excluded ||
+          f.area_excluded === "0" ||
+          f.area_excluded === "N"),
+    )
+    .forEach((f) => {
+      const use = f.main_use || f.other_use || "용도 미기재";
+      uses.set(use, (uses.get(use) ?? 0) + f.area_m2!);
+    });
+  const total = [...uses.values()].reduce((sum, value) => sum + value, 0);
   return (
     <section className="register-panel" aria-label="건축물대장 정보">
       <div className="register-heading">
@@ -118,7 +167,31 @@ export default function BuildingRegister({
           </section>
         ))}
       </div>
-      <details className="register-detail">
+      {total > 0 && (
+        <section className="info-panel use-composition">
+          <h3>층별 용도 구성</h3>
+          <p className="context-note">
+            선택한 대장의 조회된 층별 면적 합계 기준 · 연면적 제외 항목 제외
+          </p>
+          {[...uses]
+            .sort((a, b) => b[1] - a[1])
+            .map(([use, area]) => (
+              <div className="use-composition-row" key={use}>
+                <div>
+                  <span>{use}</span>
+                  <strong>
+                    {((area / total) * 100).toFixed(1)}%{" "}
+                    <small>{registerValue(area, "㎡")}</small>
+                  </strong>
+                </div>
+                <div className="use-composition-track">
+                  <span style={{ width: `${(area / total) * 100}%` }} />
+                </div>
+              </div>
+            ))}
+        </section>
+      )}
+      <details className="register-detail" open>
         <summary>
           층별 용도·면적 <span>{floors.length}개 항목</span>
         </summary>

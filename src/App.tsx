@@ -516,17 +516,7 @@ export default function App() {
               setCatalog((previous) => ({ ...previous, images }));
             }}
           />
-        ) : active ? (
-          <AssetWorkspace
-            key={active.id}
-            building={active}
-            catalog={catalog}
-            onClose={() => setSelected(null)}
-            onBuilding={select}
-            saved={saved.has(active.id)}
-            onSave={() => toggleSave(active.id)}
-          />
-        ) : view === "transactions" ? (
+        ) : view === "transactions" && !active ? (
           load === "ready" ? (
             <Transactions
               catalog={catalog}
@@ -806,6 +796,17 @@ export default function App() {
                   previewed={previewedBuilding}
                   onSelect={select}
                 />
+                {active && (
+                  <AssetWorkspace
+                    key={active.id}
+                    building={active}
+                    catalog={catalog}
+                    onClose={() => setSelected(null)}
+                    onBuilding={select}
+                    saved={saved.has(active.id)}
+                    onSave={() => toggleSave(active.id)}
+                  />
+                )}
               </section>
             </div>
           </div>

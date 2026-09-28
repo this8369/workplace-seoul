@@ -1,4 +1,6 @@
 import type { Leasing, Development } from "../lib/catalog";
+import { supabase } from "../lib/supabase";
+import { parcelPolygons } from "../lib/parcel-geometry";
 import type { MapBounds } from "../lib/map-list";
 import {
   cardPreviewBuilding,
@@ -42,7 +44,7 @@ declare global {
   }
 }
 let sdkPromise: Promise<any> | undefined;
-function loadSdk(): Promise<any> {
+export function loadSdk(): Promise<any> {
   if (window.naver?.maps) return Promise.resolve(window.naver.maps);
   if (sdkPromise) return sdkPromise;
   const key = import.meta.env.VITE_NAVER_MAP_CLIENT_ID;
@@ -102,6 +104,41 @@ export default function NaverMap({
     import.meta.env.VITE_NAVER_MAP_CLIENT_ID ? "loading" : "missing",
   );
   const [attempt, setAttempt] = useState(0);
+  useEffect(() => {
+    if (phase !== "ready" || !selected || !supabase || !map.current) return;
+    let alive = true;
+    const polygons: any[] = [];
+    void supabase
+      .from("building_parcels")
+      .select("geometry")
+      .eq("building_id", selected)
+      .eq("verified", true)
+      .then(({ data }) => {
+        if (!alive) return;
+        const n = sdk.current;
+        for (const row of data ?? [])
+          for (const polygon of parcelPolygons(row.geometry)) {
+            polygons.push(
+              new n.Polygon({
+                map: map.current,
+                paths: polygon.map((ring) =>
+                  ring.map(([lng, lat]) => new n.LatLng(lat, lng)),
+                ),
+                strokeColor: "#3348a0",
+                strokeWeight: 2,
+                strokeOpacity: 0.95,
+                fillColor: "#5367c4",
+                fillOpacity: 0.16,
+                zIndex: 10,
+              }),
+            );
+          }
+      });
+    return () => {
+      alive = false;
+      polygons.forEach((p) => p.setMap(null));
+    };
+  }, [phase, selected]);
   const [locating, setLocating] = useState(false);
   const [locationError, setLocationError] = useState("");
   const [viewport, setViewport] = useState(0);
