@@ -1,4 +1,4 @@
-import { supabase } from "./supabase";
+import { publicSupabase as supabase } from "./public-supabase";
 export type RegisterRecord = {
   id: string;
   register_pk: string;
@@ -48,6 +48,7 @@ export type RegisterData = {
 };
 export async function fetchBuildingRegister(
   buildingId: string,
+  details = true,
 ): Promise<RegisterData> {
   if (!supabase) throw new Error("not-configured");
   const { data: links, error } = await supabase
@@ -77,9 +78,15 @@ export async function fetchBuildingRegister(
   }
   const [records, floors, areas, sections] = await Promise.all([
     all("building_register_records", "id"),
-    all("building_register_floors", "record_id"),
-    all("building_register_area_parts", "record_id"),
-    all("building_register_sections", "record_id"),
+    details
+      ? all("building_register_floors", "record_id")
+      : Promise.resolve([]),
+    details
+      ? all("building_register_area_parts", "record_id")
+      : Promise.resolve([]),
+    details
+      ? all("building_register_sections", "record_id")
+      : Promise.resolve([]),
   ]);
   return { records, floors, areas, sections } as RegisterData;
 }

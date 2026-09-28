@@ -1,5 +1,6 @@
 import { fetchBuildingImages } from "./building-images";
 import { createClient } from "@supabase/supabase-js";
+import { publicSupabase } from "./public-supabase";
 import type { Building } from "./domain";
 import {
   configureDistricts,
@@ -18,10 +19,10 @@ export const supabase =
       })
     : null;
 export async function fetchBuildings(): Promise<Building[]> {
-  if (!supabase) throw new Error("not-configured");
+  if (!publicSupabase) throw new Error("not-configured");
   const rows: Building[] = [];
   for (let from = 0; ; from += 500) {
-    const { data, error } = await supabase
+    const { data, error } = await publicSupabase
       .from("buildings")
       .select(
         "id,complex_id,name,address,standard_address,road_address,region,status,gross_area_m2,area_basis,latitude,longitude,overview,floors_above,floors_below,completion_year,usage_approved_on,completion_source_url,completion_collected_at,typical_floor_rentable_pyeong,typical_floor_exclusive_pyeong,typical_floor_scope,typical_floor_source_url,typical_floor_source_period,typical_floor_collected_at,parking_spaces,source_name,source_url,verified_on,source_as_of",
@@ -43,61 +44,112 @@ export async function fetchBuildings(): Promise<Building[]> {
 }
 
 import { emptyCatalog, type Catalog } from "./catalog";
-export async function fetchCatalog(): Promise<Catalog> {
-  if (!supabase) return emptyCatalog;
-  const districtResult = await supabase
-    .from("districts")
-    .select("*")
-    .order("sort_order");
-  if (districtResult.error) throw districtResult.error;
-  configureDistricts(districtResult.data as DistrictRecord[]);
-  async function all(table: string) {
-    const result: unknown[] = [];
-    for (let from = 0; ; from += 500) {
-      const { data, error } = await supabase!
-        .from(table)
-        .select("*")
-        .order("id")
-        .range(from, from + 499);
-      if (error) throw error;
-      result.push(...data);
-      if (data.length < 500) return result;
-    }
+const coreListeners = new Set<(data: Catalog) => void>();
+let catalogRequest: Promise<Catalog> | undefined;
+const cacheKey = `workplace-catalog-v2:${url}`;
+function cachedCatalog(): Catalog | null {
+  try {
+    const cached = JSON.parse(sessionStorage.getItem(cacheKey) || "null");
+    if (!cached || Date.now() - cached.at > 5 * 60_000) return null;
+    configureDistricts(cached.districts);
+    return cached.catalog;
+  } catch {
+    return null;
   }
-  const [
-    buildings,
-    transactions,
-    companies,
-    occupancies,
-    movements,
-    leasing,
-    developments,
-    images,
-    complexes,
-    towers,
-  ] = await Promise.all([
+}
+export function fetchCatalog(
+  onCore?: (data: Catalog) => void,
+): Promise<Catalog> {
+  const cached = cachedCatalog();
+  if (cached) onCore?.(cached);
+  if (onCore) coreListeners.add(onCore);
+  if (!catalogRequest)
+    catalogRequest = loadCatalog().finally(() => {
+      catalogRequest = undefined;
+    });
+  return catalogRequest.finally(() => {
+    if (onCore) coreListeners.delete(onCore);
+  });
+}
+async function all(table: string) {
+  if (!publicSupabase) return [];
+  const rows: unknown[] = [];
+  for (let from = 0; ; from += 500) {
+    const { data, error } = await publicSupabase
+      .from(table)
+      .select("*")
+      .order("id")
+      .range(from, from + 499);
+    if (error) throw error;
+    rows.push(...data);
+    if (data.length < 500) return rows;
+  }
+}
+async function loadCatalog(): Promise<Catalog> {
+  if (!publicSupabase) return emptyCatalog;
+  // Only identity, photos and region geometry block the first card list.
+  const [buildings, images, districts] = await Promise.all([
     fetchBuildings(),
-    all("transactions"),
-    all("companies"),
-    all("occupancies"),
-    all("tenant_movements"),
+    fetchBuildingImages(publicSupabase),
+    publicSupabase.from("districts").select("*").order("sort_order"),
+  ]);
+  if (districts.error) throw districts.error;
+  configureDistricts(districts.data as DistrictRecord[]);
+  const core = {
+    ...emptyCatalog,
+    buildings: buildings.map((b) => ({ ...b, region: regionForBuilding(b) })),
+    images,
+    review: true,
+  };
+  coreListeners.forEach((notify) => notify(core));
+  // Card metrics and map grouping follow immediately; archive data is on demand.
+  const [leasing, developments, complexes, towers] = await Promise.all([
     all("leasing_quarters"),
     all("development_records"),
-    fetchBuildingImages(),
     all("building_complexes"),
     all("building_towers"),
   ]);
-  return {
-    buildings,
-    transactions,
-    companies,
-    occupancies,
-    movements,
+  const catalog = {
+    ...core,
     leasing,
     developments,
-    images,
     complexes,
     towers,
-    review: true,
   } as Catalog;
+  try {
+    sessionStorage.setItem(
+      cacheKey,
+      JSON.stringify({ at: Date.now(), districts: districts.data, catalog }),
+    );
+  } catch {
+    /* Cache is optional. */
+  }
+  return catalog;
+}
+export type CatalogArchive = Pick<
+  Catalog,
+  "transactions" | "companies" | "occupancies" | "movements"
+>;
+let archiveRequest: Promise<CatalogArchive> | undefined;
+export function fetchCatalogArchive(): Promise<CatalogArchive> {
+  if (!archiveRequest)
+    archiveRequest = Promise.all([
+      all("transactions"),
+      all("companies"),
+      all("occupancies"),
+      all("tenant_movements"),
+    ])
+      .then(
+        ([transactions, companies, occupancies, movements]) =>
+          ({
+            transactions,
+            companies,
+            occupancies,
+            movements,
+          }) as CatalogArchive,
+      )
+      .finally(() => {
+        archiveRequest = undefined;
+      });
+  return archiveRequest;
 }

@@ -1,5 +1,5 @@
 import type { Leasing, Development } from "../lib/catalog";
-import { supabase } from "../lib/supabase";
+import { publicSupabase as supabase } from "../lib/public-supabase";
 import { parcelPolygons } from "../lib/parcel-geometry";
 import type { ParcelGeometry } from "../lib/asset-context";
 import type { MapBounds } from "../lib/map-list";

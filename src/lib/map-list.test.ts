@@ -70,7 +70,7 @@ test("viewport cards include boundary points, exclude outside and unknown coordi
     visibleBuildings(rows, bounds).map((b) => b.id),
     ["center", "edge"],
   );
-  assert.deepEqual(visibleBuildings(rows, null), []);
+  assert.deepEqual(visibleBuildings(rows, null), rows);
 });
 test("all four sorts are deterministic and leave source order unchanged; missing years are always last", () => {
   const rows = [

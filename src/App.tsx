@@ -38,7 +38,7 @@ import {
   type MapBounds,
   type BuildingSort,
 } from "./lib/map-list";
-import { fetchCatalog, supabase } from "./lib/supabase";
+import { fetchCatalog, fetchCatalogArchive, supabase } from "./lib/supabase";
 import IgisLogin from "./components/IgisLogin";
 import AccountMenu from "./components/AccountMenu";
 import { igisStaffTitle } from "./lib/igis-profile";
@@ -163,6 +163,9 @@ export default function App() {
     setHomeRequest((value) => value + 1);
   }
   const loadGeneration = useRef(0);
+  const [archiveLoad, setArchiveLoad] = useState<
+    "idle" | "loading" | "ready" | "error"
+  >("idle");
   const refresh = useCallback(() => {
     const generation = ++loadGeneration.current;
     setLoad("loading");
@@ -170,18 +173,64 @@ export default function App() {
     setBuildings([]);
     setSelected(null);
     setCompare([]);
-    fetchCatalog()
+    setArchiveLoad("idle");
+    let coreShown = false;
+    const showCore = (data: Catalog) => {
+      if (generation !== loadGeneration.current) return;
+      coreShown = true;
+      setCatalog((previous) => ({
+        ...data,
+        transactions: previous.transactions,
+        companies: previous.companies,
+        occupancies: previous.occupancies,
+        movements: previous.movements,
+      }));
+      setBuildings(data.buildings);
+      setLoad(supabase ? "ready" : "setup");
+    };
+    fetchCatalog(showCore)
       .then((data) => {
         if (generation !== loadGeneration.current) return;
-        setCatalog(data);
-        setBuildings(data.buildings);
-        setLoad(supabase ? "ready" : "setup");
+        showCore(data);
       })
       .catch(() => {
-        if (generation === loadGeneration.current) setLoad("error");
+        if (generation === loadGeneration.current && !coreShown)
+          setLoad("error");
       });
   }, []);
   useEffect(refresh, [refresh]);
+  useEffect(() => {
+    if (
+      load !== "ready" ||
+      archiveLoad !== "idle" ||
+      (view !== "transactions" && !selected)
+    )
+      return;
+    const generation = loadGeneration.current;
+    setArchiveLoad("loading");
+    void fetchCatalogArchive()
+      .then((data) => {
+        if (generation !== loadGeneration.current) return;
+        setCatalog((previous) => ({ ...previous, ...data }));
+        setArchiveLoad("ready");
+      })
+      .catch(() => {
+        if (generation === loadGeneration.current) setArchiveLoad("error");
+      });
+  }, [load, archiveLoad, view, selected]);
+  useEffect(() => {
+    if (view !== "images" || !access.permissions.includes("images.manage"))
+      return;
+    let alive = true;
+    void fetchBuildingImages()
+      .then((images) => {
+        if (alive) setCatalog((previous) => ({ ...previous, images }));
+      })
+      .catch(() => setNotice("사진 관리 정보를 불러오지 못했습니다."));
+    return () => {
+      alive = false;
+    };
+  }, [view, access.permissions]);
   useEffect(() => {
     if (!supabase) return;
     let alive = true;
@@ -517,7 +566,7 @@ export default function App() {
             }}
           />
         ) : view === "transactions" && !active ? (
-          load === "ready" ? (
+          load === "ready" && archiveLoad === "ready" ? (
             <Transactions
               catalog={catalog}
               query={query}
@@ -527,13 +576,20 @@ export default function App() {
           ) : (
             <div className="empty">
               <h2>
-                {load === "error"
+                {load === "error" || archiveLoad === "error"
                   ? "거래 정보를 불러오지 못했습니다"
-                  : load === "loading"
+                  : load === "loading" ||
+                      archiveLoad === "loading" ||
+                      archiveLoad === "idle"
                     ? "거래 정보를 불러오고 있습니다"
                     : "거래 정보를 준비하고 있습니다"}
               </h2>
               {load === "error" && <button onClick={refresh}>다시 시도</button>}
+              {load !== "error" && archiveLoad === "error" && (
+                <button onClick={() => setArchiveLoad("idle")}>
+                  다시 시도
+                </button>
+              )}
             </div>
           )
         ) : (
@@ -638,7 +694,7 @@ export default function App() {
                     </p>
                   </div>
                 ) : (
-                  cardResults.map((b) => (
+                  cardResults.map((b, index) => (
                     <article
                       key={b.id}
                       data-building-id={b.id}
@@ -651,6 +707,7 @@ export default function App() {
                         <span className="building-art" aria-hidden="true">
                           <BuildingPhoto
                             image={primaryImage(catalog.images, b.id)}
+                            priority={index < 8}
                           />
                           {b.status === "development" && (
                             <span className="building-development-badge">
@@ -801,6 +858,8 @@ export default function App() {
                     key={active.id}
                     building={active}
                     catalog={catalog}
+                    archiveStatus={archiveLoad}
+                    onRetryArchive={() => setArchiveLoad("idle")}
                     onClose={() => setSelected(null)}
                     onBuilding={select}
                     saved={saved.has(active.id)}

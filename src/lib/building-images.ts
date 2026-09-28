@@ -22,11 +22,13 @@ export type BuildingImage = {
   focal_y: number;
   is_primary: boolean;
 };
-export async function fetchBuildingImages(): Promise<BuildingImage[]> {
-  if (!supabase) return [];
+export async function fetchBuildingImages(
+  client = supabase,
+): Promise<BuildingImage[]> {
+  if (!client) return [];
   const rows: BuildingImage[] = [];
   for (let from = 0; ; from += 500) {
-    const { data, error } = await supabase
+    const { data, error } = await client
       .from("building_images")
       .select("*")
       .order("id")

@@ -385,6 +385,8 @@ export function AssetWorkspace({
   onBuilding,
   saved,
   onSave,
+  archiveStatus = "ready",
+  onRetryArchive,
 }: {
   building: Building;
   catalog: Catalog;
@@ -392,6 +394,8 @@ export function AssetWorkspace({
   onBuilding: (id: string) => void;
   saved: boolean;
   onSave: () => void;
+  archiveStatus?: "idle" | "loading" | "ready" | "error";
+  onRetryArchive?: () => void;
 }) {
   const [tab, setTab] = useState<AssetTab>("개요"),
     [tenantQuery, setTenantQuery] = useState(""),
@@ -400,7 +404,7 @@ export function AssetWorkspace({
   const title = useRef<HTMLHeadingElement>(null);
   const popup = useRef<HTMLDivElement>(null);
   const page = useRef<HTMLElement>(null);
-  const context = useAssetContext(b.id);
+  const context = useAssetContext(b.id, tab);
   const photos = catalog.images.filter(
     (p) => p.building_id === b.id && p.review_status === "approved",
   );
@@ -758,21 +762,21 @@ export function AssetWorkspace({
                       "필지와 토지이용계획",
                       context.parcels.data?.length
                         ? `${context.parcels.data.length}개 필지`
-                        : "필지 데이터 연결 전",
+                        : "선택해서 필지 정보 보기",
                     ],
                     [
                       "건축물대장",
                       "건물·층별·전유공용",
                       context.register.data?.records.length
                         ? `${context.register.data.records.length}개 대장 · ${context.register.data.floors.length}개 층별 항목`
-                        : "대장 연결 여부 확인",
+                        : "선택해서 건축물대장 보기",
                     ],
                     [
                       "주변",
                       "교통과 생활편의",
                       context.places.data?.length
                         ? `${context.places.data.length}개 시설`
-                        : "주변 데이터 연결 전",
+                        : "선택해서 주변 시설 보기",
                     ],
                   ] as const
                 ).map(([target, label, desc]) => (
@@ -1063,7 +1067,18 @@ export function AssetWorkspace({
               )}
             </section>
           )}
-          {tab === "임차기업" && (
+          {["임차기업", "거래 이력"].includes(tab) &&
+            archiveStatus !== "ready" && (
+              <div className="context-status" role="status">
+                {archiveStatus === "error"
+                  ? "추가 정보를 불러오지 못했습니다."
+                  : "추가 정보를 불러오는 중입니다."}
+                {archiveStatus === "error" && (
+                  <button onClick={onRetryArchive}>다시 시도</button>
+                )}
+              </div>
+            )}
+          {tab === "임차기업" && archiveStatus === "ready" && (
             <section className="asset-section">
               <div className="section-heading">
                 <div>
@@ -1256,7 +1271,7 @@ export function AssetWorkspace({
               )}
             </section>
           )}
-          {tab === "거래 이력" && (
+          {tab === "거래 이력" && archiveStatus === "ready" && (
             <Transactions
               catalog={catalog}
               query=""

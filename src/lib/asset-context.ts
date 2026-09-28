@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { supabase } from "./supabase";
+import { publicSupabase as supabase } from "./public-supabase";
 import { fetchBuildingRegister, type RegisterData } from "./building-register";
 
 export type ParcelGeometry =
@@ -58,68 +58,85 @@ export type AssetFact = {
   as_of: string;
 };
 export type Resource<T> = { data: T | null; error: boolean };
-export function useAssetContext(buildingId: string) {
-  const [register, setRegister] = useState<Resource<RegisterData>>({
-    data: null,
-    error: false,
+const requests = new Map<string, { at: number; promise: Promise<unknown> }>();
+function useDeferred<T>(
+  key: string,
+  enabled: boolean,
+  loader: () => Promise<T>,
+): Resource<T> {
+  const [state, setState] = useState<{ key: string; resource: Resource<T> }>({
+    key: "",
+    resource: { data: null, error: false },
   });
-  const [parcels, setParcels] = useState<Resource<Parcel[]>>({
-    data: null,
-    error: false,
-  });
-  const [places, setPlaces] = useState<Resource<Place[]>>({
-    data: null,
-    error: false,
-  });
-  const [facts, setFacts] = useState<Resource<AssetFact[]>>({
-    data: null,
-    error: false,
-  });
-  const [attempt, setAttempt] = useState(0);
   useEffect(() => {
+    if (!enabled) return;
     let alive = true;
-    const pending = { data: null, error: false };
-    setRegister(pending);
-    setParcels(pending);
-    setPlaces(pending);
-    setFacts(pending);
-    async function rows<T>(table: string): Promise<T[]> {
-      if (!supabase) throw new Error("not-configured");
-      const all: T[] = [];
-      for (let from = 0; ; from += 500) {
-        const { data, error } = await supabase
-          .from(table)
-          .select("*")
-          .eq("building_id", buildingId)
-          .order("id")
-          .range(from, from + 499);
-        if (error) throw error;
-        all.push(...(data as T[]));
-        if (data.length < 500) return all;
-      }
+    let request = requests.get(key);
+    if (!request || Date.now() - request.at > 5 * 60_000) {
+      request = { at: Date.now(), promise: loader() };
+      requests.set(key, request);
+      if (requests.size > 64) requests.delete(requests.keys().next().value!);
     }
-    function request<T>(promise: Promise<T>, setter: (r: Resource<T>) => void) {
-      promise
-        .then((data) => {
-          if (alive) setter({ data, error: false });
-        })
-        .catch(() => {
-          if (alive) setter({ data: null, error: true });
-        });
-    }
-    request(fetchBuildingRegister(buildingId), setRegister);
-    request(rows<Parcel>("building_parcels"), setParcels);
-    request(rows<Place>("building_places"), setPlaces);
-    request(rows<AssetFact>("building_facts"), setFacts);
+    request.promise
+      .then((data) => {
+        if (alive)
+          setState({ key, resource: { data: data as T, error: false } });
+      })
+      .catch(() => {
+        requests.delete(key);
+        if (alive) setState({ key, resource: { data: null, error: true } });
+      });
     return () => {
       alive = false;
     };
-  }, [buildingId, attempt]);
+  }, [key, enabled]);
+  return state.key === key ? state.resource : { data: null, error: false };
+}
+export function useAssetContext(buildingId: string, tab = "개요") {
+  const [attempt, setAttempt] = useState(0);
+  async function rows<T>(table: string): Promise<T[]> {
+    if (!supabase) throw new Error("not-configured");
+    const all: T[] = [];
+    for (let from = 0; ; from += 500) {
+      const { data, error } = await supabase
+        .from(table)
+        .select("*")
+        .eq("building_id", buildingId)
+        .order("id")
+        .range(from, from + 499);
+      if (error) throw error;
+      all.push(...(data as T[]));
+      if (data.length < 500) return all;
+    }
+  }
+  const details = tab === "건축물대장",
+    sources = tab === "자료 출처";
+  const key = `${buildingId}:${attempt}`;
+  const register = useDeferred<RegisterData>(
+    `${key}:register:${details}`,
+    details || tab === "토지" || sources,
+    () => fetchBuildingRegister(buildingId, details),
+  );
+  const parcels = useDeferred<Parcel[]>(
+    `${key}:parcels`,
+    tab === "토지" || sources,
+    () => rows<Parcel>("building_parcels"),
+  );
+  const places = useDeferred<Place[]>(
+    `${key}:places`,
+    tab === "주변" || sources,
+    () => rows<Place>("building_places"),
+  );
+  const facts = useDeferred<AssetFact[]>(
+    `${key}:facts`,
+    tab === "개요" || sources,
+    () => rows<AssetFact>("building_facts"),
+  );
   return {
     register,
     parcels,
     places,
     facts,
-    retry: () => setAttempt((v) => v + 1),
+    retry: () => setAttempt((n) => n + 1),
   };
 }

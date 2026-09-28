@@ -14,7 +14,8 @@ export function visibleBuildings(
   buildings: Building[],
   bounds: MapBounds | null,
 ) {
-  if (!bounds) return [];
+  // Show cards immediately; the map applies viewport filtering once it is ready.
+  if (!bounds) return buildings;
   return buildings.filter(
     (b) =>
       hasLocation(b) &&
