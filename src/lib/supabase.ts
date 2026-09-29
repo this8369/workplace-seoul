@@ -27,6 +27,7 @@ export async function fetchBuildings(): Promise<Building[]> {
       .select(
         "id,complex_id,name,address,standard_address,road_address,region,status,gross_area_m2,area_basis,latitude,longitude,overview,floors_above,floors_below,completion_year,usage_approved_on,completion_source_url,completion_collected_at,typical_floor_rentable_pyeong,typical_floor_exclusive_pyeong,typical_floor_scope,typical_floor_source_url,typical_floor_source_period,typical_floor_collected_at,parking_spaces,source_name,source_url,verified_on,source_as_of",
       )
+      .in("status", ["operating", "development"])
       .order("id")
       .range(from, from + 499);
     if (error) throw error;
@@ -46,7 +47,7 @@ export async function fetchBuildings(): Promise<Building[]> {
 import { emptyCatalog, type Catalog } from "./catalog";
 const coreListeners = new Set<(data: Catalog) => void>();
 let catalogRequest: Promise<Catalog> | undefined;
-const cacheKey = `workplace-catalog-v2:${url}`;
+const cacheKey = `workplace-catalog-v3:${url}`;
 function cachedCatalog(): Catalog | null {
   try {
     const cached = JSON.parse(sessionStorage.getItem(cacheKey) || "null");
