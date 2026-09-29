@@ -3638,17 +3638,6 @@ button:disabled {
     0 20px 65px rgb(21 31 54 / 23%),
     0 2px 10px rgb(21 31 54 / 12%);
   container-type: inline-size;
-  animation: asset-popup-enter 170ms ease-out;
-}
-@keyframes asset-popup-enter {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
 }
 .asset-popup-toolbar {
   display: flex;
@@ -4492,10 +4481,5 @@ button:disabled {
   }
   .parcel-map-wrap {
     height: 250px;
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  .asset-popup {
-    animation: none;
   }
 }
