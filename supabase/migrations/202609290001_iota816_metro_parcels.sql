@@ -21,6 +21,11 @@ comment on column public.buildings.redevelopment_building_id is
 -- Site scope confirmed by the project owner on 2026-09-29. Keep official
 -- parcel geometry, attributes and price provenance unchanged, including dates.
 do $$ begin
+ -- Fresh installations have no imported catalog yet.
+ if not exists(select 1 from public.buildings where id in (
+  '540fb099-e033-55d2-890b-e9dae2e08dae','c63f4003-2d88-5945-a677-c8ef1ab099ae')) then
+  return;
+ end if;
  if not exists(select 1 from public.buildings
   where id='540fb099-e033-55d2-890b-e9dae2e08dae' and status='development' and name like '%8-1,6%')
  or not exists(select 1 from public.buildings
