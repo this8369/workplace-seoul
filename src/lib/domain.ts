@@ -20,6 +20,7 @@ export const assetCategoryOptions = [
 ];
 export type Building = {
   is_igis?: boolean;
+  is_mixed_use?: boolean;
   asset_category?: AssetCategory;
   id: string;
   complex_id?: string | null;
@@ -77,7 +78,9 @@ export function filterBuildings(
       (b.is_igis === true || isEligible(b.gross_area_m2)) &&
       (igisMode
         ? b.is_igis === true &&
-          (!assetCategory || b.asset_category === assetCategory)
+          (!assetCategory ||
+            b.asset_category === assetCategory ||
+            (assetCategory === "mixed" && b.is_mixed_use === true))
         : (b.asset_category ?? "office") === "office") &&
       (!q ||
         `${b.name} ${b.address} ${b.road_address || ""}`
