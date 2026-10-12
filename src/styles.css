@@ -2367,7 +2367,7 @@ button:disabled {
 }
 .map-marker:is(.is-card-preview, :hover, :focus-visible) .map-marker-name {
   padding-bottom: 4px;
-  margin-bottom: 4px;
+  margin-bottom: 5px;
   border-bottom: 0.5px solid rgb(28 36 53 / 20%);
 }
 .map-marker.is-development:is(.is-card-preview, :hover, :focus-visible)
