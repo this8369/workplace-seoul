@@ -80,7 +80,9 @@ try {
     const query = validateParcel(parcel),
       parcelKey = Object.values(query).join("-");
     const captures = [];
-    for (const operation of plan.operations ?? OPERATIONS) {
+    for (const operation of parcel.operations ??
+      plan.operations ??
+      OPERATIONS) {
       assert.ok(OPERATIONS.includes(operation));
       const data = JSON.parse(
         await readFile(
@@ -259,6 +261,17 @@ try {
       record,
       `Missing current register for ${link.expected_building_name} (${link.register_pk})`,
     );
+    if (plan.strict_identity) {
+      const conflict = await db.query(
+        "select 1 from building_register_links where record_id=$1 and building_id<>$2 and status='verified' limit 1",
+        [record.id, link.building_id],
+      );
+      assert.equal(
+        conflict.rowCount,
+        0,
+        "Register already linked to another asset; review required",
+      );
+    }
     assert.equal(record.parcel_key, link.parcel_key);
     assert.equal(record.building_name, link.expected_register_name);
     await insert(

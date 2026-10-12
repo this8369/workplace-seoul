@@ -31,7 +31,9 @@ try {
   await db.connect();
   const parcels = (
     await db.query(
-      "select distinct pnu from building_parcels where verified order by pnu",
+      process.argv.includes("--igis-missing")
+        ? "select distinct p.pnu from building_parcels p join private.igis_catalog_publications i on i.building_id=p.building_id where p.verified and p.geometry is null order by p.pnu"
+        : "select distinct pnu from building_parcels where verified order by pnu",
     )
   ).rows;
   for (const { pnu } of parcels) {

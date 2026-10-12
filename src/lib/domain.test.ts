@@ -38,3 +38,47 @@ test("safe source links", () => {
   assert.equal(safeSourceUrl("javascript:alert(1)"), undefined);
   assert.equal(safeSourceUrl("https://example.com"), "https://example.com/");
 });
+
+test("IGIS discovery is public, size-exempt and office-only outside IGIS mode", () => {
+  const base = {
+    id: "base",
+    name: "Building",
+    address: "Seoul",
+    region: "CBD",
+    status: "operating",
+    gross_area_m2: 1000,
+  } as Building;
+  const office = {
+    ...base,
+    id: "office",
+    is_igis: true,
+    asset_category: "office" as const,
+  };
+  const hotel = { ...office, id: "hotel", asset_category: "hotel" as const };
+  const unknown = { ...office, id: "unknown", gross_area_m2: null };
+  const big = { ...base, id: "big", gross_area_m2: 40000 };
+  assert.deepEqual(
+    filterBuildings([base, office, hotel, unknown, big], "", "", "").map(
+      (b) => b.id,
+    ),
+    ["office", "unknown", "big"],
+  );
+  assert.deepEqual(
+    filterBuildings(
+      [base, office, hotel, unknown, big],
+      "",
+      "",
+      "",
+      undefined,
+      true,
+    ).map((b) => b.id),
+    ["office", "hotel", "unknown"],
+  );
+  assert.deepEqual(
+    filterBuildings([office, hotel], "", "", "", undefined, true, "hotel").map(
+      (b) => b.id,
+    ),
+    ["hotel"],
+  );
+  assert.equal(isEligible(null), false);
+});

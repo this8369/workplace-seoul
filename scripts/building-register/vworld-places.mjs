@@ -25,7 +25,9 @@ let done = 0,
 try {
   const buildings = (
     await db.query(
-      "select id,latitude,longitude from buildings where latitude is not null and longitude is not null order by id",
+      process.argv.includes("--igis-missing")
+        ? "select b.id,b.latitude,b.longitude from buildings b join private.igis_catalog_publications i on i.building_id=b.id where b.latitude between 33 and 39 and b.longitude between 124 and 132 and not exists(select 1 from building_places p where p.building_id=b.id) order by b.id"
+        : "select id,latitude,longitude from buildings where latitude is not null and longitude is not null order by id",
     )
   ).rows;
   let index = 0;

@@ -1,0 +1,160 @@
+.service-terms-trigger {
+  border: 0;
+  background: none;
+  color: inherit;
+  padding: 0;
+  margin-left: 8px;
+  font: inherit;
+  letter-spacing: 0;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  pointer-events: auto;
+}
+.service-terms {
+  width: min(680px, calc(100vw - 32px));
+  max-height: 85dvh;
+  padding: 28px;
+  border: 1px solid #0002;
+  border-radius: 24px;
+  color: #1e2638;
+  background: #f8f9fc;
+  box-shadow: 0 16px 64px #0003;
+}
+.service-terms::backdrop {
+  background: #121b3544;
+}
+.service-terms header {
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+.service-terms header button {
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+.service-terms h2 {
+  font-size: 22px;
+  margin: 8px 0 24px;
+}
+.service-terms small {
+  color: #68748a;
+  font-size: 11px;
+}
+.service-terms h3 {
+  margin: 22px 0 8px;
+  font-size: 15px;
+}
+.service-terms p {
+  font-size: 13px;
+  line-height: 1.8;
+  margin: 8px 0;
+}
+.filters .igis-mode-toggle.asset-type-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 68px;
+  height: var(--control-height);
+  padding: 0 14px;
+  border-radius: var(--toolbar-control-radius);
+  border: 1px solid var(--accent);
+  background: var(--accent);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 650;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+}
+.filters .igis-mode-toggle.asset-type-trigger[aria-pressed="true"] {
+  background: var(--toolbar-control-fill);
+  color: var(--accent);
+}
+.igis-badge {
+  display: inline-flex;
+  flex: 0 0 auto;
+  width: 25px;
+  height: 25px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: #263b75;
+  color: #fff;
+  font-size: 7px;
+  font-weight: 650;
+  line-height: 1;
+  letter-spacing: -0.15px;
+  vertical-align: middle;
+}
+.card-info strong .igis-badge,
+.map-marker-name .igis-badge {
+  margin-right: 6px;
+}
+.map-marker-name .igis-badge {
+  width: 21px;
+  height: 21px;
+  font-size: 6px;
+}
+.igis-mode-toggle[aria-pressed="true"] .igis-badge {
+  background: #fff;
+  color: #263b75;
+}
+.igis-category-reveal {
+  animation: igis-reveal 120ms ease-out;
+}
+@keyframes igis-reveal {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .igis-category-reveal {
+    animation: none;
+  }
+}
+@media (max-width: 760px) {
+  .service-terms {
+    padding: 20px;
+  }
+}
+
+.igis-object-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 24px;
+}
+.igis-object-fields > div {
+  display: grid;
+  grid-template-columns: minmax(100px, 0.8fr) minmax(0, 1fr);
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 0.5px solid #0002;
+  font-size: 13px;
+}
+.igis-object-fields dt {
+  color: #69748a;
+}
+.igis-object-fields dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+  text-align: right;
+}
+@media (max-width: 760px) {
+  .igis-object-fields {
+    grid-template-columns: 1fr;
+  }
+}
+
+.igis-list-note {
+  margin: 0;
+  padding: 8px 16px;
+  color: #68748a;
+  font-size: 11px;
+  border-bottom: 0.5px solid #0002;
+}

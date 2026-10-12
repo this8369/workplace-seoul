@@ -54,7 +54,10 @@ export function regionStats(
     count: assets.length,
     area: assets.reduce(
       (sum, b) =>
-        sum + (Number.isFinite(b.gross_area_m2) ? b.gross_area_m2 : 0),
+        sum +
+        (b.gross_area_m2 != null && Number.isFinite(b.gross_area_m2)
+          ? b.gross_area_m2
+          : 0),
       0,
     ),
     planned: assets.some((b) => b.area_basis === "planned"),

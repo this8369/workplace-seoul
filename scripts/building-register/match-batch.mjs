@@ -1,6 +1,12 @@
 import { readFile, writeFile } from "node:fs/promises";
 const read = async (p) => JSON.parse(await readFile(p, "utf8"));
-const plan = await read("data/private/building-register-batch.json");
+const planPath = process.argv[2] || "data/private/building-register-batch.json";
+if (!planPath.startsWith("data/private/") || !planPath.endsWith(".json"))
+  throw Error("Private plan required");
+const plan = await read(planPath);
+const outputPath = process.argv[2]
+  ? planPath.replace(/\.json$/, "-linked.json")
+  : "data/private/building-register-linked.json";
 const fold = (s) =>
   String(s ?? "")
     .normalize("NFKC")
@@ -31,7 +37,11 @@ for (const parcel of plan.parcels) {
     let candidates = records.filter(
       (r) =>
         Number(r.totArea) > 0 &&
-        Math.abs(Number(r.totArea) - area) / area < 0.003 &&
+        (area > 0
+          ? Math.abs(Number(r.totArea) - area) / area < 0.003
+          : [r.bldNm, r.dongNm].some(
+              (n) => fold(n).length >= 4 && fold(n) === fold(b.name),
+            )) &&
         String(r.mainAtchGbCd ?? "0") !== "1",
     );
     const sameYear = (r) =>
@@ -113,13 +123,9 @@ const output = {
   operations: undefined,
   links,
 };
+await writeFile(outputPath, JSON.stringify(output, null, 2), { mode: 0o600 });
 await writeFile(
-  "data/private/building-register-linked.json",
-  JSON.stringify(output, null, 2),
-  { mode: 0o600 },
-);
-await writeFile(
-  "data/private/building-register-unmatched.json",
+  outputPath.replace("-linked.json", "-unmatched.json"),
   JSON.stringify(unmatched, null, 2),
   { mode: 0o600 },
 );

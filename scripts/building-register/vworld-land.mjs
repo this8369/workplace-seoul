@@ -46,7 +46,9 @@ let done = 0,
 try {
   const parcels = (
     await db.query(
-      "select distinct pnu from building_parcels where verified order by pnu",
+      process.argv.includes("--igis-missing")
+        ? "select distinct p.pnu from building_parcels p join private.igis_catalog_publications i on i.building_id=p.building_id where p.verified and (p.official_prices is null or p.official_prices=\'[]\'::jsonb) order by p.pnu"
+        : "select distinct pnu from building_parcels where verified order by pnu",
     )
   ).rows;
   let index = 0;

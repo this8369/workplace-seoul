@@ -37,7 +37,6 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   Search,
-  SlidersHorizontal,
   X,
 } from "lucide-react";
 import type { Session } from "@supabase/supabase-js";
@@ -54,7 +53,12 @@ import AccountMenu from "./components/AccountMenu";
 import { igisStaffTitle } from "./lib/igis-profile";
 import { recoveryRoute, signOutIgis } from "./lib/igis-auth";
 import { useWorkplaceAccess } from "./lib/use-workplace-access";
-import { filterBuildings, formatArea, type Building } from "./lib/domain";
+import {
+  assetCategoryOptions,
+  filterBuildings,
+  formatArea,
+  type Building,
+} from "./lib/domain";
 import { Transactions } from "./components/AssetWorkspace";
 import { emptyCatalog, type Catalog } from "./lib/catalog";
 const initialQuery = new URLSearchParams(location.search).get("q") || "";
@@ -125,6 +129,8 @@ export default function App() {
     [load, setLoad] = useState<"loading" | "ready" | "error" | "setup">(
       supabase ? "loading" : "setup",
     );
+  const [igisMode, setIgisMode] = useState(false);
+  const [assetCategory, setAssetCategory] = useState("");
   const [query, setQuery] = useState(initialQuery),
     [region, setRegion] = useState(""),
     [status, setStatus] = useState(""),
@@ -201,6 +207,8 @@ export default function App() {
   }, []);
   const [homeRequest, setHomeRequest] = useState(0);
   function goHome() {
+    setIgisMode(false);
+    setAssetCategory("");
     setView("all");
     setRegion("");
     setSelected(null);
@@ -335,8 +343,10 @@ export default function App() {
         region,
         status,
         view === "saved" ? saved : undefined,
+        igisMode,
+        assetCategory,
       ),
-    [buildings, query, region, status, view, saved],
+    [buildings, query, region, status, view, saved, igisMode, assetCategory],
   );
   const developmentYears = useMemo(
     () =>
@@ -351,12 +361,12 @@ export default function App() {
   const cardResults = useMemo(
     () =>
       sortBuildings(
-        visibleBuildings(results, mapBounds),
+        igisMode ? results : visibleBuildings(results, mapBounds),
         buildingSort,
         developmentYears,
         nocValues,
       ),
-    [results, mapBounds, buildingSort, developmentYears, nocValues],
+    [results, mapBounds, buildingSort, developmentYears, nocValues, igisMode],
   );
   useEffect(() => {
     if (resultsScroll.current) resultsScroll.current.scrollTop = 0;
@@ -498,10 +508,32 @@ export default function App() {
             ]}
           />
         )}
-        <span className="fixed-filter">
-          <SlidersHorizontal size={14} />
-          1만 평 이상
-        </span>
+        {view !== "transactions" && (
+          <>
+            <button
+              className="asset-type-trigger filter-select-trigger igis-mode-toggle"
+              aria-pressed={igisMode}
+              onClick={() => {
+                setIgisMode(!igisMode);
+                setAssetCategory("");
+                setRegion("");
+              }}
+            >
+              IGIS
+            </button>
+            {igisMode && (
+              <div className="igis-category-reveal">
+                <FilterSelect
+                  label="이지스 자산 유형"
+                  icon={<Building2 size={14} />}
+                  value={assetCategory}
+                  onChange={setAssetCategory}
+                  options={assetCategoryOptions}
+                />
+              </div>
+            )}
+          </>
+        )}
       </div>
     </section>
   );
@@ -693,7 +725,22 @@ export default function App() {
           <div className="workspace">
             <section className="results" aria-label="건물 목록">
               <div className="results-heading">
-                {view === "all" ? <AssetTypeSelect /> : <h1>관심 건물</h1>}
+                {view === "all" ? (
+                  igisMode ? (
+                    <h1>
+                      IGIS ·{" "}
+                      {
+                        assetCategoryOptions.find(
+                          (o) => o.value === assetCategory,
+                        )?.label
+                      }
+                    </h1>
+                  ) : (
+                    <AssetTypeSelect />
+                  )
+                ) : (
+                  <h1>관심 건물</h1>
+                )}
                 <div
                   className="results-sort"
                   role="group"
@@ -736,6 +783,12 @@ export default function App() {
                   })}
                 </div>
               </div>
+              {igisMode && (
+                <p className="igis-list-note">
+                  {results.length}개 자산 · 해외·위치 미확인 자산도 목록에
+                  포함됩니다.
+                </p>
+              )}
               <CardScrollArea
                 scrollRef={resultsScroll}
                 onPreview={setPreviewedBuilding}
@@ -813,7 +866,17 @@ export default function App() {
                           )}
                         </span>
                         <span className="card-info">
-                          <strong>{b.name}</strong>
+                          <strong>
+                            {b.is_igis && (
+                              <span
+                                className="igis-badge"
+                                title="이지스 투자·운용 연관 자산"
+                              >
+                                IGIS
+                              </span>
+                            )}
+                            {b.name}
+                          </strong>
                           <span className="card-metrics">
                             <span className="card-metric">
                               <span className="card-metric-label">
@@ -937,6 +1000,8 @@ export default function App() {
               {searchToolbar}
               <section className="map-region" aria-label="공간 지도">
                 <NaverMap
+                  igisMode={igisMode}
+                  assetCategory={assetCategory}
                   camera={mapCamera}
                   homeRequest={homeRequest}
                   region={region}

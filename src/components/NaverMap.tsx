@@ -1,3 +1,4 @@
+import ServiceTerms from "./ServiceTerms";
 import type { Leasing, Development } from "../lib/catalog";
 import { publicSupabase as supabase } from "../lib/public-supabase";
 import { parcelPolygons } from "../lib/parcel-geometry";
@@ -73,6 +74,8 @@ export function loadSdk(): Promise<any> {
 }
 export default function NaverMap({
   buildings,
+  igisMode = false,
+  assetCategory = "",
   complexes = [],
   towers = [],
   leasing,
@@ -86,6 +89,8 @@ export default function NaverMap({
   onBoundsChange,
 }: {
   buildings: Building[];
+  igisMode?: boolean;
+  assetCategory?: string;
   complexes?: BuildingComplex[];
   towers?: BuildingTower[];
   leasing: Leasing[];
@@ -152,7 +157,7 @@ export default function NaverMap({
   const focusingDistrict = useRef(false);
   const highlightBoundary = useRef<(key: DistrictKey | null) => void>(() => {});
   const zoom = map.current?.getZoom() ?? camera.current?.zoom ?? 12;
-  const overview = zoom <= 12 && !activeDistrict;
+  const overview = !igisMode && zoom <= 12 && !activeDistrict;
   // One zoom step wider than the supplied street-level reference, show only the
   // currently hovered asset. Opening details retains its existing boundary.
   const boundaryAsset =
@@ -339,6 +344,32 @@ export default function NaverMap({
     );
     map.current.setZoom(12);
   }
+  const fittedIgis = useRef("");
+  useEffect(() => {
+    if (!igisMode) {
+      fittedIgis.current = "";
+      return;
+    }
+    const key = "igis:" + assetCategory;
+    if (phase !== "ready" || !map.current || fittedIgis.current === key) return;
+    const located = buildings.filter(hasLocation);
+    if (!located.length) return;
+    fittedIgis.current = key;
+    const n = sdk.current;
+    map.current.fitBounds(
+      new n.LatLngBounds(
+        new n.LatLng(
+          Math.min(...located.map((b) => b.latitude)),
+          Math.min(...located.map((b) => b.longitude)),
+        ),
+        new n.LatLng(
+          Math.max(...located.map((b) => b.latitude)),
+          Math.max(...located.map((b) => b.longitude)),
+        ),
+      ),
+      { top: 70, right: 60, bottom: 70, left: 60, maxZoom: 16 },
+    );
+  }, [igisMode, assetCategory, buildings, phase]);
   function locateUser() {
     if (locating || !map.current) return;
     setLocationError("");
@@ -572,6 +603,13 @@ export default function NaverMap({
         const name = document.createElement("strong");
         name.className = "map-marker-name";
         name.textContent = b.name.split(/\s*[（(]/)[0].trim() || b.name;
+        if (b.is_igis) {
+          const badge = document.createElement("span");
+          badge.className = "igis-badge";
+          badge.textContent = "IGIS";
+          badge.title = "이지스 투자·운용 연관 자산";
+          name.prepend(badge);
+        }
         bubble.append(name);
         const facts = document.createElement("span");
         facts.className = "map-marker-facts";
@@ -948,7 +986,12 @@ export default function NaverMap({
                           {b.area_basis === "planned" ? "계획 " : ""}
                           {formatArea(b.gross_area_m2)}
                         </span>
-                        <strong>{b.name}</strong>
+                        <strong>
+                          {b.is_igis && (
+                            <span className="igis-badge">IGIS</span>
+                          )}
+                          {b.name}
+                        </strong>
                         <span className="map-coincident-status">
                           {b.status === "development" ? "개발중" : "실물"}
                         </span>
@@ -990,6 +1033,7 @@ export default function NaverMap({
       )}
       <div className="map-caption">
         WORKPLACE SEOUL <span>공간의 가치를 더 깊이</span>
+        <ServiceTerms />
       </div>
     </div>
   );

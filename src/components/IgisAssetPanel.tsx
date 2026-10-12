@@ -5,7 +5,14 @@ import {
   type MasterRecord,
 } from "../lib/master-data";
 import MasterWorkspace from "./MasterWorkspace";
+import { masterFields } from "../lib/master-fields";
+import {
+  ReviewValue,
+  ReviewRecordButton,
+  useDataReviewVersion,
+} from "./DataReview";
 export default function IgisAssetPanel({ buildingId }: { buildingId: string }) {
+  const revision = useDataReviewVersion();
   const [data, setData] = useState<{
       objects: MasterRecord[];
       vehicles: MasterRecord[];
@@ -31,7 +38,7 @@ export default function IgisAssetPanel({ buildingId }: { buildingId: string }) {
     return () => {
       alive = false;
     };
-  }, [buildingId, attempt]);
+  }, [buildingId, attempt, revision]);
   if (error)
     return (
       <div className="empty">
@@ -41,7 +48,7 @@ export default function IgisAssetPanel({ buildingId }: { buildingId: string }) {
     );
   if (!data)
     return <p className="context-note">이지스 정보를 불러오는 중입니다.</p>;
-  if (!data.vehicles.length)
+  if (!data.vehicles.length && !data.objects.length)
     return (
       <div className="section-empty">
         <h3>확정 연결된 이지스 펀드가 없습니다.</h3>
@@ -61,6 +68,9 @@ export default function IgisAssetPanel({ buildingId }: { buildingId: string }) {
         펀드 금액은 해당 건물에 배분된 금액과 다릅니다.
       </p>
       <div className="master-tabs">
+        <button aria-pressed={!selected} onClick={() => setSelected(null)}>
+          자산 원본 정보
+        </button>
         {data.vehicles.map((v) => (
           <button
             key={v.id}
@@ -78,9 +88,40 @@ export default function IgisAssetPanel({ buildingId }: { buildingId: string }) {
           embedded
         />
       ) : (
-        <p className="context-note">
-          펀드를 선택하면 투자자·대주·AUM을 조회할 수 있습니다.
-        </p>
+        <div className="igis-object-records">
+          {data.objects.map((object) => (
+            <section key={object.id}>
+              <div className="section-heading">
+                <h3>{masterDisplay(object.name)}</h3>
+                <ReviewRecordButton
+                  entity="master_investment_objects"
+                  id={object.id}
+                />
+              </div>
+              <dl className="igis-object-fields">
+                {masterFields.master_investment_objects
+                  .filter((field) => field.key in object)
+                  .map((field) => (
+                    <div key={field.key}>
+                      <dt>{field.label}</dt>
+                      <dd>
+                        <ReviewValue
+                          entity="master_investment_objects"
+                          id={object.id}
+                          field={field.key}
+                        >
+                          {masterDisplay(object[field.key])}
+                        </ReviewValue>
+                      </dd>
+                    </div>
+                  ))}
+              </dl>
+            </section>
+          ))}
+          {!data.objects.length && (
+            <p className="context-note">연결된 투자자산 정보가 없습니다.</p>
+          )}
+        </div>
       )}
     </section>
   );

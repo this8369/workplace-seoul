@@ -1,4 +1,26 @@
+export type AssetCategory =
+  | "office"
+  | "hotel"
+  | "logistics"
+  | "data_center"
+  | "retail"
+  | "residential"
+  | "mixed"
+  | "other";
+export const assetCategoryOptions = [
+  { value: "", label: "전체" },
+  { value: "office", label: "오피스" },
+  { value: "hotel", label: "호텔" },
+  { value: "logistics", label: "물류센터" },
+  { value: "data_center", label: "데이터센터" },
+  { value: "retail", label: "리테일" },
+  { value: "residential", label: "주거" },
+  { value: "mixed", label: "복합시설" },
+  { value: "other", label: "기타" },
+];
 export type Building = {
+  is_igis?: boolean;
+  asset_category?: AssetCategory;
   id: string;
   complex_id?: string | null;
   name: string;
@@ -8,7 +30,7 @@ export type Building = {
   road_address?: string | null;
   region: string;
   status: "operating" | "development";
-  gross_area_m2: number;
+  gross_area_m2: number | null;
   area_basis: "actual" | "planned";
   latitude: number | null;
   longitude: number | null;
@@ -34,21 +56,29 @@ export type Building = {
 };
 export const toPyeong = (m2: number) => (m2 * 121) / 400;
 // Never compare rounded display values.
-export const isEligible = (m2: number) =>
-  Number.isFinite(m2) && m2 * 121 >= 4_000_000;
-export const formatArea = (m2: number) =>
-  `${toPyeong(m2).toLocaleString("ko-KR", { maximumFractionDigits: 0 })}평`;
+export const isEligible = (m2: number | null) =>
+  m2 != null && Number.isFinite(m2) && m2 * 121 >= 4_000_000;
+export const formatArea = (m2: number | null) =>
+  m2 == null || !Number.isFinite(m2)
+    ? "미확인"
+    : `${toPyeong(m2).toLocaleString("ko-KR", { maximumFractionDigits: 0 })}평`;
 export function filterBuildings(
   buildings: Building[],
   query: string,
   region: string,
   status: string,
   saved?: Set<string>,
+  igisMode = false,
+  assetCategory = "",
 ) {
   const q = query.trim().toLocaleLowerCase("ko-KR");
   return buildings.filter(
     (b) =>
-      isEligible(b.gross_area_m2) &&
+      (b.is_igis === true || isEligible(b.gross_area_m2)) &&
+      (igisMode
+        ? b.is_igis === true &&
+          (!assetCategory || b.asset_category === assetCategory)
+        : (b.asset_category ?? "office") === "office") &&
       (!q ||
         `${b.name} ${b.address} ${b.road_address || ""}`
           .toLocaleLowerCase("ko-KR")

@@ -42,6 +42,7 @@ export function complexMapBuildings(
       members[0];
     result.push({
       ...representative,
+      is_igis: members.some((b) => b.is_igis === true),
       name: complex.name,
       gross_area_m2: complex.gross_area_m2,
       typical_floor_scope: null,
