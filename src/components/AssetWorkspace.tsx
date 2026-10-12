@@ -15,6 +15,7 @@ import { useAssetContext } from "../lib/asset-context";
 import { LandPanel, SurroundingsPanel } from "./AssetContextPanels";
 import { towersFor, towerFloorText } from "../lib/building-towers";
 import BuildingPhoto from "./BuildingPhoto";
+import AssetMedia from "./AssetMedia";
 import { primaryImage } from "../lib/building-images";
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -692,12 +693,13 @@ export function AssetWorkspace({
             (() => {
               return (
                 <figure className="asset-photo">
-                  <div className="asset-photo-frame">
-                    <BuildingPhoto image={photo} detail />
-                    <span className="asset-photo-kind">
-                      {photo.kind === "rendering" ? "조감도" : "건물 사진"}
-                    </span>
-                  </div>
+                  <AssetMedia
+                    key={b.id}
+                    building={b}
+                    photo={photo}
+                    photos={photos}
+                    onPhoto={setPhotoId}
+                  />
                   {photos.length > 1 && (
                     <div
                       className="asset-photo-picker"
@@ -739,9 +741,13 @@ export function AssetWorkspace({
               );
             })()
           ) : (
-            <div className="asset-photo asset-photo-empty">
-              <Building2 size={40} />
-              <span>건물 사진 준비 중</span>
+            <div className="asset-photo">
+              <AssetMedia
+                key={b.id}
+                building={b}
+                photos={photos}
+                onPhoto={setPhotoId}
+              />
             </div>
           )}
           <div className="asset-metrics">
