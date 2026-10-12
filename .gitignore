@@ -10,3 +10,4 @@ coverage/
 supabase/.temp/
 
 data/private/
+__pycache__/

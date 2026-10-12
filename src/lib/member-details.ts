@@ -1,6 +1,7 @@
 import { supabase } from "./supabase";
 import { emptyCatalog, type Catalog, type Transaction } from "./catalog";
 import type { Building } from "./domain";
+import { masterRpc, type MasterRecord } from "./master-data";
 
 // These requests always use the member session. Database RLS is authoritative.
 export async function fetchTransactionDetail(id: string): Promise<Transaction> {
@@ -18,17 +19,43 @@ export async function fetchMemberAsset(
   includeTransactions: boolean,
 ): Promise<Catalog> {
   if (!supabase) throw new Error("not-configured");
-  const { data, error } = await supabase
-    .from("buildings")
-    .select("*")
-    .eq("id", id)
-    .single();
+  const [{ data, error }, master] = await Promise.all([
+    supabase.from("buildings").select("*").eq("id", id).single(),
+    masterRpc<{ asset: MasterRecord; edited_fields: string[] } | null>(
+      "master_asset_corrections",
+      { building_key: id },
+    ),
+  ]);
   if (error) throw error;
   const building: Building = {
     ...data,
     source_address: data.address,
     address: data.standard_address || data.address,
   };
+  // Canonical MY corrections are private. Anonymous list projections stay separately reviewed.
+  if (master?.asset) {
+    const a = master.asset;
+    const edited = new Set(master.edited_fields);
+    if (edited.has("name")) building.name = String(a.name);
+    if (edited.has("address")) building.address = String(a.address ?? "");
+    if (edited.has("gross_area_m2") && a.gross_area_m2 != null)
+      building.gross_area_m2 = Number(a.gross_area_m2);
+    if (edited.has("completion_year"))
+      building.completion_year =
+        a.completion_year == null ? null : Number(a.completion_year);
+    if (edited.has("description"))
+      building.overview = a.description == null ? null : String(a.description);
+    if (edited.has("latitude"))
+      building.latitude = a.latitude == null ? null : Number(a.latitude);
+    if (edited.has("longitude"))
+      building.longitude = a.longitude == null ? null : Number(a.longitude);
+    if (
+      edited.has("lifecycle_status") &&
+      (a.lifecycle_status === "operating" ||
+        a.lifecycle_status === "development")
+    )
+      building.status = a.lifecycle_status;
+  }
   async function rows(table: string, filter: (query: any) => any) {
     const all: any[] = [];
     for (let from = 0; ; from += 500) {

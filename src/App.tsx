@@ -12,7 +12,15 @@ import BuildingPhoto from "./components/BuildingPhoto";
 import CardScrollArea from "./components/CardScrollArea";
 import { fetchBuildingImages, primaryImage } from "./lib/building-images";
 import { districts } from "./lib/map-regions";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  lazy,
+  Suspense,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   ArrowUpRight,
   Bookmark,
@@ -50,6 +58,7 @@ import { filterBuildings, formatArea, type Building } from "./lib/domain";
 import { Transactions } from "./components/AssetWorkspace";
 import { emptyCatalog, type Catalog } from "./lib/catalog";
 const initialQuery = new URLSearchParams(location.search).get("q") || "";
+const MasterWorkspace = lazy(() => import("./components/MasterWorkspace"));
 const cardValue = (value: string | null | undefined) =>
   !value || value === "미확인" || value === "—" ? "-" : value;
 export default function App() {
@@ -119,9 +128,9 @@ export default function App() {
   const [query, setQuery] = useState(initialQuery),
     [region, setRegion] = useState(""),
     [status, setStatus] = useState(""),
-    [view, setView] = useState<"all" | "saved" | "transactions" | "images">(
-      "all",
-    );
+    [view, setView] = useState<
+      "all" | "saved" | "transactions" | "images" | "my"
+    >("all");
   const [selected, setSelected] = useState<string | null>(null),
     [compare, setCompare] = useState<string[]>([]),
     [showCompare, setShowCompare] = useState(false);
@@ -160,6 +169,7 @@ export default function App() {
   }, [showCompare, canReadDetails, compare, session?.user.id]);
   useEffect(() => {
     if (!canReadDetails) {
+      setView((current) => (current === "my" ? "all" : current));
       setSelected(null);
       setShowCompare(false);
       dialog.current?.close();
@@ -578,6 +588,22 @@ export default function App() {
             <FileText size={18} />
             <span className="nav-text">빌딩 매매사례</span>
           </button>
+          <button
+            aria-label="MY 데이터 관리"
+            title="MY 데이터 관리"
+            className={view === "my" ? "current" : ""}
+            onClick={() => {
+              if (!canReadDetails) {
+                setLogin(true);
+                return;
+              }
+              setView("my");
+              setSelected(null);
+            }}
+          >
+            <Layers3 size={18} />
+            <span className="nav-text">MY</span>
+          </button>
         </nav>
         {can("images.manage") && (
           <nav className="admin-navigation" aria-label="관리 메뉴">
@@ -613,10 +639,18 @@ export default function App() {
       </aside>
       <main>
         {!active && view === "transactions" && searchToolbar}
-        {view === "images" &&
-        canReadDetails &&
-        can("images.manage") &&
-        !active ? (
+        {view === "my" && canReadDetails ? (
+          <Suspense
+            fallback={
+              <div className="empty">데이터 관리를 불러오고 있습니다.</div>
+            }
+          >
+            <MasterWorkspace key={session?.user.id} />
+          </Suspense>
+        ) : view === "images" &&
+          canReadDetails &&
+          can("images.manage") &&
+          !active ? (
           <PhotoManager
             buildings={buildings}
             images={adminImages}

@@ -9,7 +9,7 @@ import { LandPanel, SurroundingsPanel } from "./AssetContextPanels";
 import { towersFor, towerFloorText } from "../lib/building-towers";
 import BuildingPhoto from "./BuildingPhoto";
 import { primaryImage } from "../lib/building-images";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowLeft,
   ArrowRight,
@@ -39,6 +39,7 @@ import {
   type Transaction,
 } from "../lib/catalog";
 
+const IgisAssetPanel = lazy(() => import("./IgisAssetPanel"));
 function Source({ item }: { item: Evidence }) {
   const url = safeSourceUrl(item.source_url);
   return (
@@ -404,6 +405,7 @@ export function Transactions({
 }
 const tabs = [
   "개요",
+  "이지스",
   "토지",
   "건축물대장",
   "임대 정보",
@@ -712,6 +714,15 @@ export function AssetWorkspace({
           role="tabpanel"
           aria-labelledby={`asset-tab-${tabs.indexOf(tab)}`}
         >
+          {tab === "이지스" && (
+            <Suspense
+              fallback={
+                <p className="context-note">이지스 정보를 불러오고 있습니다.</p>
+              }
+            >
+              <IgisAssetPanel buildingId={b.id} />
+            </Suspense>
+          )}
           {tab === "건축물대장" && (
             <BuildingRegister
               key={b.id}
