@@ -560,7 +560,7 @@ header {
   position: absolute;
   top: calc(100% + 7px);
   left: 0;
-  width: 212px;
+  width: 100%;
   padding: 6px;
   border: 1px solid rgb(76 88 107 / 10%);
   border-radius: 14px;
@@ -581,6 +581,9 @@ header {
   font-weight: 600;
 }
 .asset-type-menu button:disabled {
+  flex-wrap: wrap;
+  gap: 4px;
+  padding-block: 6px;
   opacity: 1;
   cursor: default;
   background: transparent;
@@ -606,9 +609,6 @@ header {
 .filter-select-chevron {
   margin-left: auto;
   color: var(--text-secondary);
-}
-.filter-select-menu {
-  width: max(100%, 160px);
 }
 .filter-select-menu button {
   font-size: 13px;
