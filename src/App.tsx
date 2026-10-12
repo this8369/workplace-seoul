@@ -516,7 +516,6 @@ export default function App() {
               onClick={() => {
                 setIgisMode(!igisMode);
                 setAssetCategory("");
-                setRegion("");
               }}
             >
               <span className="igis-badge" aria-hidden="true">IGIS</span>
@@ -1002,7 +1001,6 @@ export default function App() {
               <section className="map-region" aria-label="공간 지도">
                 <NaverMap
                   igisMode={igisMode}
-                  assetCategory={assetCategory}
                   camera={mapCamera}
                   homeRequest={homeRequest}
                   region={region}

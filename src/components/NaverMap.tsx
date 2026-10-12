@@ -75,7 +75,6 @@ export function loadSdk(): Promise<any> {
 export default function NaverMap({
   buildings,
   igisMode = false,
-  assetCategory = "",
   complexes = [],
   towers = [],
   leasing,
@@ -90,7 +89,6 @@ export default function NaverMap({
 }: {
   buildings: Building[];
   igisMode?: boolean;
-  assetCategory?: string;
   complexes?: BuildingComplex[];
   towers?: BuildingTower[];
   leasing: Leasing[];
@@ -344,32 +342,6 @@ export default function NaverMap({
     );
     map.current.setZoom(12);
   }
-  const fittedIgis = useRef("");
-  useEffect(() => {
-    if (!igisMode) {
-      fittedIgis.current = "";
-      return;
-    }
-    const key = "igis:" + assetCategory;
-    if (phase !== "ready" || !map.current || fittedIgis.current === key) return;
-    const located = buildings.filter(hasLocation);
-    if (!located.length) return;
-    fittedIgis.current = key;
-    const n = sdk.current;
-    map.current.fitBounds(
-      new n.LatLngBounds(
-        new n.LatLng(
-          Math.min(...located.map((b) => b.latitude)),
-          Math.min(...located.map((b) => b.longitude)),
-        ),
-        new n.LatLng(
-          Math.max(...located.map((b) => b.latitude)),
-          Math.max(...located.map((b) => b.longitude)),
-        ),
-      ),
-      { top: 70, right: 60, bottom: 70, left: 60, maxZoom: 16 },
-    );
-  }, [igisMode, assetCategory, buildings, phase]);
   function locateUser() {
     if (locating || !map.current) return;
     setLocationError("");
