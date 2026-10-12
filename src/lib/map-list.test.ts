@@ -70,7 +70,10 @@ test("viewport cards include boundary points, exclude outside and unknown coordi
     visibleBuildings(rows, bounds).map((b) => b.id),
     ["center", "edge"],
   );
-  assert.deepEqual(visibleBuildings(rows, null), rows);
+  assert.deepEqual(
+    visibleBuildings(rows, null).map((b) => b.id),
+    ["center", "edge", "outside"],
+  );
 });
 test("all four sorts are deterministic and leave source order unchanged; missing years are always last", () => {
   const rows = [
@@ -106,5 +109,32 @@ test("development year sorting uses reviewed planned years, leaving undated proj
   assert.deepEqual(
     sortBuildings(rows, "year-asc", years).map((b) => b.id),
     ["built", "planned", "undated"],
+  );
+});
+
+test("IGIS map list excludes overseas and unlocated assets before and after map load", () => {
+  const rows = [
+    b("seoul", { is_igis: true }),
+    b("busan", { is_igis: true, latitude: 35.18, longitude: 129.07 }),
+    b("paris", { is_igis: true, latitude: 48.85, longitude: 2.35 }),
+    b("new-york", { is_igis: true, latitude: 40.71, longitude: -74 }),
+    b("unlocated", { is_igis: true, latitude: null, longitude: null }),
+  ];
+  assert.deepEqual(
+    visibleBuildings(rows, null).map((b) => b.id),
+    ["seoul", "busan"],
+  );
+  assert.deepEqual(
+    visibleBuildings(rows, bounds).map((b) => b.id),
+    ["seoul"],
+  );
+  assert.deepEqual(
+    visibleBuildings(rows, {
+      south: 35,
+      north: 35.4,
+      west: 129,
+      east: 129.3,
+    }).map((b) => b.id),
+    ["busan"],
   );
 });

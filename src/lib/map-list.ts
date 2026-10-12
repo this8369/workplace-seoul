@@ -14,11 +14,12 @@ export function visibleBuildings(
   buildings: Building[],
   bounds: MapBounds | null,
 ) {
-  // Show cards immediately; the map applies viewport filtering once it is ready.
-  if (!bounds) return buildings;
-  return buildings.filter(
+  // Never mix foreign or unlocated assets into the domestic map, even before
+  // the SDK reports its viewport. The full source remains available in MY.
+  const located = buildings.filter(hasLocation);
+  if (!bounds) return located;
+  return located.filter(
     (b) =>
-      hasLocation(b) &&
       b.latitude >= bounds.south &&
       b.latitude <= bounds.north &&
       (bounds.west <= bounds.east

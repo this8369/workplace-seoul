@@ -12,6 +12,7 @@ import BuildingPhoto from "./components/BuildingPhoto";
 import CardScrollArea from "./components/CardScrollArea";
 import { fetchBuildingImages, primaryImage } from "./lib/building-images";
 import { districts } from "./lib/map-regions";
+import { hasLocation } from "./lib/map-clusters";
 import {
   lazy,
   Suspense,
@@ -345,7 +346,7 @@ export default function App() {
         view === "saved" ? saved : undefined,
         igisMode,
         assetCategory,
-      ),
+      ).filter(hasLocation),
     [buildings, query, region, status, view, saved, igisMode, assetCategory],
   );
   const developmentYears = useMemo(
@@ -361,12 +362,12 @@ export default function App() {
   const cardResults = useMemo(
     () =>
       sortBuildings(
-        igisMode ? results : visibleBuildings(results, mapBounds),
+        visibleBuildings(results, mapBounds),
         buildingSort,
         developmentYears,
         nocValues,
       ),
-    [results, mapBounds, buildingSort, developmentYears, nocValues, igisMode],
+    [results, mapBounds, buildingSort, developmentYears, nocValues],
   );
   useEffect(() => {
     if (resultsScroll.current) resultsScroll.current.scrollTop = 0;
@@ -518,7 +519,9 @@ export default function App() {
                 setAssetCategory("");
               }}
             >
-              <span className="igis-badge" aria-hidden="true">IGIS</span>
+              <span className="igis-badge" aria-hidden="true">
+                IGIS
+              </span>
               이지스
             </button>
             {igisMode && (
@@ -785,8 +788,7 @@ export default function App() {
               </div>
               {igisMode && (
                 <p className="igis-list-note">
-                  {results.length}개 자산 · 해외·위치 미확인 자산도 목록에
-                  포함됩니다.
+                  {cardResults.length}개 자산 · 현재 지도 범위
                 </p>
               )}
               <CardScrollArea
@@ -800,6 +802,8 @@ export default function App() {
                   buildingSort,
                   selected,
                   homeRequest,
+                  igisMode,
+                  assetCategory,
                 ])}
               >
                 {load !== "ready" ? (
