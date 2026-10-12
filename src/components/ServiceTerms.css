@@ -173,6 +173,7 @@
   width: 136px;
 }
 .igis-category-control .filter-select-menu {
+  width: 100%;
   left: auto;
   right: 0;
 }
