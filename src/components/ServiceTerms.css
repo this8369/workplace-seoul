@@ -54,10 +54,13 @@
   margin: 8px 0;
 }
 .toolbar .filters.igis-controls {
+  position: relative;
   margin-left: auto;
   flex: 0 0 auto;
   width: auto;
   gap: 0;
+  /* Reserve the reveal space so toggling never shifts or wraps the button. */
+  padding-left: 144px;
 }
 .filters .igis-mode-toggle.asset-type-trigger {
   display: inline-flex;
@@ -69,6 +72,7 @@
   gap: 6px;
   height: var(--control-height);
   padding: 0 calc((var(--control-height) - 25px) / 2 - 1px);
+  padding-right: 8px;
   border-radius: 14px;
   border: 1px solid transparent;
   background: #e8eaf0;
@@ -131,17 +135,22 @@
   color: #263b75;
 }
 .igis-category-reveal {
-  width: 0;
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 136px;
+  height: var(--control-height);
+  z-index: 6;
+  /* Clip the slide at the button edge, but let the dropdown extend below/left. */
+  clip-path: inset(-100vmax 0 -100vmax -100vmax);
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
   transition:
-    width 200ms ease-out,
     opacity 160ms ease-out,
     visibility 0s 200ms;
 }
 .igis-controls[data-active="true"] .igis-category-reveal {
-  width: 144px;
   opacity: 1;
   visibility: visible;
   pointer-events: auto;
@@ -149,7 +158,11 @@
 }
 .igis-category-control {
   width: 136px;
-  margin-left: 8px;
+  transform: translateX(144px);
+  transition: transform 200ms ease-out;
+}
+.igis-controls[data-active="true"] .igis-category-control {
+  transform: translateX(0);
 }
 .igis-category-control .filter-select-trigger {
   width: 136px;
@@ -159,7 +172,8 @@
   right: 0;
 }
 @media (prefers-reduced-motion: reduce) {
-  .igis-category-reveal {
+  .igis-category-reveal,
+  .igis-category-control {
     transition: none;
   }
 }

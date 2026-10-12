@@ -525,7 +525,7 @@ export default function App() {
             <span className="igis-badge" aria-hidden="true">
               IGIS
             </span>
-            <span>이지스 자산</span>
+            <span>이지스자산</span>
           </button>
           <div
             className="igis-category-reveal"
