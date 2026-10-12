@@ -5,7 +5,7 @@ import type { Building } from "./domain.ts";
 export type DistrictKey = "CBD" | "GBD" | "YBD" | "Others" | "BBD";
 type Coordinate = [number, number]; // longitude, latitude
 export type DistrictBoundary = {
-  properties: { key: DistrictKey; labelPosition: Coordinate };
+  properties: { key: DistrictKey; labelPosition: Coordinate; overviewCenter?: Coordinate };
   bbox: [number, number, number, number];
   geometry: { type: "MultiPolygon"; coordinates: Coordinate[][][] };
 };
@@ -26,10 +26,10 @@ export function homeMapCenter(regions: DistrictBoundary[] = displayBoundaries) {
   if (core.length !== 3) throw new Error("주요 권역 중심을 확인해 주세요.");
   return {
     latitude:
-      core.reduce((sum, b) => sum + b.properties.labelPosition[1], 0) /
+      core.reduce((sum, b) => sum + (b.properties.overviewCenter ?? b.properties.labelPosition)[1], 0) /
       core.length,
     longitude:
-      core.reduce((sum, b) => sum + b.properties.labelPosition[0], 0) /
+      core.reduce((sum, b) => sum + (b.properties.overviewCenter ?? b.properties.labelPosition)[0], 0) /
       core.length,
   };
 }
