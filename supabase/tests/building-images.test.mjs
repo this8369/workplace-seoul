@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFile, readdir } from "node:fs/promises";
 import { PGlite } from "@electric-sql/pglite";
-test("approved images are public; candidates, writes and private imports stay protected", async () => {
+test("approved primary thumbnails are public; originals, candidates and writes require membership", async () => {
   const db = new PGlite();
   try {
     await db.exec(`create role anon; create role authenticated; create role service_role;
@@ -42,6 +42,10 @@ test("approved images are public; candidates, writes and private imports stay pr
     await db.query(
       "insert into buildings(id,name,address,region,status,gross_area_m2,area_basis,source_name) values($1,'Test','Test','CBD','operating',40000,'actual','Test')",
       [bid],
+    );
+    await db.query(
+      "insert into private.catalog_publications(record_type,record_id) values('buildings',$1),('building_images',$2)",
+      [bid, iid],
     );
     await db.exec("set role authenticated");
     await db.query("select set_config('request.jwt.claim.sub',$1,false)", [
@@ -83,14 +87,28 @@ test("approved images are public; candidates, writes and private imports stay pr
       [path],
     );
     await db.query("select set_primary_building_image($1)", [iid]);
+    await db.query("update building_images set thumbnail_path=$1 where id=$2", [
+      `${bid}/20000000-0000-0000-0000-000000000099.webp`,
+      iid,
+    ]);
+    await db.exec("reset role");
+    await db.query(
+      "insert into storage.objects(bucket_id,name) values('building-images',$1)",
+      [`${bid}/20000000-0000-0000-0000-000000000099.webp`],
+    );
+    await db.exec("set role authenticated");
     assert.equal(
       (await db.query("select is_primary from building_images")).rows[0]
         .is_primary,
       true,
     );
     await db.exec("reset role;set role anon");
+    await assert.rejects(
+      () => db.query("select * from building_images"),
+      /permission denied/,
+    );
     assert.equal(
-      (await db.query("select * from building_images")).rows.length,
+      (await db.query("select * from catalog_images")).rows.length,
       1,
     );
     assert.equal(
@@ -101,7 +119,7 @@ test("approved images are public; candidates, writes and private imports stay pr
       "reset role; update buildings set published=true,verified_on=current_date; set role anon",
     );
     assert.equal(
-      (await db.query("select * from building_images")).rows.length,
+      (await db.query("select * from catalog_images")).rows.length,
       1,
     );
     assert.equal(
@@ -112,7 +130,7 @@ test("approved images are public; candidates, writes and private imports stay pr
       "reset role; update building_images set review_status='candidate',is_primary=false; set role anon",
     );
     assert.equal(
-      (await db.query("select * from building_images")).rows.length,
+      (await db.query("select * from catalog_images")).rows.length,
       0,
     );
     assert.equal(

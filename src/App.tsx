@@ -4,6 +4,8 @@ import {
   mapMarkerFacts,
 } from "./lib/map-marker-facts";
 import PhotoManager from "./components/PhotoManager";
+import MemberAssetWorkspace from "./components/MemberAssetWorkspace";
+import { clearPrivatePhotoUrls } from "./lib/photo-urls";
 import AssetTypeSelect from "./components/AssetTypeSelect";
 import FilterSelect from "./components/FilterSelect";
 import BuildingPhoto from "./components/BuildingPhoto";
@@ -45,7 +47,7 @@ import { igisStaffTitle } from "./lib/igis-profile";
 import { recoveryRoute, signOutIgis } from "./lib/igis-auth";
 import { useWorkplaceAccess } from "./lib/use-workplace-access";
 import { filterBuildings, formatArea, type Building } from "./lib/domain";
-import { AssetWorkspace, Transactions } from "./components/AssetWorkspace";
+import { Transactions } from "./components/AssetWorkspace";
 import { emptyCatalog, type Catalog } from "./lib/catalog";
 const initialQuery = new URLSearchParams(location.search).get("q") || "";
 const cardValue = (value: string | null | undefined) =>
@@ -134,6 +136,39 @@ export default function App() {
   const [loginMode, setLoginMode] = useState<"email" | "change">("email");
   const access = useWorkplaceAccess(session, setNotice);
   const can = (permission: string) => access.permissions.includes(permission);
+  const canReadDetails = !!session && can("details.read");
+  const canReadTransactions = canReadDetails && can("transactions.read");
+  const [adminImages, setAdminImages] = useState<Catalog["images"]>([]);
+  const pendingBuilding = useRef<string | null>(null);
+  const [comparisonDetails, setComparisonDetails] = useState<Building[]>([]);
+  useEffect(() => {
+    setComparisonDetails([]);
+    if (!showCompare || !canReadDetails || !supabase) return;
+    let alive = true;
+    void supabase
+      .from("buildings")
+      .select("*")
+      .in("id", compare)
+      .then(({ data, error }) => {
+        if (!alive) return;
+        if (error) setNotice("비교 상세정보를 불러오지 못했습니다.");
+        else setComparisonDetails(data as Building[]);
+      });
+    return () => {
+      alive = false;
+    };
+  }, [showCompare, canReadDetails, compare, session?.user.id]);
+  useEffect(() => {
+    if (!canReadDetails) {
+      setSelected(null);
+      setShowCompare(false);
+      dialog.current?.close();
+      clearPrivatePhotoUrls();
+    } else if (pendingBuilding.current) {
+      setSelected(pendingBuilding.current);
+      pendingBuilding.current = null;
+    }
+  }, [canReadDetails, session?.user.id]);
   const dialog = useRef<HTMLDialogElement>(null),
     search = useRef<HTMLInputElement>(null);
   const mapCamera = useRef<MapCamera | null>(null);
@@ -200,11 +235,7 @@ export default function App() {
   }, []);
   useEffect(refresh, [refresh]);
   useEffect(() => {
-    if (
-      load !== "ready" ||
-      archiveLoad !== "idle" ||
-      (view !== "transactions" && !selected)
-    )
+    if (load !== "ready" || archiveLoad !== "idle" || view !== "transactions")
       return;
     const generation = loadGeneration.current;
     setArchiveLoad("loading");
@@ -217,20 +248,25 @@ export default function App() {
       .catch(() => {
         if (generation === loadGeneration.current) setArchiveLoad("error");
       });
-  }, [load, archiveLoad, view, selected]);
+  }, [load, archiveLoad, view]);
   useEffect(() => {
-    if (view !== "images" || !access.permissions.includes("images.manage"))
+    setAdminImages([]);
+    if (
+      view !== "images" ||
+      !canReadDetails ||
+      !access.permissions.includes("images.manage")
+    )
       return;
     let alive = true;
     void fetchBuildingImages()
       .then((images) => {
-        if (alive) setCatalog((previous) => ({ ...previous, images }));
+        if (alive) setAdminImages(images);
       })
       .catch(() => setNotice("사진 관리 정보를 불러오지 못했습니다."));
     return () => {
       alive = false;
     };
-  }, [view, access.permissions]);
+  }, [view, access.permissions, canReadDetails]);
   useEffect(() => {
     if (!supabase) return;
     let alive = true;
@@ -315,15 +351,36 @@ export default function App() {
   useEffect(() => {
     if (resultsScroll.current) resultsScroll.current.scrollTop = 0;
   }, [mapBounds, buildingSort, query, region, status, view]);
-  const active = buildings.find((b) => b.id === selected),
+  const active = canReadDetails
+      ? buildings.find((b) => b.id === selected)
+      : undefined,
     regions = [
       ...new Set([
         ...districts.map((d) => d.key),
         ...buildings.map((b) => b.region),
       ]),
     ];
-  const select = useCallback((id: string) => setSelected(id), []);
+  const requireLogin = useCallback(() => {
+    setLoginMode("email");
+    setLogin(true);
+    setNotice("상세정보는 등록된 사용자만 확인할 수 있습니다.");
+  }, []);
+  const select = useCallback(
+    (id: string) => {
+      if (!canReadDetails) {
+        pendingBuilding.current = id;
+        requireLogin();
+        return;
+      }
+      setSelected(id);
+    },
+    [canReadDetails, requireLogin],
+  );
   const openDialog = () => {
+    if (!canReadDetails) {
+      requireLogin();
+      return;
+    }
     if (compare.length < 2) return;
     setShowCompare(true);
     dialog.current?.showModal();
@@ -556,13 +613,16 @@ export default function App() {
       </aside>
       <main>
         {!active && view === "transactions" && searchToolbar}
-        {view === "images" && can("images.manage") && !active ? (
+        {view === "images" &&
+        canReadDetails &&
+        can("images.manage") &&
+        !active ? (
           <PhotoManager
             buildings={buildings}
-            images={catalog.images}
+            images={adminImages}
             onRefresh={async () => {
               const images = await fetchBuildingImages();
-              setCatalog((previous) => ({ ...previous, images }));
+              setAdminImages(images);
             }}
           />
         ) : view === "transactions" && !active ? (
@@ -572,6 +632,9 @@ export default function App() {
               query={query}
               region={region}
               onBuilding={select}
+              canReadDetails={canReadTransactions}
+              onRequireLogin={requireLogin}
+              accessKey={session?.user.id}
             />
           ) : (
             <div className="empty">
@@ -854,12 +917,10 @@ export default function App() {
                   onSelect={select}
                 />
                 {active && (
-                  <AssetWorkspace
-                    key={active.id}
+                  <MemberAssetWorkspace
+                    key={`${session?.user.id}:${active.id}`}
                     building={active}
-                    catalog={catalog}
-                    archiveStatus={archiveLoad}
-                    onRetryArchive={() => setArchiveLoad("idle")}
+                    canReadTransactions={canReadTransactions}
                     onClose={() => setSelected(null)}
                     onBuilding={select}
                     saved={saved.has(active.id)}
@@ -885,7 +946,7 @@ export default function App() {
             <X />
           </button>
         </div>
-        {showCompare && (
+        {showCompare && canReadDetails && (
           <div className="table-scroll">
             <table>
               <thead>
@@ -920,7 +981,8 @@ export default function App() {
                     {compare.map((id) => (
                       <td key={id}>
                         {(fn as (b: Building) => string | number)(
-                          buildings.find((b) => b.id === id)!,
+                          comparisonDetails.find((b) => b.id === id) ||
+                            buildings.find((b) => b.id === id)!,
                         )}
                       </td>
                     ))}
@@ -939,13 +1001,13 @@ export default function App() {
           }
           initialName={loginMode === "change" ? access.display_name || "" : ""}
           onClose={() => {
+            pendingBuilding.current = null;
             setLogin(false);
             setLoginMode("email");
           }}
           onSuccess={() => {
             setLogin(false);
             setLoginMode("email");
-            refresh();
           }}
         />
       )}

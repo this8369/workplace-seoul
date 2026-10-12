@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { publicSupabase as supabase } from "./public-supabase";
+import { useEffect, useRef, useState } from "react";
+import { supabase } from "./supabase";
 import { fetchBuildingRegister, type RegisterData } from "./building-register";
 
 export type ParcelGeometry =
@@ -58,12 +58,15 @@ export type AssetFact = {
   as_of: string;
 };
 export type Resource<T> = { data: T | null; error: boolean };
-const requests = new Map<string, { at: number; promise: Promise<unknown> }>();
 function useDeferred<T>(
   key: string,
   enabled: boolean,
   loader: () => Promise<T>,
 ): Resource<T> {
+  // Private responses live only as long as this member's detail component.
+  const requests = useRef(
+    new Map<string, { at: number; promise: Promise<T> }>(),
+  ).current;
   const [state, setState] = useState<{ key: string; resource: Resource<T> }>({
     key: "",
     resource: { data: null, error: false },

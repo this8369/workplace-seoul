@@ -1,4 +1,4 @@
-import { publicSupabase as supabase } from "./public-supabase";
+import { supabase } from "./supabase";
 export type RegisterRecord = {
   id: string;
   register_pk: string;

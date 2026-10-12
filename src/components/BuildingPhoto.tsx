@@ -6,10 +6,12 @@ export default function BuildingPhoto({
   image,
   detail = false,
   priority = false,
+  memberOnly = false,
 }: {
   image?: BuildingImage;
   detail?: boolean;
   priority?: boolean;
+  memberOnly?: boolean;
 }) {
   const path = detail
     ? image?.object_path
@@ -18,7 +20,8 @@ export default function BuildingPhoto({
   const [visible, setVisible] = useState(priority || detail);
   const [loaded, setLoaded] = useState<{ path: string; url: string }>();
   const [retry, setRetry] = useState(0);
-  const approved = image?.review_status === "approved";
+  const approved =
+    image?.review_status === "approved" && !detail && !memberOnly;
   useEffect(() => {
     if (visible) return;
     if (!("IntersectionObserver" in window)) {

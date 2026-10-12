@@ -81,8 +81,14 @@ test("IGIS linkage separates read/edit/admin; denies forged, expired, disabled a
       [bid],
     );
     await db.exec("set role anon");
-    assert.equal((await db.query("select * from buildings")).rows.length, 1);
-    assert.equal((await db.query("select * from transactions")).rows.length, 1);
+    await assert.rejects(
+      () => db.query("select * from buildings"),
+      /permission denied/,
+    );
+    await assert.rejects(
+      () => db.query("select * from transactions"),
+      /permission denied/,
+    );
     await assert.rejects(
       () => db.query("select * from favorites"),
       /permission denied/,
@@ -208,7 +214,7 @@ test("IGIS linkage separates read/edit/admin; denies forged, expired, disabled a
     );
     await asUser(viewer);
     assert.equal(await allowed("images.manage"), false);
-    assert.equal(await allowed("transactions.read"), true);
+    assert.equal(await allowed("transactions.read"), false);
     assert.equal(await allowed("catalog.read"), true);
     await db.exec("reset role");
     await db.query(
@@ -216,8 +222,9 @@ test("IGIS linkage separates read/edit/admin; denies forged, expired, disabled a
       [viewer],
     );
     await asUser(viewer);
-    assert.equal((await db.query("select * from buildings")).rows.length, 1);
+    assert.equal((await db.query("select * from buildings")).rows.length, 0);
     assert.equal(await allowed("catalog.read"), true);
+    assert.equal(await allowed("details.read"), false);
     await db.exec("reset role");
     await db.query(
       "select link_igis_identity($1,$2,$3,'Viewer','viewer@test.invalid')",

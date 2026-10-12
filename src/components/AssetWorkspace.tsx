@@ -1,4 +1,5 @@
 import BuildingRegister from "./BuildingRegister";
+import { fetchTransactionDetail } from "../lib/member-details";
 import {
   markerDevelopmentIndex,
   markerNocIndex,
@@ -167,18 +168,49 @@ export function Transactions({
   region,
   onBuilding,
   buildingId,
+  canReadDetails = false,
+  onRequireLogin,
+  accessKey,
 }: {
   catalog: Catalog;
   query: string;
   region: string;
   onBuilding: (id: string) => void;
   buildingId?: string;
+  canReadDetails?: boolean;
+  onRequireLogin?: () => void;
+  accessKey?: string;
 }) {
   const [year, setYear] = useState(""),
     [scope, setScope] = useState(""),
     [sort, setSort] = useState("recent"),
     [page, setPage] = useState(0),
     [detail, setDetail] = useState<Transaction | null>(null);
+  const [requested, setRequested] = useState<string | null>(null);
+  const [detailError, setDetailError] = useState("");
+  const openDetail = (t: Transaction) => {
+    setRequested(t.id);
+    if (!canReadDetails) onRequireLogin?.();
+  };
+  useEffect(() => {
+    setDetail(null);
+    setDetailError("");
+    if (!canReadDetails || !requested) return;
+    let alive = true;
+    void fetchTransactionDetail(requested)
+      .then((data) => {
+        if (alive) setDetail(data);
+      })
+      .catch(() => {
+        if (alive)
+          setDetailError(
+            "거래 상세정보를 불러오지 못했습니다. 접근 권한을 확인해 주세요.",
+          );
+      });
+    return () => {
+      alive = false;
+    };
+  }, [canReadDetails, requested, accessKey]);
   const base = useMemo(
     () =>
       catalog.transactions.filter(
@@ -287,7 +319,7 @@ export function Transactions({
                     <td>
                       <button
                         className="text-button building-link"
-                        onClick={() => setDetail(t)}
+                        onClick={() => openDetail(t)}
                       >
                         {t.building_name}
                       </button>
@@ -311,7 +343,7 @@ export function Transactions({
                     <td>
                       <button
                         aria-label={`${t.building_name} ${t.year}년 거래 상세`}
-                        onClick={() => setDetail(t)}
+                        onClick={() => openDetail(t)}
                       >
                         <ChevronRight size={17} />
                       </button>
@@ -356,10 +388,14 @@ export function Transactions({
         건물 연면적과 거래면적은 다를 수 있습니다. 일부 층·지분 거래는 전체 건물
         매매와 구분해서 확인하세요.
       </p>
-      {detail && (
+      {detailError && <p role="alert">{detailError}</p>}
+      {detail && canReadDetails && (
         <TransactionDialog
           transaction={detail}
-          onClose={() => setDetail(null)}
+          onClose={() => {
+            setDetail(null);
+            setRequested(null);
+          }}
           onBuilding={onBuilding}
         />
       )}
@@ -545,7 +581,7 @@ export function AssetWorkspace({
                           onClick={() => setPhotoId(p.id)}
                           aria-label={`${i + 1}번 사진: ${p.title}`}
                         >
-                          <BuildingPhoto image={p} />
+                          <BuildingPhoto image={p} memberOnly />
                         </button>
                       ))}
                     </div>
@@ -1278,6 +1314,7 @@ export function AssetWorkspace({
               region=""
               onBuilding={onBuilding}
               buildingId={b.id}
+              canReadDetails
             />
           )}
           {tab === "개발·변경 이력" && (

@@ -211,7 +211,7 @@ export default function PhotoManager({
                 className={selected === i.id ? "selected" : ""}
               >
                 <span className="photo-mini">
-                  <BuildingPhoto image={i} />
+                  <BuildingPhoto image={i} memberOnly />
                 </span>
                 <span>
                   <strong>{names.get(i.building_id)?.name || i.title}</strong>

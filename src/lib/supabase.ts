@@ -1,4 +1,3 @@
-import { fetchBuildingImages } from "./building-images";
 import { createClient } from "@supabase/supabase-js";
 import { publicSupabase } from "./public-supabase";
 import type { Building } from "./domain";
@@ -23,10 +22,8 @@ export async function fetchBuildings(): Promise<Building[]> {
   const rows: Building[] = [];
   for (let from = 0; ; from += 500) {
     const { data, error } = await publicSupabase
-      .from("buildings")
-      .select(
-        "id,complex_id,name,address,standard_address,road_address,region,status,gross_area_m2,area_basis,latitude,longitude,overview,floors_above,floors_below,completion_year,usage_approved_on,completion_source_url,completion_collected_at,typical_floor_rentable_pyeong,typical_floor_exclusive_pyeong,typical_floor_scope,typical_floor_source_url,typical_floor_source_period,typical_floor_collected_at,parking_spaces,source_name,source_url,verified_on,source_as_of",
-      )
+      .from("catalog_buildings")
+      .select("*")
       .in("status", ["operating", "development"])
       .order("id")
       .range(from, from + 499);
@@ -34,6 +31,13 @@ export async function fetchBuildings(): Promise<Building[]> {
     rows.push(
       ...(data as Building[]).map((b) => ({
         ...b,
+        overview: null,
+        floors_above: null,
+        floors_below: null,
+        parking_spaces: null,
+        source_name: "",
+        source_url: null,
+        verified_on: null,
         source_address: b.address,
         region: regionForBuilding(b),
         address: b.standard_address || b.address,
@@ -47,7 +51,18 @@ export async function fetchBuildings(): Promise<Building[]> {
 import { emptyCatalog, type Catalog } from "./catalog";
 const coreListeners = new Set<(data: Catalog) => void>();
 let catalogRequest: Promise<Catalog> | undefined;
-const cacheKey = `workplace-catalog-v3:${url}`;
+const cacheKey = `workplace-catalog-public-v4:${url}`;
+// Discard older snapshots containing fields which are now member-only.
+try {
+  for (const key of Object.keys(sessionStorage))
+    if (
+      (key.startsWith("workplace-catalog-") && key !== cacheKey) ||
+      key.startsWith("workplace-photo-urls-v1:")
+    )
+      sessionStorage.removeItem(key);
+} catch {
+  /* Storage can be disabled. */
+}
 function cachedCatalog(): Catalog | null {
   try {
     const cached = JSON.parse(sessionStorage.getItem(cacheKey) || "null");
@@ -91,7 +106,7 @@ async function loadCatalog(): Promise<Catalog> {
   // Only identity, photos and region geometry block the first card list.
   const [buildings, images, districts] = await Promise.all([
     fetchBuildings(),
-    fetchBuildingImages(publicSupabase),
+    all("catalog_images"),
     publicSupabase.from("districts").select("*").order("sort_order"),
   ]);
   if (districts.error) throw districts.error;
@@ -99,16 +114,16 @@ async function loadCatalog(): Promise<Catalog> {
   const core = {
     ...emptyCatalog,
     buildings: buildings.map((b) => ({ ...b, region: regionForBuilding(b) })),
-    images,
+    images: images as Catalog["images"],
     review: true,
   };
   coreListeners.forEach((notify) => notify(core));
   // Card metrics and map grouping follow immediately; archive data is on demand.
   const [leasing, developments, complexes, towers] = await Promise.all([
-    all("leasing_quarters"),
-    all("development_records"),
-    all("building_complexes"),
-    all("building_towers"),
+    all("catalog_leasing"),
+    all("catalog_developments"),
+    all("catalog_complexes"),
+    all("catalog_towers"),
   ]);
   const catalog = {
     ...core,
@@ -134,19 +149,14 @@ export type CatalogArchive = Pick<
 let archiveRequest: Promise<CatalogArchive> | undefined;
 export function fetchCatalogArchive(): Promise<CatalogArchive> {
   if (!archiveRequest)
-    archiveRequest = Promise.all([
-      all("transactions"),
-      all("companies"),
-      all("occupancies"),
-      all("tenant_movements"),
-    ])
+    archiveRequest = all("catalog_transactions")
       .then(
-        ([transactions, companies, occupancies, movements]) =>
+        (transactions) =>
           ({
             transactions,
-            companies,
-            occupancies,
-            movements,
+            companies: [],
+            occupancies: [],
+            movements: [],
           }) as CatalogArchive,
       )
       .finally(() => {

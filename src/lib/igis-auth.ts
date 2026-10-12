@@ -16,6 +16,7 @@ export const igis = createClient(IGIS_URL, IGIS_PUBLIC_KEY, {
 export type WorkplaceAccess = {
   display_name: string | null;
   linked?: boolean;
+  verified_until?: string | null;
   permissions: string[];
 };
 export const noAccess: WorkplaceAccess = {
@@ -70,7 +71,12 @@ export async function readAccess(): Promise<WorkplaceAccess> {
   return data;
 }
 export function authMessage(error: unknown) {
-  const e = error as { code?: string; message?: string; status?: number; name?: string };
+  const e = error as {
+    code?: string;
+    message?: string;
+    status?: number;
+    name?: string;
+  };
   if (e?.name === "AuthRetryableFetchError" || error instanceof TypeError)
     return "IGIS 인증 서버에 연결하지 못했습니다. 잠시 후 다시 시도해 주세요.";
   if (e?.code === "invalid_credentials")

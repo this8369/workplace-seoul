@@ -12,10 +12,13 @@ export function useWorkplaceAccess(
   session: Session | null,
   onError: (message: string) => void,
 ) {
-  const [access, setAccess] = useState<WorkplaceAccess>(noAccess);
+  const [access, setAccess] = useState<WorkplaceAccess & { userId?: string }>(
+    noAccess,
+  );
   useEffect(() => {
     let alive = true,
       running = false;
+    let expiry: ReturnType<typeof setTimeout> | undefined;
     setAccess(noAccess);
     if (!session) return;
     async function check() {
@@ -33,7 +36,16 @@ export function useWorkplaceAccess(
           throw Object.assign(Error("IGIS 계정으로 다시 로그인해 주세요."), {
             status: 401,
           });
-        if (alive) setAccess(current);
+        if (alive) {
+          clearTimeout(expiry);
+          const remaining =
+            Date.parse(current.verified_until || "") - Date.now();
+          if (!(remaining > 0)) setAccess(noAccess);
+          else {
+            setAccess({ ...current, userId: session!.user.id });
+            expiry = setTimeout(() => setAccess(noAccess), remaining);
+          }
+        }
       } catch (error) {
         if (!alive) return;
         setAccess(noAccess);
@@ -57,10 +69,11 @@ export function useWorkplaceAccess(
     window.addEventListener("focus", focus);
     return () => {
       alive = false;
+      clearTimeout(expiry);
       clearInterval(interval);
       document.removeEventListener("visibilitychange", focus);
       window.removeEventListener("focus", focus);
     };
   }, [session, onError]);
-  return access;
+  return session && access.userId === session.user.id ? access : noAccess;
 }

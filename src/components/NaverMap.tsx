@@ -168,10 +168,9 @@ export default function NaverMap({
         const geometries: (ParcelGeometry | null)[] = [];
         for (let from = 0; ; from += 500) {
           const { data, error } = await supabase!
-            .from("building_parcels")
+            .from("catalog_boundaries")
             .select("geometry")
             .eq("building_id", boundaryAsset)
-            .eq("verified", true)
             .order("id")
             .range(from, from + 499);
           if (error) throw error;
