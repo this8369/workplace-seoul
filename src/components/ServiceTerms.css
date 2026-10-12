@@ -61,6 +61,7 @@
   gap: 6px;
   height: var(--control-height);
   padding: 0 calc((var(--control-height) - 25px) / 2 - 1px);
+  padding-right: calc((var(--control-height) - 25px) / 2 - 1px + 8px);
   border-radius: 14px;
   border: 1px solid transparent;
   background: #e8eaf0;
