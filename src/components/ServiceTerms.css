@@ -64,9 +64,9 @@
   align-items: center;
   justify-content: center;
   min-width: 0;
-  flex: 0 0 var(--control-height);
-  width: var(--control-height);
-  gap: 0;
+  flex: 0 0 auto;
+  width: auto;
+  gap: 6px;
   height: var(--control-height);
   padding: 0 calc((var(--control-height) - 25px) / 2 - 1px);
   border-radius: 14px;
