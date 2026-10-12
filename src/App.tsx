@@ -509,35 +509,40 @@ export default function App() {
             ]}
           />
         )}
-        {view !== "transactions" && (
-          <>
-            <button
-              className="asset-type-trigger filter-select-trigger igis-mode-toggle"
-              aria-pressed={igisMode}
-              onClick={() => {
-                setIgisMode(!igisMode);
-                setAssetCategory("");
-              }}
-            >
-              <span className="igis-badge" aria-hidden="true">
-                IGIS
-              </span>
-              이지스
-            </button>
-            {igisMode && (
-              <div className="igis-category-reveal">
-                <FilterSelect
-                  label="이지스 자산 유형"
-                  icon={<Building2 size={14} />}
-                  value={assetCategory}
-                  onChange={setAssetCategory}
-                  options={assetCategoryOptions}
-                />
-              </div>
-            )}
-          </>
-        )}
       </div>
+      {view !== "transactions" && (
+        <div className="filters igis-controls" data-active={igisMode}>
+          <button
+            className="asset-type-trigger filter-select-trigger igis-mode-toggle"
+            aria-label="이지스 자산 보기"
+            title="이지스 자산 보기"
+            aria-pressed={igisMode}
+            onClick={() => {
+              setIgisMode(!igisMode);
+              setAssetCategory("");
+            }}
+          >
+            <span className="igis-badge" aria-hidden="true">
+              IGIS
+            </span>
+          </button>
+          <div
+            className="igis-category-reveal"
+            inert={!igisMode}
+            aria-hidden={!igisMode}
+          >
+            <div className="igis-category-control">
+              <FilterSelect
+                label="이지스 자산 유형"
+                icon={<Building2 size={14} />}
+                value={assetCategory}
+                onChange={setAssetCategory}
+                options={assetCategoryOptions}
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   );
   return (
