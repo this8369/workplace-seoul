@@ -214,6 +214,11 @@
     grid-template-columns: 1fr;
   }
 }
+@container (max-width: 580px) {
+  .igis-object-fields {
+    grid-template-columns: 1fr;
+  }
+}
 
 .igis-list-note {
   margin: 0;

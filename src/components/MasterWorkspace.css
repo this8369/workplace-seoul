@@ -294,3 +294,25 @@
     bottom: -18px;
   }
 }
+@container (max-width: 580px) {
+  .master-embedded {
+    padding: 0;
+  }
+  .master-embedded .master-layout,
+  .master-embedded .master-fields {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .master-embedded .master-list {
+    max-height: 300px;
+    overflow: auto;
+  }
+  .master-embedded .master-tools {
+    flex-wrap: wrap;
+  }
+  .master-embedded .master-detail {
+    padding: 16px;
+  }
+  .master-embedded .master-save {
+    bottom: -16px;
+  }
+}
