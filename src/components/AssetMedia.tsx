@@ -2,13 +2,11 @@ import { useCallback, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import {
   Building2,
-  Camera,
   Image,
   ChevronLeft,
   ChevronRight,
   Expand,
   ImagePlus,
-  LayoutDashboard,
   X,
 } from "lucide-react";
 import type { Building } from "../lib/domain";
@@ -20,6 +18,48 @@ import { mediaLayerLeft } from "../lib/asset-media";
 import BuildingPhoto from "./BuildingPhoto";
 import AssetRoadview, { type RoadviewPosition } from "./AssetRoadview";
 import "./AssetMedia.css";
+
+function RoadviewIcon() {
+  return (
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      aria-hidden="true"
+    >
+      <path
+        d="M12 2a8 8 0 0 0-8 8c0 5.2 8 12 8 12s8-6.8 8-12a8 8 0 0 0-8-8Z"
+        fill="currentColor"
+      />
+      <path
+        d="M8.5 10h7"
+        stroke="white"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+function FloorPlanIcon({ size = 16 }: { size?: number }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.6"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M9 21H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h16a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1h-5M12 3v7M12 14v7M3 10h9M12 14h9" />
+      <path d="M9 21v-5a5 5 0 0 1 5 5" strokeWidth="1" opacity=".65" />
+    </svg>
+  );
+}
 
 export default function AssetMedia({
   building,
@@ -118,7 +158,7 @@ export default function AssetMedia({
   ) : (
     <div className="asset-media-empty">
       {mode === "floor_plan" ? (
-        <LayoutDashboard size={54} strokeWidth={1} aria-hidden="true" />
+        <FloorPlanIcon size={54} />
       ) : (
         <Building2 size={38} />
       )}
@@ -155,7 +195,7 @@ export default function AssetMedia({
       className="asset-media-switch"
       onClick={() => chooseMode(mode === "roadview" ? "photo" : "roadview")}
     >
-      {mode === "roadview" ? <Image size={16} /> : <Camera size={16} />}
+      {mode === "roadview" ? <Image size={16} /> : <RoadviewIcon />}
       {mode === "roadview" ? "사진" : "로드뷰"}
     </button>
   );
@@ -191,7 +231,7 @@ export default function AssetMedia({
             aria-pressed={mode === "floor_plan"}
             onClick={() => chooseMode("floor_plan")}
           >
-            <LayoutDashboard size={16} />
+            <FloorPlanIcon />
             평면도
           </button>
         </div>
