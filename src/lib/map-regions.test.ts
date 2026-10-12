@@ -28,8 +28,8 @@ test("editorial mountain trims preserve central districts and source classificat
   assert.equal(boundaryContains(gbd, 127.0008548, 37.4886), true); // South site western edge
   assert.equal(boundaryContains(gbd, 127.0078, 37.4919), true); // Seocho Station
   assert.equal(districtAt(126.998, 37.488), "GBD");
-  assert.equal(
-    gbd.bbox[3],
+  assert.ok(
+    gbd.bbox[3] <
     boundaries.find((b) => b.properties.key === "GBD")!.bbox[3],
   );
   assert.equal(districtAt(126.98, 37.62), "CBD");
@@ -70,6 +70,20 @@ test("editorial mountain trims preserve central districts and source classificat
           .geometry,
       );
   }
+});
+
+test("GBD northern outline follows the landmark cut and leaves no stale Others hole", () => {
+  const gbd = displayBoundaries.find((b) => b.properties.key === "GBD")!;
+  const others = displayBoundaries.find((b) => b.properties.key === "Others")!;
+  for (const [lng, lat] of [[127.006, 37.513], [127.03, 37.53], [127.108, 37.531]]) {
+    assert.equal(boundaryContains(gbd, lng, lat), false);
+    assert.equal(boundaryContains(others, lng, lat), true);
+  }
+  for (const [lng, lat] of [[127.0364265, 37.5006563], [127.059, 37.512], [127.105, 37.521], [127.1017496, 37.4873126], [127.1048086, 37.4843051]]) {
+    assert.equal(boundaryContains(gbd, lng, lat), true);
+    assert.equal(boundaryContains(others, lng, lat), false);
+  }
+  assert.equal(boundaryContains(gbd, 127.105, 37.482), false);
 });
 
 test("real geographic regions include intended neighbourhoods and exclude adjacent districts", () => {
