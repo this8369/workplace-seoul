@@ -474,8 +474,8 @@ export default function NaverMap({
               : 0.58
             : 0.07,
           strokeColor: district.color,
-          strokeWeight: overview ? 3 : 2.5,
-          strokeOpacity: 0.9,
+          strokeWeight: overview ? 3 : 5,
+          strokeOpacity: overview ? 0.9 : 1,
           clickable: overview,
           zIndex: district.key === "Others" ? 1 : 2,
         });
@@ -508,8 +508,8 @@ export default function NaverMap({
                 ? 0.18
                 : 0.58
               : 0.07,
-          strokeWeight: (overview ? 3 : 2.5) + (highlighted ? 0.5 : 0),
-          strokeOpacity: highlighted ? 1 : 0.9,
+          strokeWeight: (overview ? 3 : 5) + (highlighted ? 0.5 : 0),
+          strokeOpacity: highlighted || !overview ? 1 : 0.9,
         });
       });
     };
