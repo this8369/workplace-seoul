@@ -84,6 +84,9 @@ test("GBD northern outline follows the landmark cut and leaves no stale Others h
     assert.equal(boundaryContains(others, lng, lat), false);
   }
   assert.equal(boundaryContains(gbd, 127.105, 37.482), false);
+  assert.equal(boundaryContains(gbd, 127.0624, 37.5198), false); // Removed Olympic-daero spur
+  assert.equal(boundaryContains(others, 127.0624, 37.5198), true);
+  assert.equal(boundaryContains(gbd, 127.064, 37.516), true); // Below the gentle connection
   for (const [lng, lat] of [[127.0254409, 37.5047606], [127.0339802, 37.5073202], [127.0436411, 37.5108539], [127.0527772, 37.5128849], [127.0603088, 37.5142313]]) {
     assert.equal(boundaryContains(gbd, lng, lat + 0.0004), true);
     assert.equal(boundaryContains(gbd, lng, lat + 0.0015), false);
