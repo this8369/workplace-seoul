@@ -871,6 +871,7 @@ export default function App() {
                         </span>
                         <span className="card-info">
                           <strong>
+                            <span className="card-building-name">{b.name}</span>
                             {b.is_igis && (
                               <span
                                 className="igis-badge"
@@ -879,7 +880,6 @@ export default function App() {
                                 IGIS
                               </span>
                             )}
-                            {b.name}
                           </strong>
                           <span className="card-metrics">
                             <span className="card-metric">

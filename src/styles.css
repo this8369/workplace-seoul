@@ -803,10 +803,18 @@ header {
   font-weight: 700;
   margin: 0 0 1px;
   overflow: hidden;
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 6px;
   white-space: nowrap;
   text-overflow: ellipsis;
   letter-spacing: -0.5px;
+}
+.card-building-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .address {
   font-size: 11px;
