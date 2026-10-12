@@ -57,21 +57,22 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 68px;
+  min-width: 0;
+  gap: 6px;
   height: var(--control-height);
-  padding: 0 14px;
-  border-radius: var(--toolbar-control-radius);
-  border: 1px solid var(--accent);
-  background: var(--accent);
-  color: #fff;
+  padding: 0 13px;
+  border-radius: 14px;
+  border: 1px solid transparent;
+  background: #e8eaf0;
+  color: #25314b;
   font-size: 13px;
-  font-weight: 650;
-  letter-spacing: 0.5px;
+  font-weight: 400;
+  letter-spacing: inherit;
   cursor: pointer;
 }
 .filters .igis-mode-toggle.asset-type-trigger[aria-pressed="true"] {
-  background: var(--toolbar-control-fill);
-  color: var(--accent);
+  background: #283880;
+  color: #fff;
 }
 .igis-badge {
   display: inline-flex;

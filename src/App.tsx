@@ -519,7 +519,8 @@ export default function App() {
                 setRegion("");
               }}
             >
-              IGIS
+              <span className="igis-badge" aria-hidden="true">IGIS</span>
+              이지스
             </button>
             {igisMode && (
               <div className="igis-category-reveal">
