@@ -42,6 +42,7 @@ export type DistrictSetting = {
   focus_center?: Coordinate | null;
   focus_zoom?: number | null;
 };
+const yeoksamStation: Coordinate = [127.0364265, 37.5006563];
 export let districts: DistrictSetting[] = [
   { key: "CBD", label: "CBD", name: "종로구 · 중구", color: "#253985" },
   {
@@ -49,6 +50,7 @@ export let districts: DistrictSetting[] = [
     label: "GBD",
     name: "강남구 · 서초구 · 송파구 신천동·잠실동",
     color: "#287aab",
+    focus_center: yeoksamStation,
   },
   { key: "YBD", label: "YBD", name: "여의도동", color: "#287f78" },
   {
@@ -93,7 +95,7 @@ export function configureDistricts(rows: DistrictRecord[]) {
       label,
       name,
       color,
-      focus_center,
+      focus_center: focus_center ?? (key === "GBD" ? yeoksamStation : null),
       focus_zoom,
     }),
   );
