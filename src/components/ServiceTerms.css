@@ -122,10 +122,15 @@
   letter-spacing: -0.15px;
   vertical-align: middle;
 }
-.map-marker-name .igis-badge {
-  margin-right: 6px;
+.map-marker-name.is-igis {
+  margin-left: -3px;
+}
+.map-marker-name.is-igis .map-marker-name-text {
+  position: relative;
+  top: 1px;
 }
 .map-marker-name .igis-badge {
+  margin-right: 4px;
   width: 21px;
   height: 21px;
   font-size: 8px;

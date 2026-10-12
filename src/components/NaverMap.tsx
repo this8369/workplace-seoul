@@ -577,11 +577,15 @@ export default function NaverMap({
         name.className = "map-marker-name";
         name.textContent = b.name.split(/\s*[（(]/)[0].trim() || b.name;
         if (b.is_igis) {
+          name.classList.add("is-igis");
           const badge = document.createElement("span");
           badge.className = "igis-badge";
           badge.textContent = "IGIS";
           badge.title = "이지스 투자·운용 연관 자산";
-          name.prepend(badge);
+          const title = document.createElement("span");
+          title.className = "map-marker-name-text";
+          title.textContent = name.textContent;
+          name.replaceChildren(badge, title);
         }
         bubble.append(name);
         const facts = document.createElement("span");
