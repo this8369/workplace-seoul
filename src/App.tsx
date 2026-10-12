@@ -130,6 +130,7 @@ export default function App() {
     [load, setLoad] = useState<"loading" | "ready" | "error" | "setup">(
       supabase ? "loading" : "setup",
     );
+  const [imageBuilding, setImageBuilding] = useState("");
   const [igisMode, setIgisMode] = useState(false);
   const [assetCategory, setAssetCategory] = useState("");
   const [query, setQuery] = useState(initialQuery),
@@ -693,6 +694,7 @@ export default function App() {
           can("images.manage") &&
           !active ? (
           <PhotoManager
+            initialBuilding={imageBuilding}
             buildings={buildings}
             images={adminImages}
             onRefresh={async () => {
@@ -1033,6 +1035,15 @@ export default function App() {
                     onBuilding={select}
                     saved={saved.has(active.id)}
                     onSave={() => toggleSave(active.id)}
+                    onManageImages={
+                      can("images.manage")
+                        ? () => {
+                            setImageBuilding(active.id);
+                            setView("images");
+                            setSelected(null);
+                          }
+                        : undefined
+                    }
                   />
                 )}
               </section>

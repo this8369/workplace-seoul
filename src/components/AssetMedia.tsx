@@ -3,13 +3,17 @@ import { createPortal } from "react-dom";
 import {
   Building2,
   Camera,
+  Image,
   ChevronLeft,
   ChevronRight,
   Expand,
-  Image,
+  ImagePlus,
+  LayoutDashboard,
   X,
 } from "lucide-react";
 import type { Building } from "../lib/domain";
+import { safeSourceUrl } from "../lib/domain";
+import { ReviewRecordButton } from "./DataReview";
 import type { BuildingImage } from "../lib/building-images";
 import { hasLocation } from "../lib/map-clusters";
 import { mediaLayerLeft } from "../lib/asset-media";
@@ -22,24 +26,40 @@ export default function AssetMedia({
   photo,
   photos,
   onPhoto,
+  floorPlans,
+  onManageImages,
 }: {
   building: Building;
   photo?: BuildingImage;
   photos: BuildingImage[];
   onPhoto: (id: string) => void;
+  floorPlans: BuildingImage[];
+  onManageImages?: () => void;
 }) {
   const anchor = useRef<HTMLDivElement>(null);
   const closeButton = useRef<HTMLButtonElement>(null);
   const returnFocus = useRef<HTMLElement | null>(null);
   const roadviewPosition = useRef<RoadviewPosition | null>(null);
-  const [mode, setMode] = useState<"photo" | "roadview">("photo");
+  const [mode, setMode] = useState<"photo" | "roadview" | "floor_plan">(
+    "photo",
+  );
+  const [planId, setPlanId] = useState<string>();
+  const shown =
+    mode === "floor_plan"
+      ? floorPlans.find((p) => p.id === planId) || floorPlans[0]
+      : photo;
+  const gallery = mode === "floor_plan" ? floorPlans : photos;
+  function selectImage(id: string) {
+    if (mode === "floor_plan") setPlanId(id);
+    else onPhoto(id);
+  }
   const [notice, setNotice] = useState("");
   const unavailable = useCallback((message: string) => {
     roadviewPosition.current = null;
     setNotice(message);
     setMode("photo");
   }, []);
-  function chooseMode(next: "photo" | "roadview") {
+  function chooseMode(next: "photo" | "roadview" | "floor_plan") {
     setNotice("");
     setMode(next);
   }
@@ -51,7 +71,7 @@ export default function AssetMedia({
   const available = hasLocation(building);
   const index = Math.max(
     0,
-    photos.findIndex((item) => item.id === photo?.id),
+    gallery.findIndex((item) => item.id === shown?.id),
   );
 
   useLayoutEffect(() => {
@@ -93,12 +113,18 @@ export default function AssetMedia({
       : anchor.current?.querySelector<HTMLButtonElement>(".asset-media-expand");
     target?.focus({ preventScroll: true });
   }
-  const photoContent = photo ? (
-    <BuildingPhoto image={photo} detail />
+  const photoContent = shown ? (
+    <BuildingPhoto image={shown} detail />
   ) : (
     <div className="asset-media-empty">
-      <Building2 size={38} />
-      <span>건물 사진 준비 중</span>
+      {mode === "floor_plan" ? (
+        <LayoutDashboard size={54} strokeWidth={1} aria-hidden="true" />
+      ) : (
+        <Building2 size={38} />
+      )}
+      <span>
+        {mode === "floor_plan" ? "평면도 준비 중" : "건물 사진 준비 중"}
+      </span>
     </div>
   );
   const content = (large: boolean) =>
@@ -116,7 +142,9 @@ export default function AssetMedia({
       <button
         className="asset-media-photo-button"
         onClick={expand}
-        aria-label="건물 사진 크게 보기"
+        aria-label={
+          mode === "floor_plan" ? "평면도 크게 보기" : "건물 사진 크게 보기"
+        }
       >
         {photoContent}
       </button>
@@ -125,16 +153,20 @@ export default function AssetMedia({
   const switchMode = (
     <button
       className="asset-media-switch"
-      onClick={() => chooseMode(mode === "photo" ? "roadview" : "photo")}
+      onClick={() => chooseMode(mode === "roadview" ? "photo" : "roadview")}
     >
-      {mode === "photo" ? <Camera size={16} /> : <Image size={16} />}
-      {mode === "photo" ? "로드뷰" : "사진 보기"}
+      {mode === "roadview" ? <Image size={16} /> : <Camera size={16} />}
+      {mode === "roadview" ? "사진" : "로드뷰"}
     </button>
   );
 
   return (
     <>
-      <div className="asset-photo-frame asset-media-frame" ref={anchor}>
+      <div
+        className="asset-photo-frame asset-media-frame"
+        data-mode={mode}
+        ref={anchor}
+      >
         {expanded ? (
           <button
             className="asset-media-photo-button"
@@ -146,11 +178,23 @@ export default function AssetMedia({
         ) : (
           content(false)
         )}
-        {mode === "photo" && (
-          <span className="asset-photo-kind">
+        <div className="asset-media-kinds" aria-label="이미지 종류">
+          <button
+            aria-pressed={mode === "photo"}
+            onClick={() => chooseMode("photo")}
+          >
+            <Image size={16} />
             {photo?.kind === "rendering" ? "조감도" : "건물 사진"}
-          </span>
-        )}
+          </button>
+          <span aria-hidden="true">ㅣ</span>
+          <button
+            aria-pressed={mode === "floor_plan"}
+            onClick={() => chooseMode("floor_plan")}
+          >
+            <LayoutDashboard size={16} />
+            평면도
+          </button>
+        </div>
         <button
           className="asset-media-expand"
           onClick={expand}
@@ -160,6 +204,48 @@ export default function AssetMedia({
         </button>
         {available && !expanded && switchMode}
       </div>
+      {!expanded && mode !== "roadview" && gallery.length > 1 && (
+        <div className="asset-photo-picker" aria-label="이미지 선택">
+          {gallery.map((item, i) => (
+            <button
+              key={item.id}
+              aria-pressed={item.id === shown?.id}
+              onClick={() => selectImage(item.id)}
+              aria-label={`${i + 1}번: ${item.floor_label || item.title}`}
+            >
+              <BuildingPhoto image={item} memberOnly />
+            </button>
+          ))}
+        </div>
+      )}
+      {!expanded && shown && mode !== "roadview" && (
+        <figcaption>
+          <ReviewRecordButton
+            entity="building_images"
+            id={shown.id}
+            label="이미지 정보 수정·이력"
+          />
+          {shown.floor_label && `${shown.floor_label} · `}
+          {shown.credit || shown.source_name}
+          {shown.license_name && ` · ${shown.license_name}`}
+          {shown.captured_on && ` · 촬영 ${shown.captured_on}`}
+          {safeSourceUrl(shown.source_url) && (
+            <a
+              href={safeSourceUrl(shown.source_url)!}
+              target="_blank"
+              rel="noreferrer"
+            >
+              출처
+            </a>
+          )}
+        </figcaption>
+      )}
+      {onManageImages && (
+        <button className="asset-media-add" onClick={onManageImages}>
+          <ImagePlus size={14} />
+          사진·조감도·평면도 추가 등록
+        </button>
+      )}
       {notice && !expanded && (
         <p className="asset-media-notice" role="status">
           {notice}
@@ -191,6 +277,12 @@ export default function AssetMedia({
                 >
                   사진
                 </button>
+                <button
+                  aria-pressed={mode === "floor_plan"}
+                  onClick={() => chooseMode("floor_plan")}
+                >
+                  평면도
+                </button>
                 {available && (
                   <button
                     aria-pressed={mode === "roadview"}
@@ -215,21 +307,25 @@ export default function AssetMedia({
                 {notice}
               </p>
             )}
-            {mode === "photo" && (
+            {mode !== "roadview" && (
               <div className="asset-media-caption">
                 <span>
-                  {photo?.title || "건물 사진 준비 중"}
-                  {photo?.credit || photo?.source_name
-                    ? ` · ${photo.credit || photo.source_name}`
+                  {shown?.floor_label ||
+                    shown?.title ||
+                    (mode === "floor_plan"
+                      ? "평면도 준비 중"
+                      : "건물 사진 준비 중")}
+                  {shown?.credit || shown?.source_name
+                    ? ` · ${shown.credit || shown.source_name}`
                     : ""}
                 </span>
-                {photos.length > 1 && (
+                {gallery.length > 1 && (
                   <div className="asset-media-pagination">
                     <button
                       aria-label="이전 사진"
                       onClick={() =>
-                        onPhoto(
-                          photos[(index - 1 + photos.length) % photos.length]
+                        selectImage(
+                          gallery[(index - 1 + gallery.length) % gallery.length]
                             .id,
                         )
                       }
@@ -237,12 +333,12 @@ export default function AssetMedia({
                       <ChevronLeft size={20} />
                     </button>
                     <span>
-                      {index + 1} / {photos.length}
+                      {index + 1} / {gallery.length}
                     </span>
                     <button
                       aria-label="다음 사진"
                       onClick={() =>
-                        onPhoto(photos[(index + 1) % photos.length].id)
+                        selectImage(gallery[(index + 1) % gallery.length].id)
                       }
                     >
                       <ChevronRight size={20} />

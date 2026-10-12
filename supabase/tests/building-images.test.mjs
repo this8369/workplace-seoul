@@ -102,6 +102,59 @@ test("approved primary thumbnails are public; originals, candidates and writes r
         .is_primary,
       true,
     );
+    const plan = "20000000-0000-0000-0000-000000000003";
+    const planPath = `${bid}/${plan}.webp`;
+    const planThumb = `${bid}/20000000-0000-0000-0000-000000000004.webp`;
+    await db.query(
+      "insert into building_images(id,building_id,title,source_name,kind,floor_label,object_path,thumbnail_path) values($1,$2,'Typical floor','Test','floor_plan','10F',$3,$4)",
+      [plan, bid, planPath, planThumb],
+    );
+    await db.query(
+      "insert into storage.objects(bucket_id,name) values('building-images',$1),('building-images',$2)",
+      [planPath, planThumb],
+    );
+    await db.query("select approve_building_image($1,false)", [plan]);
+    assert.equal(
+      (
+        await db.query(
+          "select review_status from building_images where id=$1",
+          [plan],
+        )
+      ).rows[0].review_status,
+      "approved",
+    );
+    assert.equal(
+      (
+        await db.query("select is_primary from building_images where id=$1", [
+          iid,
+        ])
+      ).rows[0].is_primary,
+      true,
+    );
+    await assert.rejects(
+      () => db.query("select set_primary_building_image($1)", [plan]),
+      /floor_plan_cannot_be_primary/,
+    );
+    await assert.rejects(
+      () =>
+        db.query("update building_images set is_primary=true where id=$1", [
+          plan,
+        ]),
+      /floor_plan_not_primary/,
+    );
+    await db.exec("reset role");
+    await db.query(
+      "insert into private.catalog_publications(record_type,record_id) values('building_images',$1)",
+      [plan],
+    );
+    await db.exec("set role authenticated");
+    await db.query("select set_config('request.jwt.claim.sub',$1,false)", [
+      other,
+    ]);
+    await assert.rejects(
+      () => db.query("select approve_building_image($1,false)", [plan]),
+      /reviewer_required/,
+    );
     await db.exec("reset role;set role anon");
     await assert.rejects(
       () => db.query("select * from building_images"),

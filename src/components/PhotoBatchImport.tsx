@@ -5,7 +5,7 @@ import { safeSourceUrl } from "../lib/domain";
 import { fetchBuildingImages } from "../lib/building-images";
 import { supabase } from "../lib/supabase";
 type BatchItem = {
-  kind?: "photo" | "rendering";
+  kind?: "photo" | "rendering" | "floor_plan";
   building_id: string;
   title: string;
   source_name: string;
@@ -77,6 +77,7 @@ export default function PhotoBatchImport({
           `Supabase 저장 중 ${index + 1}/${items.length} · ${item.title}`,
         );
         if (
+          item.kind !== "floor_plan" &&
           current.some(
             (i) => i.building_id === item.building_id && i.is_primary,
           )
@@ -112,7 +113,12 @@ export default function PhotoBatchImport({
               if (error) throw error;
             }
             const record = {
-              kind: item.kind === "rendering" ? "rendering" : "photo",
+              kind:
+                item.kind === "floor_plan"
+                  ? "floor_plan"
+                  : item.kind === "rendering"
+                    ? "rendering"
+                    : "photo",
               building_id: item.building_id,
               title: item.title,
               source_name: item.source_name,
@@ -141,8 +147,9 @@ export default function PhotoBatchImport({
             inserted = true;
             id = result.data.id;
           }
-          const { error } = await supabase.rpc("set_primary_building_image", {
+          const { error } = await supabase.rpc("approve_building_image", {
             image_id: id,
+            make_primary: item.kind !== "floor_plan",
           });
           if (error) throw error;
           done++;

@@ -45,6 +45,7 @@ export default function AssetRoadview({
         pano = new maps.Panorama(element, {
           ...(previous || { position: new maps.LatLng(latitude, longitude) }),
           flightSpot: false,
+          logoControl: false,
           zoomControl: true,
           zoomControlOptions: { position: maps.Position.TOP_LEFT },
         });

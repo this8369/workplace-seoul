@@ -524,6 +524,7 @@ export function AssetWorkspace({
   onSave,
   archiveStatus = "ready",
   onRetryArchive,
+  onManageImages,
 }: {
   building: Building;
   catalog: Catalog;
@@ -533,6 +534,7 @@ export function AssetWorkspace({
   onSave: () => void;
   archiveStatus?: "idle" | "loading" | "ready" | "error";
   onRetryArchive?: () => void;
+  onManageImages?: () => void;
 }) {
   const [tab, setTab] = useState<AssetTab>("개요"),
     [tenantQuery, setTenantQuery] = useState(""),
@@ -544,8 +546,24 @@ export function AssetWorkspace({
   const reviewVersion = useDataReviewVersion();
   const context = useAssetContext(b.id, tab, reviewVersion);
   const photos = catalog.images.filter(
-    (p) => p.building_id === b.id && p.review_status === "approved",
+    (p) =>
+      p.building_id === b.id &&
+      p.review_status === "approved" &&
+      p.kind !== "floor_plan",
   );
+  const floorPlans = catalog.images
+    .filter(
+      (p) =>
+        p.building_id === b.id &&
+        p.review_status === "approved" &&
+        p.kind === "floor_plan",
+    )
+    .sort(
+      (a, b) =>
+        (a.sort_order || 0) - (b.sort_order || 0) ||
+        a.title.localeCompare(b.title),
+    );
+  photos.sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
   const [photoId, setPhotoId] = useState(
     primaryImage(catalog.images, b.id)?.id ?? photos[0]?.id,
   );
@@ -689,67 +707,17 @@ export function AssetWorkspace({
               </p>
             </div>
           </div>
-          {photo ? (
-            (() => {
-              return (
-                <figure className="asset-photo">
-                  <AssetMedia
-                    key={b.id}
-                    building={b}
-                    photo={photo}
-                    photos={photos}
-                    onPhoto={setPhotoId}
-                  />
-                  {photos.length > 1 && (
-                    <div
-                      className="asset-photo-picker"
-                      aria-label="건물 사진 선택"
-                    >
-                      {photos.map((p, i) => (
-                        <button
-                          key={p.id}
-                          aria-pressed={p.id === photo.id}
-                          onClick={() => setPhotoId(p.id)}
-                          aria-label={`${i + 1}번 사진: ${p.title}`}
-                        >
-                          <BuildingPhoto image={p} memberOnly />
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                  <figcaption>
-                    <ReviewRecordButton
-                      entity="building_images"
-                      id={photo.id}
-                      label="사진 정보 수정·이력"
-                    />
-                    {photo.kind === "rendering" ? "조감도 · " : ""}
-                    {photo.credit || photo.source_name}
-                    {photo.license_name ? ` · ${photo.license_name}` : ""}
-                    {photo.captured_on ? ` · 촬영 ${photo.captured_on}` : ""}
-                    {safeSourceUrl(photo.source_url) && (
-                      <a
-                        href={safeSourceUrl(photo.source_url)!}
-                        target="_blank"
-                        rel="noreferrer"
-                      >
-                        출처
-                      </a>
-                    )}
-                  </figcaption>
-                </figure>
-              );
-            })()
-          ) : (
-            <div className="asset-photo">
-              <AssetMedia
-                key={b.id}
-                building={b}
-                photos={photos}
-                onPhoto={setPhotoId}
-              />
-            </div>
-          )}
+          <figure className="asset-photo">
+            <AssetMedia
+              key={b.id}
+              building={b}
+              photo={photo}
+              photos={photos}
+              floorPlans={floorPlans}
+              onPhoto={setPhotoId}
+              onManageImages={onManageImages}
+            />
+          </figure>
           <div className="asset-metrics">
             <div>
               <span>연면적{b.area_basis === "planned" ? " · 계획" : ""}</span>

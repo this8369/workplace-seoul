@@ -134,7 +134,7 @@ test("IGIS linkage separates read/edit/admin; denies forged, expired, disabled a
       [secondAdmin, designated[1]],
     );
     await asUser(secondAdmin);
-    assert.equal(await allowed("images.manage"), false);
+    assert.equal(await allowed("images.manage"), true);
     assert.equal(await allowed("users.manage"), false);
     // A legacy reviewer email or an identical display name cannot acquire admin.
     await db.exec("reset role");
@@ -144,7 +144,7 @@ test("IGIS linkage separates read/edit/admin; denies forged, expired, disabled a
     );
     await asUser(viewer);
     assert.equal((await db.query("select * from buildings")).rows.length, 1);
-    assert.equal(await allowed("images.manage"), false);
+    assert.equal(await allowed("images.manage"), true);
     assert.equal(await allowed("users.manage"), false);
     await assert.rejects(
       () => db.query("select * from private.workplace_initial_roles"),
@@ -162,17 +162,29 @@ test("IGIS linkage separates read/edit/admin; denies forged, expired, disabled a
       () => db.query("select set_workplace_access($1,'admin',true)", [viewer]),
       /admin_required/,
     );
-    await assert.rejects(
-      () =>
-        db.query(
-          "insert into building_images(building_id,title,source_name) values($1,'Test','Test')",
-          [bid],
-        ),
-      /row-level security/,
+    await db.query(
+      "insert into building_images(building_id,title,source_name) values($1,'Employee photo','Test')",
+      [bid],
+    );
+    assert.equal(
+      (await db.query("select * from building_images")).rows.length,
+      1,
+    );
+    assert.equal(
+      (
+        await db.query(
+          "update building_images set title='Employee edit' returning id",
+        )
+      ).rows.length,
+      1,
+    );
+    assert.equal(
+      (await db.query("delete from building_images returning id")).rows.length,
+      0,
     );
     await assert.rejects(
       () => db.query("select set_primary_building_image($1)", [bid]),
-      /reviewer_required/,
+      /image_not_found/,
     );
     await asUser(admin);
     assert.equal(await allowed("images.manage"), true);

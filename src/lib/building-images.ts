@@ -3,7 +3,9 @@ export type BuildingImage = {
   id: string;
   building_id: string;
   title: string;
-  kind: "photo" | "rendering";
+  kind: "photo" | "rendering" | "floor_plan";
+  floor_label?: string | null;
+  sort_order?: number;
   source_name: string;
   source_url: string | null;
   source_image_url: string | null;
@@ -43,6 +45,7 @@ export function primaryImage(images: BuildingImage[], buildingId: string) {
     (i) =>
       i.building_id === buildingId &&
       i.is_primary &&
+      i.kind !== "floor_plan" &&
       i.review_status === "approved",
   );
 }

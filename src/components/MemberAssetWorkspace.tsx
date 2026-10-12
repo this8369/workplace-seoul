@@ -15,6 +15,7 @@ export default function MemberAssetWorkspace({
   onBuilding,
   saved,
   onSave,
+  onManageImages,
 }: {
   building: Building;
   canReadTransactions: boolean;
@@ -22,6 +23,7 @@ export default function MemberAssetWorkspace({
   onBuilding: (id: string) => void;
   saved: boolean;
   onSave: () => void;
+  onManageImages?: () => void;
 }) {
   const [catalog, setCatalog] = useState<Catalog | null>(null);
   const [failed, setFailed] = useState(false);
@@ -82,6 +84,7 @@ export default function MemberAssetWorkspace({
         onBuilding={onBuilding}
         saved={saved}
         onSave={onSave}
+        onManageImages={onManageImages}
       />
     </DataReviewProvider>
   );

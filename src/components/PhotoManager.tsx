@@ -11,17 +11,20 @@ export default function PhotoManager({
   buildings,
   images,
   onRefresh,
+  initialBuilding = "",
 }: {
   buildings: Building[];
   images: BuildingImage[];
   onRefresh: () => Promise<void>;
+  initialBuilding?: string;
 }) {
   const [query, setQuery] = useState(""),
     [filter, setFilter] = useState("");
   const [selected, setSelected] = useState<string>("");
   const [busy, setBusy] = useState(false),
     [message, setMessage] = useState("");
-  const [newBuilding, setNewBuilding] = useState("");
+  const [newBuilding, setNewBuilding] = useState(initialBuilding);
+  const [newKind, setNewKind] = useState<BuildingImage["kind"]>("photo");
   const row = images.find((i) => i.id === selected);
   const [draft, setDraft] = useState<BuildingImage>();
   const [matched, setMatched] = useState(false);
@@ -63,6 +66,11 @@ export default function PhotoManager({
       .update({
         title: draft.title.trim(),
         kind: draft.kind,
+        floor_label:
+          draft.kind === "floor_plan"
+            ? draft.floor_label?.trim() || null
+            : null,
+        sort_order: draft.sort_order || 0,
         source_name: draft.source_name.trim(),
         source_url: draft.source_url || null,
         captured_on: draft.captured_on || null,
@@ -172,6 +180,15 @@ export default function PhotoManager({
               </option>
             ))}
         </select>
+        <select
+          aria-label="추가할 이미지 종류"
+          value={newKind}
+          onChange={(e) => setNewKind(e.target.value as BuildingImage["kind"])}
+        >
+          <option value="photo">건물 사진</option>
+          <option value="rendering">조감도</option>
+          <option value="floor_plan">평면도</option>
+        </select>
         <button
           disabled={!newBuilding || busy}
           onClick={() =>
@@ -180,7 +197,8 @@ export default function PhotoManager({
                 .from("building_images")
                 .insert({
                   building_id: newBuilding,
-                  title: `${names.get(newBuilding)?.name} 외관`,
+                  title: `${names.get(newBuilding)?.name} ${newKind === "floor_plan" ? "평면도" : newKind === "rendering" ? "조감도" : "외관"}`,
+                  kind: newKind,
                   source_name: "직접 등록",
                 })
                 .select("id")
@@ -306,7 +324,29 @@ export default function PhotoManager({
                   >
                     <option value="photo">실제 사진</option>
                     <option value="rendering">조감도</option>
+                    <option value="floor_plan">평면도</option>
                   </select>
+                </label>
+                {draft.kind === "floor_plan" && (
+                  <label>
+                    동·층 표기
+                    <input
+                      value={draft.floor_label || ""}
+                      placeholder="예: A동 기준층 / 10층"
+                      onChange={(e) => field("floor_label", e.target.value)}
+                    />
+                  </label>
+                )}
+                <label>
+                  표시 순서
+                  <input
+                    type="number"
+                    step="1"
+                    value={draft.sort_order || 0}
+                    onChange={(e) =>
+                      field("sort_order", Math.trunc(Number(e.target.value)))
+                    }
+                  />
                 </label>
                 <label>
                   출처명
@@ -376,7 +416,7 @@ export default function PhotoManager({
                   checked={matched}
                   onChange={(e) => setMatched(e.target.checked)}
                 />
-                사진의 건물·동과 외관이 해당 자산과 일치합니다.
+                이미지의 건물·동·층이 해당 자산과 일치합니다.
               </label>
               {draft.is_primary && (
                 <p className="photo-muted">
@@ -389,6 +429,29 @@ export default function PhotoManager({
                 <button
                   type="button"
                   disabled={!matched || !draft.object_path}
+                  onClick={() =>
+                    run(async () => {
+                      await save();
+                      const { error } = await supabase!.rpc(
+                        "approve_building_image",
+                        { image_id: draft.id, make_primary: false },
+                      );
+                      if (error) throw error;
+                    })
+                  }
+                >
+                  <Check size={14} />
+                  {draft.kind === "floor_plan"
+                    ? "평면도 등록 승인"
+                    : "추가 사진 등록 승인"}
+                </button>
+                <button
+                  type="button"
+                  disabled={
+                    !matched ||
+                    !draft.object_path ||
+                    draft.kind === "floor_plan"
+                  }
                   onClick={() =>
                     run(async () => {
                       await save();
