@@ -954,7 +954,8 @@ header {
   min-width: 0;
   min-height: 0;
 }
-.map-column::before {
+.map-column::before,
+.map-column .toolbar::before {
   content: "";
   position: absolute;
   top: 0;
@@ -1381,7 +1382,8 @@ tbody th {
     flex: 0 0 50%;
     min-height: 230px;
   }
-  .map-column::before {
+  .map-column::before,
+  .map-column .toolbar::before {
     display: none;
   }
   .map-column .search {
