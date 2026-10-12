@@ -70,6 +70,17 @@ test("approved primary thumbnails are public; originals, candidates and writes r
       "insert into building_images(id,building_id,title,source_name) values($1,$2,'Test','Test')",
       [iid, bid],
     );
+    assert.equal(
+      (await db.query("select zoom_percent from building_images where id=$1", [iid])).rows[0].zoom_percent,
+      100,
+    );
+    for (const zoom of [99, 301]) {
+      await assert.rejects(
+        () => db.query("update building_images set zoom_percent=$1 where id=$2", [zoom, iid]),
+        /check constraint/,
+      );
+    }
+    await db.query("update building_images set zoom_percent=175, focal_x=35, focal_y=60 where id=$1", [iid]);
     await assert.rejects(
       () => db.query("select set_primary_building_image($1)", [iid]),
       /image_file_required/,
@@ -163,6 +174,10 @@ test("approved primary thumbnails are public; originals, candidates and writes r
     assert.equal(
       (await db.query("select * from catalog_images")).rows.length,
       1,
+    );
+    assert.deepEqual(
+      (await db.query("select zoom_percent, focal_x::int, focal_y::int from catalog_images")).rows,
+      [{ zoom_percent: 175, focal_x: 35, focal_y: 60 }],
     );
     assert.equal(
       (await db.query("select * from storage.objects")).rows.length,

@@ -26,6 +26,8 @@ Google Sheets는 수집·검토 원본이며 DB와 자동 양방향 동기화되
 
 관리 화면의 사진 묶음 가져오기는 로그인 사용자의 Supabase 권한으로 업로드하며 기존 대표 사진을 보존한다. 개발 서버의 수집한 사진 적용 버튼은 고정된 로컬 묶음 파일만 읽고, 서버에서 관리 권한을 확인한 뒤 반환한다. 이 경로는 배포 빌드에 포함되지 않는다. DB 자격증명과 수집 원본은 Vite에서 직접 제공하지 않는다.
 
+이지스 자산 사진 보완은 `igis-inventory.mjs`로 누락 자산을 추리고 `collect-igis-office.mjs`의 이름·위치 대조 및 개별 출처 조사로 후보를 만든다. `data/private/images/igis/plan.json`에는 직접 확인한 출처만 넣으며, `download-igis.mjs`는 이 목록만 내려받는다. `prepare-igis.py`의 검수표를 확인한 뒤 `approved.json`에 지정한 자산만 등록 묶음에 포함한다. 이름이 비슷해도 주소나 실제 대상이 다른 이미지는 사용하지 않는다. 같은 주소라도 별도 건물·필지이면 자동으로 공유하지 않는다. 등록 후 `igis-inventory.mjs --after`가 최초 목록을 보존하면서 대표 사진과 공개 목록 반영 여부, 남은 항목을 비공개 `result.json`에 기록한다.
+
 Map building bubbles read gross area, completion year and source-reported typical
 floor area from `buildings` (`typical_floor_area_pyeong`, nullable), and NOC from
 `leasing_quarters`. NOC uses the catalog's latest quarter with its period visible;
@@ -34,3 +36,5 @@ older quarter. Typical floor area is not estimated from gross area or floor coun
 The current source snapshot has no typical-floor or completion-date values, so
 those fields remain unknown until supplied. Map bubbles show only the building name at rest. Hover or keyboard focus reveals
 all four facts; the bottom-left pointer remains anchored to the building location.
+
+Asset detail change alerts use `private.asset_alert_subscriptions` (per authenticated user and building). The `asset_alert_*`, `set_asset_alert`, and `read_asset_alert` RPCs require `details.read`; the private table has no client grants. In-site alerts include only changes returned by the existing permission-filtered `data_field_history` API, starting at subscription time. Users can disable alerts and acknowledge changes independently. Share links contain only the asset ID and retain the member-only detail access gate.

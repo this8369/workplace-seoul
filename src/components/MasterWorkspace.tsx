@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useAreaUnit } from "./AreaUnit";
 import {
   ChevronLeft,
   ChevronRight,
@@ -55,6 +56,7 @@ export default function MasterWorkspace({
   vehicleScope?: string;
 }) {
   const [inbox, setInbox] = useState(false);
+  const { areaField, areaLabel, showAreaField } = useAreaUnit();
   const [partyScope, setPartyScope] = useState<string | null>(null),
     [fundScope, setFundScope] = useState<string | null>(vehicleScope || null),
     [scopeLabel, setScopeLabel] = useState("");
@@ -395,6 +397,13 @@ export default function MasterWorkspace({
                     <div className="master-fields">
                       {fields
                         .filter((f) => !creating || !f.readonly)
+                        .filter(
+                          (f) =>
+                            !embedded ||
+                            creating ||
+                            !selected ||
+                            showAreaField(f.key, selected),
+                        )
                         .map((f) => {
                           const value = Object.hasOwn(changes, f.key)
                             ? changes[f.key]
@@ -402,7 +411,11 @@ export default function MasterWorkspace({
                           const editable = canWrite && !f.readonly;
                           return (
                             <label key={f.key}>
-                              <span>{f.label}</span>
+                              <span>
+                                {embedded && !creating
+                                  ? areaLabel(f.key, f.label)
+                                  : f.label}
+                              </span>
                               {!editable || !creating ? (
                                 <output>
                                   {selected &&
@@ -413,10 +426,14 @@ export default function MasterWorkspace({
                                       field={f.key}
                                       label={f.label}
                                     >
-                                      {masterDisplay(value)}
+                                      {(embedded
+                                        ? areaField(f.key, value)
+                                        : undefined) ?? masterDisplay(value)}
                                     </ReviewValue>
                                   ) : (
-                                    masterDisplay(value)
+                                    ((embedded
+                                      ? areaField(f.key, value)
+                                      : undefined) ?? masterDisplay(value))
                                   )}
                                 </output>
                               ) : f.type === "boolean" ? (

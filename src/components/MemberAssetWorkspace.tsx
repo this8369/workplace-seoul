@@ -78,7 +78,13 @@ export default function MemberAssetWorkspace({
       onSaved={() => setAttempt((n) => n + 1)}
     >
       <AssetWorkspace
-        building={catalog.buildings[0]}
+        building={{
+          ...catalog.buildings[0],
+          region: building.region,
+          is_igis: building.is_igis,
+          asset_category: building.asset_category,
+          is_mixed_use: building.is_mixed_use,
+        }}
         catalog={catalog}
         onClose={onClose}
         onBuilding={onBuilding}

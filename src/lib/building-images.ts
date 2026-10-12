@@ -22,19 +22,23 @@ export type BuildingImage = {
   thumbnail_path: string | null;
   focal_x: number;
   focal_y: number;
+  zoom_percent?: number;
   is_primary: boolean;
 };
 export async function fetchBuildingImages(
   client = supabase,
+  buildingId = "",
 ): Promise<BuildingImage[]> {
   if (!client) return [];
   const rows: BuildingImage[] = [];
   for (let from = 0; ; from += 500) {
-    const { data, error } = await client
+    let query = client
       .from("building_images")
       .select("*")
       .order("id")
       .range(from, from + 499);
+    if (buildingId) query = query.eq("building_id", buildingId);
+    const { data, error } = await query;
     if (error) throw error;
     rows.push(...data);
     if (data.length < 500) return rows;

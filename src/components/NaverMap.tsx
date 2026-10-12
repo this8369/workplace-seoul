@@ -1009,7 +1009,7 @@ export default function NaverMap({
         </div>
       )}
       <div className="map-caption">
-        WORKPLACE SEOUL <span>공간의 가치를 더 깊이</span>
+        WORKPLACE SEOUL
         <ServiceTerms />
       </div>
     </div>

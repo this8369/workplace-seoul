@@ -4,6 +4,8 @@ import {
   mapMarkerFacts,
 } from "./lib/map-marker-facts";
 import PhotoManager from "./components/PhotoManager";
+import AssetNotifications from "./components/AssetNotifications";
+import { sharedAssetId } from "./lib/asset-link";
 import MemberAssetWorkspace from "./components/MemberAssetWorkspace";
 import { clearPrivatePhotoUrls } from "./lib/photo-urls";
 import AssetTypeSelect from "./components/AssetTypeSelect";
@@ -48,7 +50,12 @@ import {
   type MapBounds,
   type BuildingSort,
 } from "./lib/map-list";
-import { fetchCatalog, fetchCatalogArchive, supabase } from "./lib/supabase";
+import {
+  fetchCatalog,
+  fetchCatalogArchive,
+  fetchCatalogImages,
+  supabase,
+} from "./lib/supabase";
 import IgisLogin from "./components/IgisLogin";
 import AccountMenu from "./components/AccountMenu";
 import { igisStaffTitle } from "./lib/igis-profile";
@@ -62,6 +69,7 @@ import {
 } from "./lib/domain";
 import { Transactions } from "./components/AssetWorkspace";
 import { emptyCatalog, type Catalog } from "./lib/catalog";
+const initialAsset = sharedAssetId(location.search);
 const initialQuery = new URLSearchParams(location.search).get("q") || "";
 const MasterWorkspace = lazy(() => import("./components/MasterWorkspace"));
 const cardValue = (value: string | null | undefined) =>
@@ -131,6 +139,10 @@ export default function App() {
       supabase ? "loading" : "setup",
     );
   const [imageBuilding, setImageBuilding] = useState("");
+  const [imageLoad, setImageLoad] = useState<"loading" | "ready" | "error">(
+    "loading",
+  );
+  const [imageAttempt, setImageAttempt] = useState(0);
   const [igisMode, setIgisMode] = useState(false);
   const [assetCategory, setAssetCategory] = useState("");
   const [query, setQuery] = useState(initialQuery),
@@ -150,13 +162,15 @@ export default function App() {
     ),
     [notice, setNotice] = useState(""),
     [busy, setBusy] = useState(false);
+  const [authReady, setAuthReady] = useState(!supabase);
   const [loginMode, setLoginMode] = useState<"email" | "change">("email");
   const access = useWorkplaceAccess(session, setNotice);
   const can = (permission: string) => access.permissions.includes(permission);
   const canReadDetails = !!session && can("details.read");
+  const canManageImages = canReadDetails && can("images.manage");
   const canReadTransactions = canReadDetails && can("transactions.read");
   const [adminImages, setAdminImages] = useState<Catalog["images"]>([]);
-  const pendingBuilding = useRef<string | null>(null);
+  const pendingBuilding = useRef<string | null>(initialAsset);
   const [comparisonDetails, setComparisonDetails] = useState<Building[]>([]);
   useEffect(() => {
     setComparisonDetails([]);
@@ -271,27 +285,31 @@ export default function App() {
   }, [load, archiveLoad, view]);
   useEffect(() => {
     setAdminImages([]);
-    if (
-      view !== "images" ||
-      !canReadDetails ||
-      !access.permissions.includes("images.manage")
-    )
-      return;
+    if (view !== "images" || !canManageImages) return;
     let alive = true;
-    void fetchBuildingImages()
+    setImageLoad("loading");
+    void fetchBuildingImages(supabase, imageBuilding)
       .then((images) => {
-        if (alive) setAdminImages(images);
+        if (alive) {
+          setAdminImages(images);
+          setImageLoad("ready");
+        }
       })
-      .catch(() => setNotice("사진 관리 정보를 불러오지 못했습니다."));
+      .catch(() => {
+        if (alive) setImageLoad("error");
+      });
     return () => {
       alive = false;
     };
-  }, [view, access.permissions, canReadDetails]);
+  }, [view, canManageImages, session?.user.id, imageBuilding, imageAttempt]);
   useEffect(() => {
     if (!supabase) return;
     let alive = true;
     supabase.auth.getSession().then(({ data }) => {
-      if (alive) setSession(data.session);
+      if (alive) {
+        setSession(data.session);
+        setAuthReady(true);
+      }
     });
     const { data } = supabase.auth.onAuthStateChange((_event, value) =>
       setSession(value),
@@ -398,6 +416,19 @@ export default function App() {
     },
     [canReadDetails, requireLogin],
   );
+  const sharedAssetHandled = useRef(false);
+  useEffect(() => {
+    if (
+      !initialAsset ||
+      sharedAssetHandled.current ||
+      !authReady ||
+      !buildings.some((b) => b.id === initialAsset)
+    )
+      return;
+    if (session && !canReadDetails) return;
+    sharedAssetHandled.current = true;
+    select(initialAsset);
+  }, [authReady, session, canReadDetails, buildings, select]);
   const openDialog = () => {
     if (!canReadDetails) {
       requireLogin();
@@ -464,7 +495,12 @@ export default function App() {
     return () => observer.disconnect();
   }, []);
   const searchToolbar = (
-    <section ref={alignToolbar} className="toolbar" aria-label="검색 및 필터">
+    <section
+      ref={alignToolbar}
+      className="toolbar"
+      aria-label="검색 및 필터"
+      inert={view === "images" && canManageImages}
+    >
       <div className="search">
         <Search size={18} />
         <input
@@ -549,7 +585,10 @@ export default function App() {
   );
   return (
     <div className="app">
-      <aside className={`sidebar${sidebarCollapsed ? " is-collapsed" : ""}`}>
+      <aside
+        inert={view === "images" && canManageImages}
+        className={`sidebar${sidebarCollapsed ? " is-collapsed" : ""}`}
+      >
         <a
           className="brand"
           href={import.meta.env.BASE_URL}
@@ -655,6 +694,7 @@ export default function App() {
               title="사진 관리"
               className={view === "images" ? "current" : ""}
               onClick={() => {
+                setImageBuilding("");
                 setView("images");
                 setSelected(null);
               }}
@@ -689,19 +729,6 @@ export default function App() {
           >
             <MasterWorkspace key={session?.user.id} />
           </Suspense>
-        ) : view === "images" &&
-          canReadDetails &&
-          can("images.manage") &&
-          !active ? (
-          <PhotoManager
-            initialBuilding={imageBuilding}
-            buildings={buildings}
-            images={adminImages}
-            onRefresh={async () => {
-              const images = await fetchBuildingImages();
-              setAdminImages(images);
-            }}
-          />
         ) : view === "transactions" && !active ? (
           load === "ready" && archiveLoad === "ready" ? (
             <Transactions
@@ -734,9 +761,13 @@ export default function App() {
           )
         ) : (
           <div className="workspace">
-            <section className="results" aria-label="건물 목록">
+            <section
+              className="results"
+              aria-label="건물 목록"
+              inert={view === "images" && canManageImages}
+            >
               <div className="results-heading">
-                {view === "all" ? (
+                {view === "all" || view === "images" ? (
                   igisMode ? (
                     <h1>
                       IGIS ·{" "}
@@ -1026,7 +1057,7 @@ export default function App() {
                   previewed={previewedBuilding}
                   onSelect={select}
                 />
-                {active && (
+                {active && view !== "images" && (
                   <MemberAssetWorkspace
                     key={`${session?.user.id}:${active.id}`}
                     building={active}
@@ -1040,11 +1071,37 @@ export default function App() {
                         ? () => {
                             setImageBuilding(active.id);
                             setView("images");
-                            setSelected(null);
                           }
                         : undefined
                     }
                   />
+                )}
+                {view === "images" && canManageImages && (
+                  <>
+                    <div className="photo-manager-backdrop" />
+                    <PhotoManager
+                      key={session?.user.id}
+                      initialBuilding={imageBuilding}
+                      buildings={buildings}
+                      images={adminImages}
+                      loading={imageLoad === "loading"}
+                      loadError={imageLoad === "error"}
+                      onRetry={() => setImageAttempt((n) => n + 1)}
+                      onBuildingChange={setImageBuilding}
+                      onClose={() => setView("all")}
+                      onRefresh={async () => {
+                        const [images, publicImages] = await Promise.all([
+                          fetchBuildingImages(supabase, imageBuilding),
+                          fetchCatalogImages(),
+                        ]);
+                        setAdminImages(images);
+                        setCatalog((current) => ({
+                          ...current,
+                          images: publicImages,
+                        }));
+                      }}
+                    />
+                  </>
                 )}
               </section>
             </div>
@@ -1129,6 +1186,9 @@ export default function App() {
             setLoginMode("email");
           }}
         />
+      )}
+      {canReadDetails && session && (
+        <AssetNotifications key={session.user.id} onOpen={select} />
       )}
       {notice && (
         <div className="toast" role="status">

@@ -1,3 +1,4 @@
+import { useAreaUnit } from "./AreaUnit";
 import { useState } from "react";
 import {
   ArrowUpRight,
@@ -58,6 +59,11 @@ function Rows({
   rows: [string, unknown, string?][];
   targets?: Record<string, ReviewTarget>;
 }) {
+  const { formatArea } = useAreaUnit();
+  const display = (value: unknown, unit?: string) =>
+    unit === "㎡" && typeof value === "number"
+      ? formatArea(value, "m²", 2)
+      : registerValue(value, unit);
   return (
     <dl>
       {rows.map(([label, value, unit]) => (
@@ -70,14 +76,12 @@ function Rows({
                 field={targets[label].field!}
                 label={label}
               >
-                {value == null || value === ""
-                  ? "—"
-                  : registerValue(value, unit)}
+                {value == null || value === "" ? "—" : display(value, unit)}
               </RV>
             ) : value == null || value === "" ? (
               "—"
             ) : (
-              registerValue(value, unit)
+              display(value, unit)
             )}
           </dd>
         </div>

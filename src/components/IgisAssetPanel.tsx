@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useAreaUnit } from "./AreaUnit";
 import {
   masterDisplay,
   masterRpc,
@@ -12,6 +13,7 @@ import {
   useDataReviewVersion,
 } from "./DataReview";
 export default function IgisAssetPanel({ buildingId }: { buildingId: string }) {
+  const { areaField, areaLabel, showAreaField } = useAreaUnit();
   const revision = useDataReviewVersion();
   const [data, setData] = useState<{
       objects: MasterRecord[];
@@ -100,17 +102,21 @@ export default function IgisAssetPanel({ buildingId }: { buildingId: string }) {
               </div>
               <dl className="igis-object-fields">
                 {masterFields.master_investment_objects
-                  .filter((field) => field.key in object)
+                  .filter(
+                    (field) =>
+                      field.key in object && showAreaField(field.key, object),
+                  )
                   .map((field) => (
                     <div key={field.key}>
-                      <dt>{field.label}</dt>
+                      <dt>{areaLabel(field.key, field.label)}</dt>
                       <dd>
                         <ReviewValue
                           entity="master_investment_objects"
                           id={object.id}
                           field={field.key}
                         >
-                          {masterDisplay(object[field.key])}
+                          {areaField(field.key, object[field.key]) ??
+                            masterDisplay(object[field.key])}
                         </ReviewValue>
                       </dd>
                     </div>

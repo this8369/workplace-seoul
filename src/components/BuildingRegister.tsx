@@ -1,10 +1,11 @@
+import { useAreaUnit } from "./AreaUnit";
 import { useEffect, useState } from "react";
 import { ReviewValue as RV, ReviewRecordButton } from "./DataReview";
 import type { Resource } from "../lib/asset-context";
 import {
   fetchBuildingRegister,
   registerGroups,
-  registerValue,
+  registerValue as sourceRegisterValue,
   type RegisterData,
 } from "../lib/building-register";
 const source = "https://www.data.go.kr/data/15134735/openapi.do";
@@ -17,6 +18,11 @@ export default function BuildingRegister({
   resource?: Resource<RegisterData>;
   onRetry?: () => void;
 }) {
+  const { formatArea } = useAreaUnit();
+  const registerValue = (value: unknown, unit = "") =>
+    unit === "㎡" && typeof value === "number"
+      ? formatArea(value, "m²", 2)
+      : sourceRegisterValue(value, unit);
   const [localData, setData] = useState<RegisterData | null>(null),
     [error, setError] = useState(false),
     [selected, setSelected] = useState(""),

@@ -25,6 +25,7 @@ test("field review: fund ownership, request routing, atomic approval, scoped his
       "202610120005_master_source_clarifications",
       "202610120006_field_review_workflow",
       "202610120007_review_member_visibility",
+      "202610120018_asset_history_dedup",
     ])
       await db.exec(
         await readFile(
@@ -400,6 +401,64 @@ test("field review: fund ownership, request routing, atomic approval, scoped his
       ).rows[0].value.asset.name,
       "Approved projection",
       "approved public correction also updates canonical value",
+    );
+    const historyFor = async (assetKey) =>
+      (
+        await db.query(
+          "select public.data_field_history(null,null,null,$1,0) value",
+          [assetKey],
+        )
+      ).rows[0].value.records;
+    const previous = (await historyFor(building)).filter(
+      (h) => h.reason === "verified for public display",
+    );
+    assert.equal(
+      previous.length,
+      2,
+      "different before-values are distinct changes, not duplicates",
+    );
+    await db.query(
+      "select public.data_save_field('buildings',$1,'name','\"Approved projection\"','\"Approved projection (English)\"','add English name')",
+      [building],
+    );
+    const unified = (await historyFor(building)).filter(
+      (h) => h.reason === "add English name",
+    );
+    assert.equal(
+      unified.length,
+      1,
+      "a synchronized name edit is shown once in the asset timeline",
+    );
+    assert.equal(
+      unified[0].changes.name.after,
+      "Approved projection (English)",
+    );
+    for (const [entity, id] of [
+      ["buildings", building],
+      ["master_assets", asset],
+    ]) {
+      const records = (
+        await db.query(
+          "select public.data_field_history($1,$2,'name',null,0) value",
+          [entity, id],
+        )
+      ).rows[0].value.records;
+      assert.equal(
+        records.filter((h) => h.reason === "add English name").length,
+        1,
+        "each source record retains its audit entry",
+      );
+    }
+    // Later edits with the same actor/reason must remain separate.
+    await db.query(
+      "select public.data_save_field('buildings',$1,'name','\"Approved projection (English)\"','\"Approved projection (Revised)\"','add English name')",
+      [building],
+    );
+    assert.equal(
+      (await historyFor(building)).filter(
+        (h) => h.reason === "add English name",
+      ).length,
+      2,
     );
     await db.exec("reset role");
     await db.query(

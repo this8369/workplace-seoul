@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Upload } from "lucide-react";
 import type { Building } from "../lib/domain";
 import { safeSourceUrl } from "../lib/domain";
@@ -32,13 +32,19 @@ function decode(value: string) {
 export default function PhotoBatchImport({
   buildings,
   onRefresh,
+  onBusyChange,
 }: {
   buildings: Building[];
   onRefresh: () => Promise<void>;
+  onBusyChange?: (busy: boolean) => void;
 }) {
   const [busy, setBusy] = useState(false),
     [status, setStatus] = useState("");
   const input = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    onBusyChange?.(busy);
+    return () => onBusyChange?.(false);
+  }, [busy, onBusyChange]);
   async function importFile(file: File) {
     if (!supabase || busy) return;
     setBusy(true);

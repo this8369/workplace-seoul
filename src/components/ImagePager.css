@@ -1,0 +1,50 @@
+.image-pager {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+}
+.image-pager > button {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 38px;
+  min-height: 0;
+  padding: 0;
+  border: 1px solid rgb(255 255 255 / 65%);
+  border-radius: 10px;
+  background: rgb(255 255 255 / 88%);
+  color: #33415a;
+  box-shadow: 0 2px 8px #16213718;
+  pointer-events: auto;
+}
+.image-pager > button:hover:not(:disabled) {
+  background: white;
+  color: #283982;
+}
+.image-pager > button:focus-visible {
+  outline: 2px solid #283982;
+  outline-offset: 2px;
+}
+.image-pager-prev {
+  left: 12px;
+}
+.image-pager-next {
+  right: 12px;
+}
+.image-pager-count {
+  position: absolute;
+  top: 13px;
+  left: 13px;
+  padding: 5px 9px;
+  border-radius: 7px;
+  background: rgb(25 35 51 / 58%);
+  color: white;
+  font-size: 11px;
+  line-height: 16px;
+  font-variant-numeric: tabular-nums;
+}

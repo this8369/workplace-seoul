@@ -1,6 +1,14 @@
 .asset-media-frame {
   isolation: isolate;
 }
+.asset-media-frame .image-pager > button {
+  opacity: 0.6;
+  box-shadow: none;
+}
+.asset-media-frame .image-pager > button:hover,
+.asset-media-frame .image-pager > button:focus-visible {
+  opacity: 0.9;
+}
 .asset-media-photo-button {
   width: 100%;
   height: 100%;
@@ -76,8 +84,24 @@
 .asset-media-frame[data-mode="floor_plan"] .building-photo-content img {
   object-fit: contain;
 }
+.asset-media-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0 12px;
+  width: 100%;
+  margin-top: 6px;
+}
+.asset-media-actions > .review-record-button {
+  padding-inline: 0;
+}
+.asset-media-actions svg {
+  flex-shrink: 0;
+}
 .asset-media-add {
-  margin-top: 8px;
+  margin-left: auto;
+  gap: 5px;
   padding: 6px 0;
   font-size: 12px;
   color: #627086;
@@ -193,6 +217,14 @@
   color: #667085;
   font-size: 12px;
 }
+.asset-media-layer .asset-photo-picker {
+  flex-shrink: 0;
+  padding: 12px 16px 0;
+}
+.asset-media-layer .asset-photo-picker button {
+  flex-basis: 64px;
+  height: 56px;
+}
 .asset-media-caption > span {
   flex: 1;
   min-width: 0;
@@ -218,3 +250,5 @@
     padding-bottom: env(safe-area-inset-bottom);
   }
 }
+
+.asset-media-stage { position: relative; }

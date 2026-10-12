@@ -76,18 +76,48 @@
   align-items: center;
 }
 .data-review-dialog > header span {
+  display: block;
   font-size: 12px;
   color: #708096;
 }
+.data-review-dialog > header {
+  height: auto;
+  min-height: 54px;
+  padding: 0 0 18px;
+  border-bottom: 1px solid #20283a18;
+}
+.data-review-dialog > header > div {
+  min-width: 0;
+}
 .data-review-dialog h2 {
-  margin: 5px 0 18px;
-  font-size: 21px;
+  margin: 5px 0 0;
+  font-size: 20px;
+  line-height: 1.4;
+  letter-spacing: -0.5px;
 }
 .data-review-dialog > header button {
-  align-self: flex-start;
-  background: transparent;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  align-self: center;
+  width: 36px;
+  height: 36px;
+  flex: 0 0 36px;
+  padding: 0;
+  border-radius: 50%;
+  background: #e9ecf2;
   border: 0;
-  color: inherit;
+  color: #627086;
+}
+.data-review-dialog > header button:hover {
+  background: #dfe4ee;
+  color: #283982;
+}
+.data-review-dialog button:focus-visible,
+.data-review-dialog select:focus-visible,
+.data-review-dialog textarea:focus-visible {
+  outline: 2px solid #283982;
+  outline-offset: 2px;
 }
 .review-label {
   display: flex;
@@ -147,9 +177,15 @@
   margin-top: 24px;
   padding-top: 15px;
 }
+.review-history h3 {
+  margin: 0 0 14px;
+  font-size: 15px;
+}
 .review-history-tabs {
-  display: flex;
-  gap: 7px;
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  gap: 6px;
 }
 .review-history-tabs button,
 .review-history footer button,
@@ -163,6 +199,16 @@
 .review-history-tabs [aria-pressed="true"] {
   background: #283982;
   color: white;
+}
+.review-history-tabs button {
+  font-size: 12px;
+  padding: 9px 6px;
+  white-space: nowrap;
+}
+.review-history article > p {
+  margin: 4px 0;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
 }
 .review-history article,
 .review-inbox article {

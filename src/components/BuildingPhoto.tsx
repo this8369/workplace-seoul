@@ -63,7 +63,11 @@ export default function BuildingPhoto({
           loading={priority || detail ? "eager" : "lazy"}
           fetchPriority={priority ? "high" : "auto"}
           decoding="async"
-          style={{ objectPosition: `${image.focal_x}% ${image.focal_y}%` }}
+          style={{
+            objectPosition: `${image.focal_x}% ${image.focal_y}%`,
+            transform: `scale(${(image.zoom_percent ?? 100) / 100})`,
+            transformOrigin: `${image.focal_x}% ${image.focal_y}%`,
+          }}
           onError={() => {
             setLoaded(undefined);
             if (path && retry < 1) {

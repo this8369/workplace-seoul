@@ -215,11 +215,13 @@ export function ReviewRecordButton({
   id,
   field,
   label = "모든 항목·수정 이력",
+  edit = false,
 }: {
   entity: string;
   id?: string | null;
   field?: string;
   label?: string;
+  edit?: boolean;
 }) {
   const ctx = useContext(ReviewContext);
   if (!ctx || !id) return null;
@@ -229,7 +231,7 @@ export function ReviewRecordButton({
       className="review-record-button"
       onClick={() => ctx.open({ entity, id, field })}
     >
-      <History size={14} />
+      {edit ? <Pencil size={13} /> : <History size={14} />}
       {entity.startsWith("building_register_") &&
       label === "모든 항목·수정 이력"
         ? "원천 데이터 갱신 이력"
@@ -237,13 +239,15 @@ export function ReviewRecordButton({
     </button>
   );
 }
-export function AssetHistoryButton() {
+export function AssetHistoryButton({ compact = false }: { compact?: boolean }) {
   const ctx = useContext(ReviewContext);
   if (!ctx?.assetId) return null;
   return (
     <button
       type="button"
       className="review-record-button"
+      title="자산 전체 수정 이력"
+      aria-label="자산 전체 수정 이력"
       onClick={() =>
         ctx.open({
           entity: "buildings",
@@ -253,7 +257,7 @@ export function AssetHistoryButton() {
       }
     >
       <History size={15} />
-      자산 전체 수정 이력
+      {!compact && "자산 전체 수정 이력"}
     </button>
   );
 }
@@ -418,6 +422,7 @@ export function FieldDialog({
     <dialog
       ref={dialog}
       className="data-review-dialog"
+      aria-labelledby="data-review-title"
       onCancel={(e) => {
         e.preventDefault();
         if (!busy) onClose();
@@ -426,7 +431,7 @@ export function FieldDialog({
       <header>
         <div>
           <span>정보 관리</span>
-          <h2>{target.label || "정보 수정 및 이력"}</h2>
+          <h2 id="data-review-title">{target.label || "정보 수정 및 이력"}</h2>
         </div>
         <button disabled={busy} onClick={onClose} aria-label="정보 관리 닫기">
           <X size={21} />

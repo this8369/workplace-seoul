@@ -97,7 +97,7 @@ function useDeferred<T>(
 }
 export function useAssetContext(
   buildingId: string,
-  tab = "개요",
+  tab: string | readonly string[] = "개요",
   revision = 0,
 ) {
   const [attempt, setAttempt] = useState(0);
@@ -116,27 +116,29 @@ export function useAssetContext(
       if (data.length < 500) return all;
     }
   }
-  const details = tab === "건축물대장",
-    sources = tab === "자료 출처";
+  const enabled = (name: string) =>
+    typeof tab === "string" ? tab === name : tab.includes(name);
+  const details = enabled("건축물대장"),
+    sources = enabled("자료 출처");
   const key = `${buildingId}:${attempt}:${revision}`;
   const register = useDeferred<RegisterData>(
     `${key}:register:${details}`,
-    details || tab === "토지" || sources,
+    details || enabled("토지") || sources,
     () => fetchBuildingRegister(buildingId, details),
   );
   const parcels = useDeferred<Parcel[]>(
     `${key}:parcels`,
-    tab === "토지" || sources,
+    enabled("토지") || sources,
     () => rows<Parcel>("building_parcels"),
   );
   const places = useDeferred<Place[]>(
     `${key}:places`,
-    tab === "주변" || sources,
+    enabled("주변") || sources,
     () => rows<Place>("building_places"),
   );
   const facts = useDeferred<AssetFact[]>(
     `${key}:facts`,
-    tab === "개요" || sources,
+    enabled("개요") || sources,
     () => rows<AssetFact>("building_facts"),
   );
   return {

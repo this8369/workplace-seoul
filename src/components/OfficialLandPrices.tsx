@@ -1,3 +1,4 @@
+import { useAreaUnit } from "./AreaUnit";
 import { useId, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import type { Parcel } from "../lib/asset-context";
@@ -17,7 +18,7 @@ export default function OfficialLandPrices({
   prices: Parcel["official_prices"];
   parcelId?: string;
 }) {
-  const [unit, setUnit] = useState<"㎡" | "평">("평");
+  const { unit, setUnit } = useAreaUnit();
   const [year, setYear] = useState<number | null>(null);
   const gradientId = useId();
   const rows = [...prices]
@@ -78,7 +79,7 @@ export default function OfficialLandPrices({
           <p className="context-note">선택 필지의 연도별 가격 추이</p>
         </div>
         <div className="segmented" aria-label="공시지가 면적 단위">
-          {(["평", "㎡"] as const).map((value) => (
+          {(["평", "m²"] as const).map((value) => (
             <button
               key={value}
               aria-pressed={unit === value}

@@ -2,6 +2,9 @@ import { useEffect, useRef, useState, type MutableRefObject } from "react";
 import { loadPanorama } from "../lib/panorama";
 import { bearingToBuilding } from "../lib/asset-media";
 
+// Naver Panorama's widest supported field of view (minimum magnification).
+export const ROADVIEW_WIDEST_FOV = 100;
+
 export type RoadviewPosition = {
   panoId: string;
   pov: { pan: number; tilt: number; fov: number };
@@ -43,7 +46,10 @@ export default function AssetRoadview({
         maps = sdk;
         const previous = position.current;
         pano = new maps.Panorama(element, {
-          ...(previous || { position: new maps.LatLng(latitude, longitude) }),
+          ...(previous || {
+            position: new maps.LatLng(latitude, longitude),
+            pov: { pan: 0, tilt: 12, fov: ROADVIEW_WIDEST_FOV },
+          }),
           flightSpot: false,
           logoControl: false,
           zoomControl: true,
@@ -66,7 +72,7 @@ export default function AssetRoadview({
                 longitude,
               ),
               tilt: 12,
-              fov: 90,
+              fov: ROADVIEW_WIDEST_FOV,
             });
           }
           remember();

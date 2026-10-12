@@ -101,6 +101,9 @@ async function all(table: string) {
     if (data.length < 500) return rows;
   }
 }
+export async function fetchCatalogImages(): Promise<Catalog["images"]> {
+  return (await all("catalog_images")) as Catalog["images"];
+}
 async function loadCatalog(): Promise<Catalog> {
   if (!publicSupabase) return emptyCatalog;
   // Only identity, photos and region geometry block the first card list.
