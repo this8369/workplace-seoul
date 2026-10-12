@@ -26,6 +26,7 @@ import { createPortal } from "react-dom";
 import { Crosshair, MapPin, Minus, Plus, RefreshCw, X } from "lucide-react";
 import { formatArea, type Building } from "../lib/domain";
 import { districts, hasLocation, type MapGroup } from "../lib/map-clusters";
+import { roundedBoundaryRing } from "../lib/map-boundary-curves";
 import {
   displayBoundaries as boundaries,
   homeMapCenter,
@@ -465,7 +466,7 @@ export default function NaverMap({
         const polygon = new n.Polygon({
           map: map.current,
           paths: rings.map((ring) =>
-            ring.map(([lng, lat]) => new n.LatLng(lat, lng)),
+            roundedBoundaryRing(ring).map(([lng, lat]) => new n.LatLng(lat, lng)),
           ),
           fillColor: district.color,
           fillOpacity: overview
@@ -474,7 +475,7 @@ export default function NaverMap({
               : 0.58
             : 0.07,
           strokeColor: district.color,
-          strokeWeight: overview ? 3 : 5,
+          strokeWeight: overview ? 3 : 4,
           strokeOpacity: overview ? 0.9 : 1,
           clickable: overview,
           zIndex: district.key === "Others" ? 1 : 2,
@@ -508,7 +509,7 @@ export default function NaverMap({
                 ? 0.18
                 : 0.58
               : 0.07,
-          strokeWeight: (overview ? 3 : 5) + (highlighted ? 0.5 : 0),
+          strokeWeight: (overview ? 3 : 4) + (highlighted ? 0.5 : 0),
           strokeOpacity: highlighted || !overview ? 1 : 0.9,
         });
       });
