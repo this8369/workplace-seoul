@@ -12,6 +12,11 @@ import { registerValue, type RegisterData } from "../lib/building-register";
 import type { Parcel, Place, Resource } from "../lib/asset-context";
 import ParcelMap from "./ParcelMap";
 import OfficialLandPrices from "./OfficialLandPrices";
+import {
+  ReviewValue as RV,
+  ReviewRecordButton,
+  type ReviewTarget,
+} from "./DataReview";
 
 const emptyParcels: Parcel[] = [];
 function DataStatus({
@@ -46,14 +51,34 @@ function DataStatus({
     );
   return null;
 }
-function Rows({ rows }: { rows: [string, unknown, string?][] }) {
+function Rows({
+  rows,
+  targets = {},
+}: {
+  rows: [string, unknown, string?][];
+  targets?: Record<string, ReviewTarget>;
+}) {
   return (
     <dl>
       {rows.map(([label, value, unit]) => (
         <div key={label}>
           <dt>{label}</dt>
           <dd>
-            {value == null || value === "" ? "—" : registerValue(value, unit)}
+            {targets[label] ? (
+              <RV
+                {...targets[label]}
+                field={targets[label].field!}
+                label={label}
+              >
+                {value == null || value === ""
+                  ? "—"
+                  : registerValue(value, unit)}
+              </RV>
+            ) : value == null || value === "" ? (
+              "—"
+            ) : (
+              registerValue(value, unit)
+            )}
           </dd>
         </div>
       ))}
@@ -105,6 +130,35 @@ export function LandPanel({
     register.data?.records[0];
   const zoning =
     register.data?.sections.filter((s) => s.section === "zoning") ?? [];
+  const targets: Record<string, ReviewTarget> = {};
+  if (parcel)
+    for (const [label, field] of Object.entries({
+      소재지: "address",
+      "선택 필지 면적": "area_m2",
+      지목: "land_category",
+      이용상황: "land_use",
+      "지형·고저": "terrain",
+      형상: "shape",
+      도로조건: "road_condition",
+      "소유 구분": "ownership_type",
+      "소유권 변동일": "ownership_changed_on",
+      "공유 인수": "coowners",
+    }))
+      targets[label] = { entity: "building_parcels", id: parcel.id, field };
+  if (record)
+    targets["대장상 대지면적"] = {
+      entity: "building_register_records",
+      id: record.id,
+      field: "site_area_m2",
+    };
+  if (!parcel)
+    targets["소재지"] = record?.lot_address
+      ? {
+          entity: "building_register_records",
+          id: record.id,
+          field: "lot_address",
+        }
+      : { entity: "buildings", id: building.id, field: "address" };
   return (
     <div className="context-panel">
       <div className="section-heading">
@@ -142,6 +196,7 @@ export function LandPanel({
         <section className="info-panel">
           <h3>토지 기본정보</h3>
           <Rows
+            targets={targets}
             rows={[
               [
                 "소재지",
@@ -169,7 +224,10 @@ export function LandPanel({
             ]}
           />
           {parcel ? (
-            <Provenance item={parcel} />
+            <>
+              <ReviewRecordButton entity="building_parcels" id={parcel.id} />
+              <Provenance item={parcel} />
+            </>
           ) : (
             <p className="context-note">
               —는 미연결 항목입니다. 대장상 대지면적과 개별 필지 면적은 다를 수
@@ -180,6 +238,7 @@ export function LandPanel({
         <section className="info-panel">
           <h3>소유 구분</h3>
           <Rows
+            targets={targets}
             rows={[
               ["소유 구분", parcel?.ownership_type],
               ["소유권 변동일", parcel?.ownership_changed_on],
@@ -217,8 +276,10 @@ export function LandPanel({
           <div className="zoning-chips">
             {parcel.zoning.map((z, i) => (
               <span key={i}>
-                {z.name}
-                <small>{z.relation}</small>
+                <RV entity="building_parcels" id={parcel.id} field="zoning">
+                  {z.name}
+                  <small>{z.relation}</small>
+                </RV>
               </span>
             ))}
           </div>
@@ -226,8 +287,14 @@ export function LandPanel({
           <div className="zoning-chips">
             {zoning.map((z) => (
               <span key={z.id}>
-                {String(z.attributes.name ?? "—")}
-                <small>{String(z.attributes.category ?? "")}</small>
+                <RV
+                  entity="building_register_sections"
+                  id={z.id}
+                  field="attributes"
+                >
+                  {String(z.attributes.name ?? "—")}
+                  <small>{String(z.attributes.category ?? "")}</small>
+                </RV>
               </span>
             ))}
           </div>
@@ -241,6 +308,7 @@ export function LandPanel({
       <OfficialLandPrices
         key={parcel?.id ?? building.id}
         prices={parcel?.official_prices ?? []}
+        parcelId={parcel?.id}
       />
     </div>
   );
@@ -314,15 +382,28 @@ export function SurroundingsPanel({
           {filtered.map((p) => (
             <article className="info-panel" key={p.id}>
               <div className="section-heading">
-                <h3>{p.name}</h3>
-                <strong>{p.distance_m?.toLocaleString("ko-KR")}m</strong>
+                <h3>
+                  <RV entity="building_places" id={p.id} field="name">
+                    {p.name}
+                  </RV>
+                </h3>
+                <strong>
+                  <RV entity="building_places" id={p.id} field="distance_m">
+                    {p.distance_m?.toLocaleString("ko-KR")}m
+                  </RV>
+                </strong>
               </div>
-              <p>{p.address}</p>
+              <p>
+                <RV entity="building_places" id={p.id} field="address">
+                  {p.address || "—"}
+                </RV>
+              </p>
               <p className="context-note">
                 {p.walking_minutes != null && p.walking_source
                   ? `도보 ${p.walking_minutes}분 · ${p.walking_source}`
                   : "직선거리 기준 · 도보 경로 미연결"}
               </p>
+              <ReviewRecordButton entity="building_places" id={p.id} />
               <Provenance item={p} />
             </article>
           ))}

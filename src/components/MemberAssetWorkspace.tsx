@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { DataReviewProvider } from "./DataReview";
 import { X } from "lucide-react";
 import { AssetWorkspace } from "./AssetWorkspace";
 import type { Building } from "../lib/domain";
@@ -28,7 +29,7 @@ export default function MemberAssetWorkspace({
   useEffect(() => {
     let alive = true;
     setFailed(false);
-    setCatalog(null);
+
     void fetchMemberAsset(building.id, canReadTransactions)
       .then((data) => {
         if (alive) setCatalog(data);
@@ -70,13 +71,18 @@ export default function MemberAssetWorkspace({
       </div>
     );
   return (
-    <AssetWorkspace
-      building={catalog.buildings[0]}
-      catalog={catalog}
-      onClose={onClose}
-      onBuilding={onBuilding}
-      saved={saved}
-      onSave={onSave}
-    />
+    <DataReviewProvider
+      assetId={building.id}
+      onSaved={() => setAttempt((n) => n + 1)}
+    >
+      <AssetWorkspace
+        building={catalog.buildings[0]}
+        catalog={catalog}
+        onClose={onClose}
+        onBuilding={onBuilding}
+        saved={saved}
+        onSave={onSave}
+      />
+    </DataReviewProvider>
   );
 }

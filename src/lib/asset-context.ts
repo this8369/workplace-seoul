@@ -95,7 +95,11 @@ function useDeferred<T>(
   }, [key, enabled]);
   return state.key === key ? state.resource : { data: null, error: false };
 }
-export function useAssetContext(buildingId: string, tab = "개요") {
+export function useAssetContext(
+  buildingId: string,
+  tab = "개요",
+  revision = 0,
+) {
   const [attempt, setAttempt] = useState(0);
   async function rows<T>(table: string): Promise<T[]> {
     if (!supabase) throw new Error("not-configured");
@@ -114,7 +118,7 @@ export function useAssetContext(buildingId: string, tab = "개요") {
   }
   const details = tab === "건축물대장",
     sources = tab === "자료 출처";
-  const key = `${buildingId}:${attempt}`;
+  const key = `${buildingId}:${attempt}:${revision}`;
   const register = useDeferred<RegisterData>(
     `${key}:register:${details}`,
     details || tab === "토지" || sources,

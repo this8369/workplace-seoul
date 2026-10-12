@@ -1,0 +1,234 @@
+.review-value {
+  position: relative;
+  display: inline;
+  border: 0 !important;
+  border-radius: 5px;
+  background: transparent;
+  padding: 2px 3px;
+  margin: -2px -3px;
+  color: inherit;
+  font: inherit;
+  line-height: inherit;
+  text-align: inherit;
+  cursor: pointer;
+  transition:
+    background-color 0.12s,
+    box-shadow 0.12s;
+}
+.review-value:hover,
+.review-value:focus-visible {
+  background: #2839820d;
+  box-shadow: 0 0 0 1px #28398224;
+  outline: none;
+}
+.review-pencil {
+  position: absolute;
+  right: -13px;
+  top: calc(50% - 5.5px);
+  pointer-events: none;
+  opacity: 0;
+  color: #6473a1;
+}
+.review-value:hover .review-pencil,
+.review-value:focus-visible .review-pencil {
+  opacity: 1;
+}
+.review-record-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: #68758d;
+  padding: 6px;
+  font-size: 12px;
+  cursor: pointer;
+}
+.review-record-button:hover {
+  background: #2839820b;
+  color: #283982;
+}
+.review-record-button:focus-visible {
+  outline: 2px solid #283982;
+  outline-offset: 2px;
+}
+.data-review-dialog {
+  box-sizing: border-box;
+  width: min(620px, calc(100vw - 32px));
+  max-height: calc(100dvh - 40px);
+  border: 1px solid #20283a20;
+  border-radius: 22px;
+  background: #f8f9fc;
+  color: #20283a;
+  padding: 26px;
+  box-shadow: 0 22px 70px #17213a33;
+  overflow: auto;
+}
+.data-review-dialog::backdrop {
+  background: #17213a44;
+}
+.data-review-dialog > header,
+.review-inbox article > header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+}
+.data-review-dialog > header span {
+  font-size: 12px;
+  color: #708096;
+}
+.data-review-dialog h2 {
+  margin: 5px 0 18px;
+  font-size: 21px;
+}
+.data-review-dialog > header button {
+  align-self: flex-start;
+  background: transparent;
+  border: 0;
+  color: inherit;
+}
+.review-label {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  margin: 14px 0;
+  font-size: 13px;
+  color: #617088;
+}
+.data-review-dialog select,
+.data-review-dialog textarea,
+.review-inbox textarea {
+  box-sizing: border-box;
+  width: 100%;
+  border: 1px solid #20283a24;
+  border-radius: 9px;
+  background: white;
+  color: #20283a;
+  font: inherit;
+  font-size: 14px;
+  padding: 11px;
+  resize: vertical;
+}
+.review-edit > p strong {
+  display: block;
+  margin: 8px 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  max-height: 140px;
+  overflow: auto;
+}
+.review-edit small {
+  display: block;
+  margin-top: 10px;
+  color: #788599;
+}
+.review-submit {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  justify-content: center;
+  background: #283982;
+  color: white;
+  border: 0;
+  border-radius: 10px;
+  padding: 12px 18px;
+  width: 100%;
+}
+.review-error {
+  background: #fff0f0;
+  color: #a32e35;
+  padding: 12px;
+  border-radius: 10px;
+}
+.review-history {
+  border-top: 1px solid #20283a18;
+  margin-top: 24px;
+  padding-top: 15px;
+}
+.review-history-tabs {
+  display: flex;
+  gap: 7px;
+}
+.review-history-tabs button,
+.review-history footer button,
+.review-inbox button {
+  border: 1px solid #20283a20;
+  border-radius: 8px;
+  background: white;
+  color: #58677f;
+  padding: 8px 12px;
+}
+.review-history-tabs [aria-pressed="true"] {
+  background: #283982;
+  color: white;
+}
+.review-history article,
+.review-inbox article {
+  padding: 16px 0;
+  border-bottom: 1px solid #20283a16;
+  font-size: 13px;
+}
+.review-history article > div {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 4px;
+  margin: 10px 0;
+}
+.review-history del,
+.review-history b {
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+.review-history del {
+  color: #8b6770;
+}
+.review-history b {
+  font-weight: 500;
+}
+.review-history article > strong,
+.review-history article span {
+  color: #63718a;
+}
+.review-history footer,
+.review-inbox footer {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 16px;
+}
+.data-review-dialog button:disabled,
+.review-inbox button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.review-inbox {
+  padding: 20px 4px;
+}
+.review-inbox article {
+  background: white;
+  border: 1px solid #20283a18;
+  border-radius: 14px;
+  margin: 14px 0;
+  padding: 18px;
+}
+.review-inbox article > div {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+.review-inbox article header span {
+  font-size: 12px;
+  color: #697a98;
+}
+@media (hover: none) {
+  .review-pencil {
+    opacity: 0.4;
+  }
+}
+@media (max-width: 600px) {
+  .data-review-dialog {
+    padding: 20px;
+    border-radius: 18px;
+  }
+}

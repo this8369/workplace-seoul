@@ -1,6 +1,7 @@
 import { useId, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import type { Parcel } from "../lib/asset-context";
+import { ReviewValue as RV, ReviewRecordButton } from "./DataReview";
 
 function axisAmount(value: number) {
   if (value >= 100000000) return `${Number((value / 100000000).toFixed(2))}억`;
@@ -11,8 +12,10 @@ function axisAmount(value: number) {
 
 export default function OfficialLandPrices({
   prices,
+  parcelId,
 }: {
   prices: Parcel["official_prices"];
+  parcelId?: string;
 }) {
   const [unit, setUnit] = useState<"㎡" | "평">("평");
   const [year, setYear] = useState<number | null>(null);
@@ -86,6 +89,12 @@ export default function OfficialLandPrices({
           ))}
         </div>
       </div>
+      <ReviewRecordButton
+        entity="building_parcels"
+        id={parcelId}
+        field="official_prices"
+        label="공시지가 수정 요청·이력"
+      />
       {selected ? (
         <div className="official-prices-layout">
           <div className="official-price-chart">
@@ -244,8 +253,26 @@ export default function OfficialLandPrices({
                         {p.year}년
                       </button>
                     </th>
-                    <td>{p.as_of?.replaceAll("-", ".") || "—"}</td>
-                    <td>{amount(p.price_won_m2)}</td>
+                    <td>
+                      <RV
+                        entity="building_parcels"
+                        id={parcelId}
+                        field="official_prices"
+                        label={`${p.year}년 공시지가`}
+                      >
+                        {p.as_of?.replaceAll("-", ".") || "—"}
+                      </RV>
+                    </td>
+                    <td>
+                      <RV
+                        entity="building_parcels"
+                        id={parcelId}
+                        field="official_prices"
+                        label={`${p.year}년 공시지가`}
+                      >
+                        {amount(p.price_won_m2)}
+                      </RV>
+                    </td>
                   </tr>
                 ))}
               </tbody>

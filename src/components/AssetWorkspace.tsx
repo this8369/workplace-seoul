@@ -1,3 +1,10 @@
+import {
+  ReviewValue as RV,
+  ReviewRecordButton,
+  AssetHistoryButton,
+  useDataReviewVersion,
+  DataReviewBoundary,
+} from "./DataReview";
 import BuildingRegister from "./BuildingRegister";
 import { fetchTransactionDetail } from "../lib/member-details";
 import {
@@ -71,15 +78,37 @@ function Blank({
     </div>
   );
 }
-function TransactionDialog({
-  transaction: t,
-  onClose,
-  onBuilding,
-}: {
+type TransactionDialogProps = {
   transaction: Transaction;
   onClose: () => void;
   onBuilding: (id: string) => void;
-}) {
+};
+function TransactionDialog(props: TransactionDialogProps) {
+  return (
+    <DataReviewBoundary>
+      <TransactionDialogContent {...props} />
+    </DataReviewBoundary>
+  );
+}
+function TransactionDialogContent({
+  transaction,
+  onClose,
+  onBuilding,
+}: TransactionDialogProps) {
+  const [t, setTransaction] = useState(transaction);
+  const version = useDataReviewVersion();
+  useEffect(() => {
+    if (!version) return;
+    let active = true;
+    void fetchTransactionDetail(transaction.id)
+      .then((r) => {
+        if (active) setTransaction(r);
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, [version, transaction.id]);
   const ref = useRef<HTMLDialogElement>(null);
   useEffect(() => {
     ref.current?.showModal();
@@ -98,39 +127,73 @@ function TransactionDialog({
       <p className="eyebrow">
         {t.year ?? "시점 미확인"} · {t.region}
       </p>
-      <h2>{t.building_name}</h2>
+      <h2>
+        <RV entity="transactions" id={t.id} field="building_name">
+          {t.building_name}
+        </RV>
+      </h2>
       <div className="transaction-price">
-        {money(t.amount_won)}
+        <RV entity="transactions" id={t.id} field="amount_won">
+          {money(t.amount_won)}
+        </RV>
         <span>거래금액 · 원화</span>
       </div>
       <dl>
         <div>
           <dt>매입 범위</dt>
-          <dd>{t.scope || "미확인"}</dd>
+          <dd>
+            <RV entity="transactions" id={t.id} field="scope">
+              {t.scope || "미확인"}
+            </RV>
+          </dd>
         </div>
         <div>
           <dt>거래 유형</dt>
-          <dd>{t.kind || "미확인"}</dd>
+          <dd>
+            <RV entity="transactions" id={t.id} field="kind">
+              {t.kind || "미확인"}
+            </RV>
+          </dd>
         </div>
         <div>
           <dt>건물 전체 연면적</dt>
-          <dd>{transactionArea(t.building_area_m2)}</dd>
+          <dd>
+            <RV entity="transactions" id={t.id} field="building_area_m2">
+              {transactionArea(t.building_area_m2)}
+            </RV>
+          </dd>
         </div>
         <div>
           <dt>실제 거래면적</dt>
-          <dd>{transactionArea(t.traded_area_m2)}</dd>
+          <dd>
+            <RV entity="transactions" id={t.id} field="traded_area_m2">
+              {transactionArea(t.traded_area_m2)}
+            </RV>
+          </dd>
         </div>
         <div>
           <dt>원문 평당가</dt>
-          <dd>{unitPrice(t)}</dd>
+          <dd>
+            <RV entity="transactions" id={t.id} field="unit_price_won">
+              {unitPrice(t)}
+            </RV>
+          </dd>
         </div>
         <div>
           <dt>매도인</dt>
-          <dd>{t.seller || "미확인"}</dd>
+          <dd>
+            <RV entity="transactions" id={t.id} field="seller">
+              {t.seller || "미확인"}
+            </RV>
+          </dd>
         </div>
         <div>
           <dt>매수인</dt>
-          <dd>{t.buyer || "미확인"}</dd>
+          <dd>
+            <RV entity="transactions" id={t.id} field="buyer">
+              {t.buyer || "미확인"}
+            </RV>
+          </dd>
         </div>
       </dl>
       <p className="context-note">
@@ -138,6 +201,7 @@ function TransactionDialog({
         뒤 비교하세요.
       </p>
       {t.note && <p className="record-note">{t.note}</p>}
+      <ReviewRecordButton entity="transactions" id={t.id} />
       <Source item={t} />
       {t.building_id ? (
         <button
@@ -316,7 +380,11 @@ export function Transactions({
               <tbody>
                 {rows.slice(current * 20, current * 20 + 20).map((t) => (
                   <tr key={t.id}>
-                    <td>{t.year ? `${t.year}년` : "미확인"}</td>
+                    <td>
+                      <RV entity="transactions" id={t.id} field="year">
+                        {t.year ? `${t.year}년` : "미확인"}
+                      </RV>
+                    </td>
                     <td>
                       <button
                         className="text-button building-link"
@@ -331,15 +399,45 @@ export function Transactions({
                           : ""}
                       </small>
                     </td>
-                    <td className="strong-number">{money(t.amount_won)}</td>
-                    <td>{transactionArea(t.traded_area_m2)}</td>
-                    <td>{unitPrice(t)}</td>
+                    <td className="strong-number">
+                      <RV entity="transactions" id={t.id} field="amount_won">
+                        {money(t.amount_won)}
+                      </RV>
+                    </td>
                     <td>
-                      <span className="pill">{t.scope || "미확인"}</span>
+                      <RV
+                        entity="transactions"
+                        id={t.id}
+                        field="traded_area_m2"
+                      >
+                        {transactionArea(t.traded_area_m2)}
+                      </RV>
+                    </td>
+                    <td>
+                      <RV
+                        entity="transactions"
+                        id={t.id}
+                        field="unit_price_won"
+                      >
+                        {unitPrice(t)}
+                      </RV>
+                    </td>
+                    <td>
+                      <span className="pill">
+                        <RV entity="transactions" id={t.id} field="scope">
+                          {t.scope || "미확인"}
+                        </RV>
+                      </span>
                     </td>
                     <td className="parties">
-                      {t.buyer || "미확인"}
-                      <small>{t.seller || "미확인"}</small>
+                      <RV entity="transactions" id={t.id} field="buyer">
+                        {t.buyer || "미확인"}
+                      </RV>
+                      <small>
+                        <RV entity="transactions" id={t.id} field="seller">
+                          {t.seller || "미확인"}
+                        </RV>
+                      </small>
                     </td>
                     <td>
                       <button
@@ -442,7 +540,8 @@ export function AssetWorkspace({
   const title = useRef<HTMLHeadingElement>(null);
   const popup = useRef<HTMLDivElement>(null);
   const page = useRef<HTMLElement>(null);
-  const context = useAssetContext(b.id, tab);
+  const reviewVersion = useDataReviewVersion();
+  const context = useAssetContext(b.id, tab, reviewVersion);
   const photos = catalog.images.filter(
     (p) => p.building_id === b.id && p.review_status === "approved",
   );
@@ -481,6 +580,29 @@ export function AssetWorkspace({
     (t) => t.building_id === b.id,
   );
   const developmentSummary = markerDevelopmentIndex(developments).get(b.id);
+  const currentDevelopment = [...developments].sort((a, b) =>
+    (b.as_of || "").localeCompare(a.as_of || ""),
+  )[0];
+  const floorValues = (kind: "rentable" | "exclusive") => {
+    const field =
+      kind === "rentable"
+        ? "typical_floor_rentable_pyeong"
+        : "typical_floor_exclusive_pyeong";
+    return towerRows.length ? (
+      towerRows.map((t, i) => (
+        <span key={t.id}>
+          {i > 0 && " / "}
+          <RV entity="building_towers" id={t.id} field={field}>
+            {towerFloorText([t], kind)}
+          </RV>
+        </span>
+      ))
+    ) : (
+      <RV entity="buildings" id={b.id} field={field}>
+        {numeric(b[field] ?? null, "평")}
+      </RV>
+    );
+  };
   const { confirmed, other } = occupancyGroups(catalog.occupancies, b.id);
   const moves = catalog.movements
     .filter((t) => t.from_building_id === b.id || t.to_building_id === b.id)
@@ -522,6 +644,7 @@ export function AssetWorkspace({
           자산 상세 <span className="asset-toolbar-region">/ {b.region}</span>
         </span>
         <div>
+          <AssetHistoryButton />
           <button className="save-asset" aria-pressed={saved} onClick={onSave}>
             <Bookmark size={17} fill={saved ? "currentColor" : "none"} />
             {saved ? "저장됨" : "저장"}
@@ -553,11 +676,15 @@ export function AssetWorkspace({
                 )}
               </div>
               <h1 id="asset-detail-title" ref={title} tabIndex={-1}>
-                {b.name}
+                <RV entity="buildings" id={b.id} field="name">
+                  {b.name}
+                </RV>
               </h1>
               <p>
                 <MapPin size={13} />
-                {b.address}
+                <RV entity="buildings" id={b.id} field="address">
+                  {b.address}
+                </RV>
               </p>
             </div>
           </div>
@@ -589,6 +716,11 @@ export function AssetWorkspace({
                     </div>
                   )}
                   <figcaption>
+                    <ReviewRecordButton
+                      entity="building_images"
+                      id={photo.id}
+                      label="사진 정보 수정·이력"
+                    />
                     {photo.kind === "rendering" ? "조감도 · " : ""}
                     {photo.credit || photo.source_name}
                     {photo.license_name ? ` · ${photo.license_name}` : ""}
@@ -615,18 +747,20 @@ export function AssetWorkspace({
           <div className="asset-metrics">
             <div>
               <span>연면적{b.area_basis === "planned" ? " · 계획" : ""}</span>
-              <strong>{formatArea(b.gross_area_m2)}</strong>
-              <small>{numeric(b.gross_area_m2, "㎡")}</small>
+              <strong>
+                <RV entity="buildings" id={b.id} field="gross_area_m2">
+                  {formatArea(b.gross_area_m2)}
+                </RV>
+              </strong>
+              <small>
+                <RV entity="buildings" id={b.id} field="gross_area_m2">
+                  {numeric(b.gross_area_m2, "㎡")}
+                </RV>
+              </small>
             </div>
             <div>
               <span>기준층 전용면적</span>
-              <strong>
-                {towerRows.length
-                  ? towerFloorText(towerRows, "exclusive")
-                  : b.typical_floor_exclusive_pyeong == null
-                    ? "—"
-                    : numeric(b.typical_floor_exclusive_pyeong, "평")}
-              </strong>
+              <strong>{floorValues("exclusive")}</strong>
               <small>{towerRows.length ? "동별 기준" : "전용면적 기준"}</small>
             </div>
             <div>
@@ -634,11 +768,25 @@ export function AssetWorkspace({
                 {b.status === "development" ? "소유주·시행주체" : "F.NOC"}
               </span>
               <strong>
-                {b.status === "development"
-                  ? developmentSummary?.developer || "—"
-                  : noc?.value == null
-                    ? "—"
-                    : `${(noc.value / 10000).toLocaleString("ko-KR", { maximumFractionDigits: 1 })}만원/평`}
+                <RV
+                  entity={
+                    b.status === "development"
+                      ? "development_records"
+                      : "leasing_quarters"
+                  }
+                  id={
+                    b.status === "development"
+                      ? currentDevelopment?.id
+                      : leases.find((l) => l.period === noc?.period)?.id
+                  }
+                  field={b.status === "development" ? "developer" : "noc"}
+                >
+                  {b.status === "development"
+                    ? developmentSummary?.developer || "—"
+                    : noc?.value == null
+                      ? "—"
+                      : `${(noc.value / 10000).toLocaleString("ko-KR", { maximumFractionDigits: 1 })}만원/평`}
+                </RV>
               </strong>
               <small>
                 {b.status === "development"
@@ -649,11 +797,25 @@ export function AssetWorkspace({
             <div>
               <span>{b.status === "development" ? "준공 예정" : "준공"}</span>
               <strong>
-                {b.status === "development"
-                  ? developmentSummary?.completion || "—"
-                  : b.completion_year
-                    ? `${b.completion_year}년`
-                    : "—"}
+                <RV
+                  entity={
+                    b.status === "development"
+                      ? "development_records"
+                      : "buildings"
+                  }
+                  id={
+                    b.status === "development" ? currentDevelopment?.id : b.id
+                  }
+                  field={
+                    b.status === "development" ? "year" : "completion_year"
+                  }
+                >
+                  {b.status === "development"
+                    ? developmentSummary?.completion || "—"
+                    : b.completion_year
+                      ? `${b.completion_year}년`
+                      : "—"}
+                </RV>
               </strong>
               <small>
                 {b.usage_approved_on
@@ -842,31 +1004,43 @@ export function AssetWorkspace({
                     <Building2 size={18} />
                   </div>
                   <p className="asset-intro">
-                    {b.overview ||
-                      "건물의 규모와 입지, 입주기업과 거래 이력을 한곳에서 살펴보세요."}
+                    <RV entity="buildings" id={b.id} field="overview">
+                      {b.overview ||
+                        "건물의 규모와 입지, 입주기업과 거래 이력을 한곳에서 살펴보세요."}
+                    </RV>
                   </p>
                   <dl>
                     <div>
                       <dt>주소</dt>
-                      <dd>{b.address}</dd>
+                      <dd>
+                        <RV entity="buildings" id={b.id} field="address">
+                          {b.address}
+                        </RV>
+                      </dd>
                     </div>
                     <div>
                       <dt>연면적 기준</dt>
                       <dd>
-                        {b.area_basis === "actual"
-                          ? "실제 연면적"
-                          : "계획 연면적"}
+                        <RV entity="buildings" id={b.id} field="area_basis">
+                          {b.area_basis === "actual"
+                            ? "실제 연면적"
+                            : "계획 연면적"}
+                        </RV>
                       </dd>
                     </div>
                     <div>
                       <dt>규모</dt>
                       <dd>
-                        {b.floors_above != null
-                          ? `지상 ${b.floors_above}층`
-                          : "미확인"}
-                        {b.floors_below != null
-                          ? ` / 지하 ${b.floors_below}층`
-                          : ""}
+                        <RV entity="buildings" id={b.id} field="floors_above">
+                          {b.floors_above != null
+                            ? `지상 ${b.floors_above}층`
+                            : "미확인"}
+                        </RV>
+                        <RV entity="buildings" id={b.id} field="floors_below">
+                          {b.floors_below != null
+                            ? ` / 지하 ${b.floors_below}층`
+                            : ""}
+                        </RV>
                       </dd>
                     </div>
                     <div>
@@ -880,38 +1054,47 @@ export function AssetWorkspace({
                             : undefined
                         }
                       >
-                        {b.status === "development"
-                          ? developmentSummary?.completion || "미확인"
-                          : b.completion_year || "미확인"}
+                        <RV
+                          entity={
+                            b.status === "development"
+                              ? "development_records"
+                              : "buildings"
+                          }
+                          id={
+                            b.status === "development"
+                              ? currentDevelopment?.id
+                              : b.id
+                          }
+                          field={
+                            b.status === "development"
+                              ? "year"
+                              : "completion_year"
+                          }
+                        >
+                          {b.status === "development"
+                            ? developmentSummary?.completion || "미확인"
+                            : b.completion_year || "미확인"}
+                        </RV>
                       </dd>
                     </div>
                     <div>
                       <dt>기준층 임대면적</dt>
-                      <dd>
-                        {towerRows.length
-                          ? towerFloorText(towerRows, "rentable")
-                          : numeric(
-                              b.typical_floor_rentable_pyeong ?? null,
-                              "평",
-                            )}
-                      </dd>
+                      <dd>{floorValues("rentable")}</dd>
                     </div>
                     <div>
                       <dt>기준층 전용면적</dt>
-                      <dd>
-                        {towerRows.length
-                          ? towerFloorText(towerRows, "exclusive")
-                          : numeric(
-                              b.typical_floor_exclusive_pyeong ?? null,
-                              "평",
-                            )}
-                      </dd>
+                      <dd>{floorValues("exclusive")}</dd>
                     </div>
                     <div>
                       <dt>주차</dt>
-                      <dd>{numeric(b.parking_spaces, "대")}</dd>
+                      <dd>
+                        <RV entity="buildings" id={b.id} field="parking_spaces">
+                          {numeric(b.parking_spaces, "대")}
+                        </RV>
+                      </dd>
                     </div>
                   </dl>
+                  <ReviewRecordButton entity="buildings" id={b.id} />
                   <Source item={evidence} />
                   {b.completion_source_url && (
                     <Source
@@ -1005,8 +1188,24 @@ export function AssetWorkspace({
                 {trades[0] ? (
                   <>
                     <div className="recent-trade-summary">
-                      <span>{trades[0].year}년</span>
-                      <strong>{money(trades[0].amount_won)}</strong>
+                      <span>
+                        <RV
+                          entity="transactions"
+                          id={trades[0].id}
+                          field="year"
+                        >
+                          {trades[0].year}년
+                        </RV>
+                      </span>
+                      <strong>
+                        <RV
+                          entity="transactions"
+                          id={trades[0].id}
+                          field="amount_won"
+                        >
+                          {money(trades[0].amount_won)}
+                        </RV>
+                      </strong>
                       <span>
                         {trades[0].scope} · 거래면적{" "}
                         {transactionArea(trades[0].traded_area_m2)}
@@ -1038,10 +1237,16 @@ export function AssetWorkspace({
                       <div key={f.id}>
                         <dt>{f.field_key.replaceAll("_", " ")}</dt>
                         <dd>
-                          {typeof f.value === "object"
-                            ? JSON.stringify(f.value)
-                            : String(f.value)}
-                          {f.unit ? ` ${f.unit}` : ""}
+                          <RV entity="building_facts" id={f.id} field="value">
+                            {typeof f.value === "object"
+                              ? JSON.stringify(f.value)
+                              : String(f.value)}
+                            {f.unit ? ` ${f.unit}` : ""}
+                          </RV>
+                          <ReviewRecordButton
+                            entity="building_facts"
+                            id={f.id}
+                          />
                           <Source item={f} />
                         </dd>
                       </div>
@@ -1084,18 +1289,66 @@ export function AssetWorkspace({
                       <tbody>
                         {leases.map((l) => (
                           <tr key={l.id}>
-                            <th>{l.period}</th>
-                            <td>{numeric(l.deposit)}</td>
-                            <td>{numeric(l.rent)}</td>
-                            <td>{numeric(l.fee)}</td>
-                            <td>{numeric(l.noc)}</td>
+                            <th>
+                              <RV
+                                entity="leasing_quarters"
+                                id={l.id}
+                                field="period"
+                              >
+                                {l.period}
+                              </RV>
+                            </th>
+                            <td>
+                              <RV
+                                entity="leasing_quarters"
+                                id={l.id}
+                                field="deposit"
+                              >
+                                {numeric(l.deposit)}
+                              </RV>
+                            </td>
+                            <td>
+                              <RV
+                                entity="leasing_quarters"
+                                id={l.id}
+                                field="rent"
+                              >
+                                {numeric(l.rent)}
+                              </RV>
+                            </td>
+                            <td>
+                              <RV
+                                entity="leasing_quarters"
+                                id={l.id}
+                                field="fee"
+                              >
+                                {numeric(l.fee)}
+                              </RV>
+                            </td>
+                            <td>
+                              <RV
+                                entity="leasing_quarters"
+                                id={l.id}
+                                field="noc"
+                              >
+                                {numeric(l.noc)}
+                              </RV>
+                            </td>
                             <td>
                               {numeric(
                                 l.vacancy == null ? null : l.vacancy * 100,
                                 "%",
                               )}
                             </td>
-                            <td>{numeric(l.rent_free)}</td>
+                            <td>
+                              <RV
+                                entity="leasing_quarters"
+                                id={l.id}
+                                field="rent_free"
+                              >
+                                {numeric(l.rent_free)}
+                              </RV>
+                            </td>
                           </tr>
                         ))}
                       </tbody>
@@ -1105,6 +1358,10 @@ export function AssetWorkspace({
                     {leases[0].area_basis} · {leases[0].vat_basis}. NOC는 원문
                     값이며 별도로 재산출하지 않았습니다.
                   </p>
+                  <ReviewRecordButton
+                    entity="leasing_quarters"
+                    id={leases[0].id}
+                  />
                   <Source item={leases[0]} />
                 </>
               ) : (
@@ -1193,11 +1450,51 @@ export function AssetWorkspace({
                                   <ArrowUpRight size={13} />
                                 </button>
                               </td>
-                              <td>{c?.industry || "미확인"}</td>
-                              <td>{o.floors || "미확인"}</td>
-                              <td>{numeric(o.area_m2, "㎡")}</td>
-                              <td>{o.started_on || "미확인"}</td>
-                              <td>{o.as_of || "미확인"}</td>
+                              <td>
+                                <RV
+                                  entity="companies"
+                                  id={c?.id}
+                                  field="industry"
+                                >
+                                  {c?.industry || "미확인"}
+                                </RV>
+                              </td>
+                              <td>
+                                <RV
+                                  entity="occupancies"
+                                  id={o.id}
+                                  field="floors"
+                                >
+                                  {o.floors || "미확인"}
+                                </RV>
+                              </td>
+                              <td>
+                                <RV
+                                  entity="occupancies"
+                                  id={o.id}
+                                  field="area_m2"
+                                >
+                                  {numeric(o.area_m2, "㎡")}
+                                </RV>
+                              </td>
+                              <td>
+                                <RV
+                                  entity="occupancies"
+                                  id={o.id}
+                                  field="started_on"
+                                >
+                                  {o.started_on || "미확인"}
+                                </RV>
+                              </td>
+                              <td>
+                                <RV
+                                  entity="occupancies"
+                                  id={o.id}
+                                  field="as_of"
+                                >
+                                  {o.as_of || "미확인"}
+                                </RV>
+                              </td>
                             </tr>
                           );
                         })}
@@ -1214,15 +1511,24 @@ export function AssetWorkspace({
                       )
                       .map((o) => (
                         <div key={o.id}>
-                          <strong>{o.floors || "층 미확인"}</strong>
+                          <strong>
+                            <RV entity="occupancies" id={o.id} field="floors">
+                              {o.floors || "층 미확인"}
+                            </RV>
+                          </strong>
                           <button onClick={() => setCompanyId(o.company_id)}>
                             {catalog.companies.find(
                               (c) => c.id === o.company_id,
                             )?.name || "기업 정보 미확인"}
                           </button>
                           <span>
-                            {numeric(o.area_m2, "㎡")} · 기준{" "}
-                            {o.as_of || "미확인"}
+                            <RV entity="occupancies" id={o.id} field="area_m2">
+                              {numeric(o.area_m2, "㎡")}
+                            </RV>{" "}
+                            · 기준{" "}
+                            <RV entity="occupancies" id={o.id} field="as_of">
+                              {o.as_of || "미확인"}
+                            </RV>
                           </span>
                         </div>
                       ))}
@@ -1244,7 +1550,11 @@ export function AssetWorkspace({
               {company && (
                 <div className="info-panel company-panel">
                   <div className="section-heading">
-                    <h2>{company.name}</h2>
+                    <h2>
+                      <RV entity="companies" id={company.id} field="name">
+                        {company.name}
+                      </RV>
+                    </h2>
                     <button
                       aria-label="기업 정보 닫기"
                       onClick={() => setCompanyId(null)}
@@ -1252,10 +1562,17 @@ export function AssetWorkspace({
                       <X size={17} />
                     </button>
                   </div>
-                  <p>{company.industry || "업종 미확인"}</p>
-                  <p className="context-note">
-                    {company.overview || "기업 소개를 준비하고 있습니다."}
+                  <p>
+                    <RV entity="companies" id={company.id} field="industry">
+                      {company.industry || "업종 미확인"}
+                    </RV>
                   </p>
+                  <p className="context-note">
+                    <RV entity="companies" id={company.id} field="overview">
+                      {company.overview || "기업 소개를 준비하고 있습니다."}
+                    </RV>
+                  </p>
+                  <ReviewRecordButton entity="companies" id={company.id} />
                   {catalog.occupancies
                     .filter((o) => o.company_id === company.id)
                     .map((o) => (
@@ -1298,15 +1615,44 @@ export function AssetWorkspace({
                   {moves.map((m) => (
                     <article key={m.id}>
                       <div>
-                        <span className="pill">{m.period}</span>
-                        <span className="subtle-label">{m.kind}</span>
+                        <span className="pill">
+                          <RV
+                            entity="tenant_movements"
+                            id={m.id}
+                            field="period"
+                          >
+                            {m.period}
+                          </RV>
+                        </span>
+                        <span className="subtle-label">
+                          <RV entity="tenant_movements" id={m.id} field="kind">
+                            {m.kind}
+                          </RV>
+                        </span>
                       </div>
-                      <h3>{m.company_name}</h3>
+                      <h3>
+                        <RV
+                          entity="tenant_movements"
+                          id={m.id}
+                          field="company_name"
+                        >
+                          {m.company_name}
+                        </RV>
+                      </h3>
                       <p>
-                        {m.from_name || "출발 미확인"}
+                        <RV
+                          entity="tenant_movements"
+                          id={m.id}
+                          field="from_name"
+                        >
+                          {m.from_name || "출발 미확인"}
+                        </RV>
                         <ArrowRight size={13} />
-                        {m.to_name || "도착 미확인"}
+                        <RV entity="tenant_movements" id={m.id} field="to_name">
+                          {m.to_name || "도착 미확인"}
+                        </RV>
                       </p>
+                      <ReviewRecordButton entity="tenant_movements" id={m.id} />
                       <Source item={m} />
                     </article>
                   ))}
@@ -1350,18 +1696,31 @@ export function AssetWorkspace({
                     </h2>
                     <dl>
                       {[
-                        ["건축허가", d.permit],
-                        ["실제 착공", d.started],
-                        ["소유주·시행주체", d.developer],
-                        ["시공사", d.contractor],
-                        ["원문 진행상황", d.progress],
-                      ].map(([label, value]) => (
+                        ["건축허가", d.permit, "permit"],
+                        ["실제 착공", d.started, "started"],
+                        ["소유주·시행주체", d.developer, "developer"],
+                        ["시공사", d.contractor, "contractor"],
+                        ["원문 진행상황", d.progress, "progress"],
+                      ].map(([label, value, key]) => (
                         <div key={label}>
                           <dt>{label}</dt>
-                          <dd>{value || "미확인"}</dd>
+                          <dd>
+                            <RV
+                              entity="development_records"
+                              id={d.id}
+                              field={key!}
+                              label={label}
+                            >
+                              {value || "미확인"}
+                            </RV>
+                          </dd>
                         </div>
                       ))}
                     </dl>
+                    <ReviewRecordButton
+                      entity="development_records"
+                      id={d.id}
+                    />
                     <Source item={d} />
                   </div>
                 ))

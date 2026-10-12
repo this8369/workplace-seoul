@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { ReviewValue as RV, ReviewRecordButton } from "./DataReview";
 import type { Resource } from "../lib/asset-context";
 import {
   fetchBuildingRegister,
@@ -145,6 +146,7 @@ export default function BuildingRegister({
         </div>
       )}
       <div className="register-groups">
+        <ReviewRecordButton entity="building_register_records" id={record.id} />
         {registerGroups.map((group) => (
           <section className="info-panel" key={group.title}>
             <h3>{group.title}</h3>
@@ -153,13 +155,20 @@ export default function BuildingRegister({
                 <div key={key}>
                   <dt>{label}</dt>
                   <dd>
-                    {key === "seismic_design"
-                      ? record[key] === "1"
-                        ? "적용"
-                        : record[key] === "0"
-                          ? "미적용"
-                          : registerValue(record[key])
-                      : registerValue(record[key], unit)}
+                    <RV
+                      entity="building_register_records"
+                      id={record.id}
+                      field={key}
+                      label={label}
+                    >
+                      {key === "seismic_design"
+                        ? record[key] === "1"
+                          ? "적용"
+                          : record[key] === "0"
+                            ? "미적용"
+                            : registerValue(record[key])
+                        : registerValue(record[key], unit)}
+                    </RV>
                   </dd>
                 </div>
               ))}
@@ -214,15 +223,60 @@ export default function BuildingRegister({
               <tbody>
                 {floors.map((f) => (
                   <tr key={f.id}>
-                    <td>{f.dong_name || "—"}</td>
                     <td>
-                      {f.floor_number == null
-                        ? f.floor_name || "미기재"
-                        : `${f.floor_category || ""} ${registerValue(f.floor_number, "층")}`}
+                      <RV
+                        entity="building_register_floors"
+                        id={f.id}
+                        field="dong_name"
+                      >
+                        {f.dong_name || "—"}
+                      </RV>
                     </td>
-                    <td>{f.other_use || f.main_use || "미기재"}</td>
-                    <td>{registerValue(f.area_m2, "㎡")}</td>
-                    <td>{registerValue(f.area_excluded)}</td>
+                    <td>
+                      <RV
+                        entity="building_register_floors"
+                        id={f.id}
+                        field={
+                          f.floor_number == null ? "floor_name" : "floor_number"
+                        }
+                      >
+                        {f.floor_number == null
+                          ? f.floor_name || "미기재"
+                          : `${f.floor_category || ""} ${registerValue(f.floor_number, "층")}`}
+                      </RV>
+                    </td>
+                    <td>
+                      <RV
+                        entity="building_register_floors"
+                        id={f.id}
+                        field={f.other_use ? "other_use" : "main_use"}
+                      >
+                        {f.other_use || f.main_use || "미기재"}
+                      </RV>
+                    </td>
+                    <td>
+                      <RV
+                        entity="building_register_floors"
+                        id={f.id}
+                        field="area_m2"
+                      >
+                        {registerValue(f.area_m2, "㎡")}
+                      </RV>
+                    </td>
+                    <td>
+                      <RV
+                        entity="building_register_floors"
+                        id={f.id}
+                        field="area_excluded"
+                      >
+                        {registerValue(f.area_excluded)}
+                      </RV>
+                      <ReviewRecordButton
+                        entity="building_register_floors"
+                        id={f.id}
+                        label="항목 보기"
+                      />
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -252,15 +306,62 @@ export default function BuildingRegister({
                 {areas.map((a) => (
                   <tr key={a.id}>
                     <td>
-                      {[a.dong_name, a.unit_name].filter(Boolean).join(" ") ||
-                        "—"}
+                      <RV
+                        entity="building_register_area_parts"
+                        id={a.id}
+                        field="dong_name"
+                      >
+                        {a.dong_name || "—"}
+                      </RV>{" "}
+                      <RV
+                        entity="building_register_area_parts"
+                        id={a.id}
+                        field="unit_name"
+                      >
+                        {a.unit_name || "—"}
+                      </RV>
                     </td>
                     <td>
-                      {a.floor_category} {registerValue(a.floor_number, "층")}
+                      <RV
+                        entity="building_register_area_parts"
+                        id={a.id}
+                        field="floor_number"
+                      >
+                        {a.floor_category} {registerValue(a.floor_number, "층")}
+                      </RV>
                     </td>
-                    <td>{a.area_category || "미기재"}</td>
-                    <td>{a.main_use || "미기재"}</td>
-                    <td>{registerValue(a.area_m2, "㎡")}</td>
+                    <td>
+                      <RV
+                        entity="building_register_area_parts"
+                        id={a.id}
+                        field="area_category"
+                      >
+                        {a.area_category || "미기재"}
+                      </RV>
+                    </td>
+                    <td>
+                      <RV
+                        entity="building_register_area_parts"
+                        id={a.id}
+                        field="main_use"
+                      >
+                        {a.main_use || "미기재"}
+                      </RV>
+                    </td>
+                    <td>
+                      <RV
+                        entity="building_register_area_parts"
+                        id={a.id}
+                        field="area_m2"
+                      >
+                        {registerValue(a.area_m2, "㎡")}
+                      </RV>
+                      <ReviewRecordButton
+                        entity="building_register_area_parts"
+                        id={a.id}
+                        label="항목 보기"
+                      />
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -290,9 +391,15 @@ export default function BuildingRegister({
                         )}
                       </dt>
                       <dd>
-                        {section === "zoning"
-                          ? registerValue(s.attributes.name)
-                          : `${registerValue(s.attributes.capacity_people, "명")} · ${registerValue(s.attributes.capacity_m3, "㎥")}`}
+                        <RV
+                          entity="building_register_sections"
+                          id={s.id}
+                          field="attributes"
+                        >
+                          {section === "zoning"
+                            ? registerValue(s.attributes.name)
+                            : `${registerValue(s.attributes.capacity_people, "명")} · ${registerValue(s.attributes.capacity_m3, "㎥")}`}
+                        </RV>
                       </dd>
                     </div>
                   ))}
