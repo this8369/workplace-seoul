@@ -524,7 +524,7 @@ header {
 }
 .asset-type-select {
   position: relative;
-  z-index: 5;
+  z-index: 6;
 }
 .asset-type-select h1 {
   margin: 0;
@@ -966,6 +966,8 @@ header {
   pointer-events: none;
 }
 .map-column .toolbar {
+  position: relative;
+  z-index: 6;
   flex-wrap: wrap;
   padding-left: var(--map-tabs-inset);
   border-bottom-color: transparent;
@@ -980,6 +982,7 @@ header {
   flex: 1;
   min-width: 0;
   position: relative;
+  isolation: isolate;
   overflow: hidden;
 }
 .map-region::after {
