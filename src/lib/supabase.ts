@@ -51,7 +51,7 @@ export async function fetchBuildings(): Promise<Building[]> {
 import { emptyCatalog, type Catalog } from "./catalog";
 const coreListeners = new Set<(data: Catalog) => void>();
 let catalogRequest: Promise<Catalog> | undefined;
-const cacheKey = `workplace-catalog-public-v10:${url}`;
+const cacheKey = `workplace-catalog-public-v12:${url}`;
 // Discard older snapshots containing fields which are now member-only.
 try {
   for (const key of Object.keys(sessionStorage))

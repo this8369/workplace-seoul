@@ -3934,14 +3934,14 @@ button:disabled {
   border: 0;
   border-radius: 16px;
   overflow: hidden;
-  background: #eef1f6;
+  background: #e9edf5;
 }
 .asset-popup .asset-metrics > div {
   border: 0;
   border-bottom: 1px solid #e0e5ef;
   padding: 16px;
   min-width: 0;
-  gap: 6px;
+  gap: 4px;
 }
 .asset-popup .asset-metrics > div:nth-of-type(2n) {
   border-left: 1px solid #e0e5ef;
@@ -4113,44 +4113,6 @@ button:disabled {
 }
 .asset-popup table {
   font-size: 13px;
-}
-.asset-discovery-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
-  margin-bottom: 22px;
-}
-.asset-discovery-grid button {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  text-align: left;
-  gap: 8px;
-  padding: 18px;
-  border-radius: 16px;
-  background: #e9edf5;
-}
-.asset-discovery-grid button:hover {
-  background: #e0e6f1;
-}
-.asset-discovery-grid span {
-  color: var(--accent);
-  font-size: 12px;
-}
-.asset-discovery-grid strong {
-  font-size: 15px;
-  font-weight: 650;
-}
-.asset-discovery-grid small {
-  font-size: 12px;
-  color: var(--text-secondary);
-}
-.asset-discovery-grid svg {
-  position: absolute;
-  right: 14px;
-  top: 16px;
-  color: var(--text-secondary);
 }
 .context-panel {
   display: flex;
@@ -4595,19 +4557,6 @@ button:disabled {
   .asset-popup .register-groups {
     grid-template-columns: 1fr;
   }
-  .asset-discovery-grid {
-    grid-template-columns: 1fr;
-    gap: 8px;
-  }
-  .asset-discovery-grid button {
-    display: grid;
-    grid-template-columns: 75px 1fr;
-    gap: 5px 8px;
-    padding: 15px;
-  }
-  .asset-discovery-grid small {
-    grid-column: 2;
-  }
 }
 @container (max-width: 580px) {
   .asset-popup .asset-page {
@@ -4688,3 +4637,24 @@ button:disabled {
     padding-bottom: env(safe-area-inset-bottom);
   }
 }
+.asset-sources-footer {
+  padding: 8px 0 24px;
+}
+.asset-sources-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 14px 18px;
+  border: 1px solid var(--line, #dbe1eb);
+  border-radius: 14px;
+  background: #e8edf5;
+  color: #617087;
+  font: inherit;
+  cursor: pointer;
+}
+.asset-sources-toggle:hover { background: #dfe6f1; }
+.asset-sources-toggle > svg:last-child { transition: transform .18s ease; }
+.asset-sources-toggle > svg.is-open { transform: rotate(90deg); }
+#asset-sources-content { margin-top: 12px; }

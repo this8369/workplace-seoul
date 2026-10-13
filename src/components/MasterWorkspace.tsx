@@ -16,12 +16,7 @@ import {
   type MasterRecord,
 } from "../lib/master-data";
 import "./MasterWorkspace.css";
-import {
-  DataReviewProvider,
-  ReviewValue,
-  ReviewRecordButton,
-  ReviewInbox,
-} from "./DataReview";
+import { DataReviewProvider, ReviewValue, ReviewInbox } from "./DataReview";
 
 const sections = [
   ["master_assets", "자산"],
@@ -486,9 +481,6 @@ export default function MasterWorkspace({
                           );
                         })}
                     </div>
-                    {selected && (
-                      <ReviewRecordButton entity={table} id={selected.id} />
-                    )}
                     {canWrite && creating && (
                       <div className="master-save">
                         <input

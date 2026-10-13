@@ -2,6 +2,7 @@ import { useRef } from "react";
 import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 import "./ServiceTerms.css";
+import { LoadDensityExplanation } from "./LoadDensityHelp";
 export default function ServiceTerms() {
   const dialog = useRef<HTMLDialogElement>(null);
   return (
@@ -23,7 +24,7 @@ export default function ServiceTerms() {
         >
           <header>
             <div>
-              <small>WORKPLACE SEOUL · 초안 v1 · 2026.10.12</small>
+              <small>WORKPLACE SEOUL · 초안 v2 · 2026.10.13</small>
               <h2 id="service-terms-title">서비스 이용약관 및 제공 기준</h2>
             </div>
             <button
@@ -83,7 +84,11 @@ export default function ServiceTerms() {
             </p>
           </section>
           <section>
-            <h3>5. 이용자와 서비스의 책임</h3>
+            <h3>5. 전력 정보와 평당부하밀도 제공 기준</h3>
+            <LoadDensityExplanation />
+          </section>
+          <section>
+            <h3>6. 이용자와 서비스의 책임</h3>
             <p>
               이용자는 적법한 업무 목적으로 서비스를 이용하고 타인의
               개인정보·저작권 및 데이터 제공기관의 이용 조건을 준수해야 합니다.
@@ -93,7 +98,7 @@ export default function ServiceTerms() {
             </p>
           </section>
           <section>
-            <h3>6. 변경 및 문의</h3>
+            <h3>7. 변경 및 문의</h3>
             <p>
               제공 범위나 이용 조건이 변경되면 변경 내용과 적용 시점을
               서비스에서 안내합니다. 이용 문의와 정보 정정은 계정 메뉴의 플랫폼

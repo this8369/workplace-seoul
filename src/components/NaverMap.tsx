@@ -895,20 +895,20 @@ export default function NaverMap({
                   <dd>{formatArea(stats.area)}</dd>
                 </div>
                 <div>
-                  <dt>평균 NOC</dt>
+                  <dt>평균 시장 NOC</dt>
                   <dd>{nocText(stats.average)}</dd>
                 </div>
                 <div>
-                  <dt>최고 NOC</dt>
+                  <dt>최고 시장 NOC</dt>
                   <dd>{nocText(stats.highest)}</dd>
                 </div>
                 <div>
-                  <dt>최저 NOC</dt>
+                  <dt>최저 시장 NOC</dt>
                   <dd>{nocText(stats.lowest)}</dd>
                 </div>
               </dl>
               <p>
-                {stats.period ?? "기준분기 미확인"} · NOC {stats.samples}개
+                {stats.period ?? "기준분기 미확인"} · 시장 NOC {stats.samples}개
                 원문값 기준 · 단순평균
               </p>
               <p>

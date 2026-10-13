@@ -12,6 +12,8 @@ import { masterDisplay, masterRpc } from "../lib/master-data";
 import { masterFields } from "../lib/master-fields";
 import { registerGroups } from "../lib/building-register";
 import "./DataReview.css";
+import OverviewFieldEditor, { hasOverviewEditor } from "./OverviewFieldEditor";
+import { overviewLabels, overviewValueText } from "../lib/asset-overview";
 export type ReviewTarget = {
   entity: string;
   id: string;
@@ -46,6 +48,7 @@ export function useDataReviewVersion() {
 }
 export function fieldLabel(entity: string, key: string) {
   return (
+    overviewLabels[key] ||
     masterFields[entity]?.find((f) => f.key === key)?.label ||
     (entity === "building_register_records"
       ? registerGroups.flatMap((g) => g.fields).find((f) => f[0] === key)?.[1]
@@ -55,6 +58,7 @@ export function fieldLabel(entity: string, key: string) {
         name: "이름",
         address: "주소",
         gross_area_m2: "연면적(㎡)",
+        net_area_m2: "전용면적(㎡)",
         overview: "소개",
         completion_year: "준공연도",
         parking_spaces: "주차대수",
@@ -476,27 +480,51 @@ export function FieldDialog({
           ) : (
             <div className="review-edit">
               <p>
-                현재 값 <strong>{masterDisplay(selected?.value)}</strong>
+                현재 값{" "}
+                <strong>
+                  {overviewLabels[field]
+                    ? overviewValueText(field, selected?.value)
+                    : masterDisplay(selected?.value)}
+                </strong>
               </p>
-              <label className="review-label">
-                {context.can_edit ? "수정할 값" : "수정 요청할 값"}
-                {selected?.type === "boolean" ? (
+              <div className="review-label">
+                <span>{context.can_edit ? "수정할 값" : "수정 요청할 값"}</span>
+                {(hasOverviewEditor(field) &&
+                  target.entity === "building_asset_profiles") ||
+                (field === "contracted_capacity_mw" &&
+                  target.entity === "building_power_specs") ? (
+                  <OverviewFieldEditor
+                    field={field}
+                    value={value}
+                    onChange={setValue}
+                  />
+                ) : selected?.type === "boolean" ? (
                   <select
+                    aria-label={
+                      context.can_edit ? "수정할 값" : "수정 요청할 값"
+                    }
                     value={value}
                     onChange={(e) => setValue(e.target.value)}
                   >
                     <option value="">미확인</option>
-                    <option value="true">예</option>
-                    <option value="false">아니오</option>
+                    <option value="true">
+                      {field === "dual_substation" ? "O" : "예"}
+                    </option>
+                    <option value="false">
+                      {field === "dual_substation" ? "X" : "아니오"}
+                    </option>
                   </select>
                 ) : (
                   <textarea
+                    aria-label={
+                      context.can_edit ? "수정할 값" : "수정 요청할 값"
+                    }
                     rows={selected?.type === "jsonb" ? 6 : 2}
                     value={value}
                     onChange={(e) => setValue(e.target.value)}
                   />
                 )}
-              </label>
+              </div>
               <label className="review-label">
                 수정 사유
                 <textarea
@@ -568,8 +596,17 @@ export function FieldDialog({
                   {Object.entries(h.changes).map(([k, v]) => (
                     <div key={k}>
                       <span>{fieldLabel(h.entity, k)}</span>
-                      <del>{masterDisplay(v.before)}</del>
-                      <b>→ {masterDisplay(v.after)}</b>
+                      <del>
+                        {overviewLabels[k]
+                          ? overviewValueText(k, v.before)
+                          : masterDisplay(v.before)}
+                      </del>
+                      <b>
+                        →{" "}
+                        {overviewLabels[k]
+                          ? overviewValueText(k, v.after)
+                          : masterDisplay(v.after)}
+                      </b>
                     </div>
                   ))}
                 </article>

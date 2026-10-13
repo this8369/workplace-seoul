@@ -127,6 +127,21 @@ export function mapMarkerFacts(
         .filter(Boolean)
         .join(" · ") || undefined,
   };
+  const exclusive = {
+    label: "기준층 전용면적",
+    value: towers.length
+      ? towerFloorText(towers, "exclusive")
+      : floor(building.typical_floor_exclusive_pyeong),
+    title:
+      (towers.length
+        ? towers.map(
+            (t) => `${t.label} · ${t.source_period || "기준시점 미확인"}`,
+          )
+        : [building.typical_floor_source_period, building.typical_floor_scope]
+      )
+        .filter(Boolean)
+        .join(" · ") || undefined,
+  };
   const completion = {
     label: "준공년도",
     title: building.usage_approved_on
@@ -144,7 +159,7 @@ export function mapMarkerFacts(
         value: development?.developer || "미확인",
         title: development?.source,
       },
-      rentable,
+      exclusive,
       {
         label: "시공사",
         value: development?.contractor || "미확인",
@@ -165,24 +180,12 @@ export function mapMarkerFacts(
           ? `${(noc.value / 10000).toLocaleString("ko-KR", { maximumFractionDigits: 1 })}만원/평`
           : "미확인",
       note: noc?.period,
-      title: noc ? `${noc.period} · ${noc.basis}` : "NOC 자료 미확인",
+      title: noc
+        ? `시장 조사 NOC · ${noc.period} · ${noc.basis}`
+        : "시장 NOC 자료 미확인",
     },
     rentable,
-    {
-      label: "기준층 전용면적",
-      value: towers.length
-        ? towerFloorText(towers, "exclusive")
-        : floor(building.typical_floor_exclusive_pyeong),
-      title:
-        (towers.length
-          ? towers.map(
-              (t) => `${t.label} · ${t.source_period || "기준시점 미확인"}`,
-            )
-          : [building.typical_floor_source_period, building.typical_floor_scope]
-        )
-          .filter(Boolean)
-          .join(" · ") || undefined,
-    },
+    exclusive,
     completion,
   ];
 }

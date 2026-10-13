@@ -1,0 +1,102 @@
+.igis-operations {
+  margin-bottom: 24px;
+}
+.igis-operations h2 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.igis-operations .operations-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 12px 0;
+}
+.igis-operations label {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  font-size: 13px;
+  color: var(--muted, #64748b);
+}
+.igis-operations .operations-controls > label {
+  flex: 1 1 150px;
+}
+.igis-operations input,
+.igis-operations select,
+.igis-operations textarea {
+  width: 100%;
+  min-width: 0;
+  border: 1px solid #d6dce6;
+  border-radius: 10px;
+  background: #fff;
+  color: #202a3d;
+  padding: 10px;
+  font: inherit;
+  box-sizing: border-box;
+}
+.igis-operations textarea {
+  min-height: 70px;
+  resize: vertical;
+}
+.igis-operations .operations-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin: 14px 0;
+}
+.igis-operations button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border: 1px solid #d6dce6;
+  border-radius: 10px;
+  background: #fff;
+  color: #293a79;
+  font: inherit;
+  cursor: pointer;
+}
+.igis-operations button:hover {
+  background: #e9edf5;
+}
+.igis-operations button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.igis-operations .operations-action {
+  margin: 8px 0;
+}
+.igis-operations article {
+  padding: 14px 0;
+  border-top: 1px solid #d6dce6;
+}
+.igis-operations dl {
+  margin: 0;
+}
+.igis-operations dl > div {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  padding: 5px 0;
+}
+.igis-operations dt {
+  color: #64748b;
+  font-size: 13px;
+}
+.igis-operations dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+  text-align: right;
+  font-size: 14px;
+}
+.igis-operations [role="alert"] {
+  color: #9a3544;
+}
+@media (max-width: 380px) {
+  .igis-operations .operations-fields {
+    grid-template-columns: 1fr;
+  }
+}

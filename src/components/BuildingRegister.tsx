@@ -1,6 +1,6 @@
 import { useAreaUnit } from "./AreaUnit";
 import { useEffect, useState } from "react";
-import { ReviewValue as RV, ReviewRecordButton } from "./DataReview";
+import { ReviewValue as RV } from "./DataReview";
 import type { Resource } from "../lib/asset-context";
 import {
   fetchBuildingRegister,
@@ -8,7 +8,6 @@ import {
   registerValue as sourceRegisterValue,
   type RegisterData,
 } from "../lib/building-register";
-const source = "https://www.data.go.kr/data/15134735/openapi.do";
 export default function BuildingRegister({
   buildingId,
   resource,
@@ -125,15 +124,11 @@ export default function BuildingRegister({
         <div>
           <h2>건축물대장</h2>
           <p>
-            국토교통부 건축HUB ·{" "}
             {record.record_kind === "complex"
               ? "단지 총괄표제부"
               : "건물 표제부"}
           </p>
         </div>
-        <a href={source} target="_blank" rel="noreferrer">
-          공공데이터 출처 ↗
-        </a>
       </div>
       {data.records.length > 1 && (
         <div className="register-records" aria-label="대장 선택">
@@ -152,7 +147,6 @@ export default function BuildingRegister({
         </div>
       )}
       <div className="register-groups">
-        <ReviewRecordButton entity="building_register_records" id={record.id} />
         {registerGroups.map((group) => (
           <section className="info-panel" key={group.title}>
             <h3>{group.title}</h3>
@@ -277,11 +271,6 @@ export default function BuildingRegister({
                       >
                         {registerValue(f.area_excluded)}
                       </RV>
-                      <ReviewRecordButton
-                        entity="building_register_floors"
-                        id={f.id}
-                        label="항목 보기"
-                      />
                     </td>
                   </tr>
                 ))}
@@ -362,11 +351,6 @@ export default function BuildingRegister({
                       >
                         {registerValue(a.area_m2, "㎡")}
                       </RV>
-                      <ReviewRecordButton
-                        entity="building_register_area_parts"
-                        id={a.id}
-                        label="항목 보기"
-                      />
                     </td>
                   </tr>
                 ))}
@@ -414,11 +398,6 @@ export default function BuildingRegister({
           ))}
         </div>
       )}
-      <p className="register-provenance">
-        대장 고유번호 {record.register_pk} · 원천 생성일{" "}
-        {record.source_created_date || "미기재"} · 수집일{" "}
-        {record.collected_at.slice(0, 10)}
-      </p>
     </section>
   );
 }

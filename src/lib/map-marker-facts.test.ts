@@ -78,6 +78,7 @@ test("development bubbles use owner/developer and contractor, never operating me
     area_basis: "planned",
     gross_area_m2: 40000,
     typical_floor_area_pyeong: 999,
+    typical_floor_rentable_pyeong: 850.5,
   } as Building;
   const facts = mapMarkerFacts(
     b,
@@ -89,7 +90,7 @@ test("development bubbles use owner/developer and contractor, never operating me
     [
       "계획 연면적",
       "소유주·시행주체",
-      "기준층 임대면적",
+      "기준층 전용면적",
       "시공사",
       "준공 예정",
     ],
@@ -97,6 +98,10 @@ test("development bubbles use owner/developer and contractor, never operating me
   assert.equal(facts[1].value, "테스트 소유주");
   assert.equal(facts[2].value, "미확인");
   assert.equal(facts[3].value, "테스트 시공사");
+  assert.equal(
+    mapMarkerFacts({ ...b, typical_floor_exclusive_pyeong: 510.3 })[2].value,
+    "510.3평",
+  );
   assert.equal(mapMarkerFacts(b)[1].value, "미확인");
 });
 test("development facts use the latest source date without silently choosing conflicting parties", () => {

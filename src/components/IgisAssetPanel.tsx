@@ -7,11 +7,7 @@ import {
 } from "../lib/master-data";
 import MasterWorkspace from "./MasterWorkspace";
 import { masterFields } from "../lib/master-fields";
-import {
-  ReviewValue,
-  ReviewRecordButton,
-  useDataReviewVersion,
-} from "./DataReview";
+import { ReviewValue, useDataReviewVersion } from "./DataReview";
 export default function IgisAssetPanel({ buildingId }: { buildingId: string }) {
   const { areaField, areaLabel, showAreaField } = useAreaUnit();
   const revision = useDataReviewVersion();
@@ -95,10 +91,6 @@ export default function IgisAssetPanel({ buildingId }: { buildingId: string }) {
             <section key={object.id}>
               <div className="section-heading">
                 <h3>{masterDisplay(object.name)}</h3>
-                <ReviewRecordButton
-                  entity="master_investment_objects"
-                  id={object.id}
-                />
               </div>
               <dl className="igis-object-fields">
                 {masterFields.master_investment_objects

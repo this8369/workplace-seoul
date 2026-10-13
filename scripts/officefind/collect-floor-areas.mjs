@@ -1,10 +1,21 @@
 // Public pages only, one request at a time. Cache/checkpoint every asset and stop
 // on access challenges; never rotate accounts, IPs, or bypass rate limits.
 import pg from "pg";
-import { readFile, writeFile, mkdir } from "node:fs/promises";
+import { readFile, writeFile, mkdir, readdir } from "node:fs/promises";
 import { createHash } from "node:crypto";
 import { aliases, norm, parseOffice, identityMatch } from "./parser.mjs";
+import { matchFloorIdentity } from "./reviewed-floor-identities.mjs";
 const root = "data/private/officefind";
+const missingOnly = process.argv.includes("--missing");
+const operatingOnly = process.argv.includes("--operating");
+const refreshSearch = process.argv.includes("--refresh-search");
+const selectedIds = process.argv
+  .find((a) => a.startsWith("--ids="))
+  ?.slice(6)
+  .split(",");
+const categoryOnly = process.argv
+  .find((a) => a.startsWith("--category="))
+  ?.split("=")[1];
 await mkdir(`${root}/pages`, { recursive: true });
 const read = async (p, fallback) => {
   try {
@@ -27,11 +38,23 @@ const db = new pg.Client({
 await db.connect();
 const buildings = (
   await db.query(
-    "select id,name,address,standard_address,road_address,latitude,longitude,status,gross_area_m2,typical_floor_rentable_pyeong,typical_floor_exclusive_pyeong from buildings order by name",
+    "select b.*, c.asset_category from buildings b left join catalog_buildings c on c.id=b.id order by b.name",
   )
 ).rows;
 const photos = await read("data/private/images/collection.json", {});
 const cache = await read(`${root}/results.json`, {});
+const imageSources = (
+  await db.query(
+    "select building_id,source_url from building_images where source_url like 'https://officefind.co.kr/%'",
+  )
+).rows;
+const cachedPages = [];
+for (const file of await readdir(`${root}/pages`)) {
+  if (!file.endsWith(".json")) continue;
+  const page = await read(`${root}/pages/${file}`, null);
+  if (page?.text?.includes("office-name"))
+    cachedPages.push({ page, spec: parseOffice(page.text, page.url) });
+}
 let requests = 0,
   lastRequest = 0,
   stopped = false;
@@ -47,7 +70,15 @@ async function request(url) {
   url = parsed.href;
   const path = `${root}/pages/${hash(url)}.json`;
   const saved = await read(path, null);
-  if (saved) return saved;
+  if (
+    saved &&
+    !(
+      refreshSearch &&
+      parsed.pathname === "/getOfficeData" &&
+      Date.now() - Date.parse(saved.fetched_at) > 7 * 86400000
+    )
+  )
+    return saved;
   for (let attempt = 0; attempt < 3; attempt++) {
     await sleep(Math.max(0, lastRequest + 2200 - Date.now()));
     lastRequest = Date.now();
@@ -127,6 +158,12 @@ function candidates(b) {
     ...new Set(
       [
         photos[b.id]?.source_url,
+        ...imageSources
+          .filter((p) => p.building_id === b.id)
+          .map((p) => p.source_url),
+        ...cachedPages
+          .filter((p) => matchFloorIdentity(b, p.spec, buildings).ok)
+          .map((p) => p.page.url),
         ...matches.map((x) => x.url),
         ...byName.map((x) => x.url),
       ].filter((u) => u?.startsWith("https://officefind.co.kr/")),
@@ -135,7 +172,12 @@ function candidates(b) {
 }
 async function search(b) {
   const names = aliases(b);
-  const terms = [names[0], b.road_address || names[1]].filter(Boolean);
+  // Source search uses short addresses (서울 rather than 서울특별시).
+  // Full administrative-prefix queries silently returned no results.
+  const street = b.road_address?.match(
+    /([^\s]+(?:로|길))\s+(\d+(?:-\d+)?)/,
+  )?.[0];
+  const terms = [names[0], street, ...names.slice(1, 4)].filter(Boolean);
   const found = [];
   for (const term of [...new Set(terms)]) {
     const url = new URL("https://officefind.co.kr/getOfficeData");
@@ -180,6 +222,13 @@ const summary = () =>
 async function persist(b, record) {
   await db.query("begin");
   try {
+    await db.query(
+      "select set_config('app.review_origin','officefind_floor_import',true),set_config('app.review_reason',$1,true)",
+      [
+        "오피스파인드 기준층 임대·전용면적 원문 및 건물 대조: " +
+          (record.source_url || record.status),
+      ],
+    );
     if (record.status === "matched") {
       const current = (
         await db.query(
@@ -233,6 +282,8 @@ async function persist(b, record) {
           attempts: record.attempts,
           warnings: record.warnings,
           error: record.error,
+          identity_evidence: record.identity_evidence,
+          identity_review_note: record.identity_review_note,
         }),
       ],
     );
@@ -247,12 +298,35 @@ async function persist(b, record) {
 try {
   const ordered = [...buildings].sort(
     (a, b) =>
+      Number(b.status === "operating") - Number(a.status === "operating") ||
+      Number(b.asset_category === "office") -
+        Number(a.asset_category === "office") ||
       Number(Boolean(photos[b.id]?.source_url)) -
-      Number(Boolean(photos[a.id]?.source_url)),
+        Number(Boolean(photos[a.id]?.source_url)),
   );
   for (const [index, b] of ordered.entries()) {
     if (stopped) break;
-    if (cache[b.id] && !["error", "blocked"].includes(cache[b.id].status))
+    if (selectedIds && !selectedIds.includes(b.id)) continue;
+    if (
+      missingOnly &&
+      b.typical_floor_exclusive_pyeong != null &&
+      b.typical_floor_rentable_pyeong != null
+    )
+      continue;
+    if (operatingOnly && b.status !== "operating") continue;
+    if (categoryOnly && b.asset_category !== categoryOnly) continue;
+    if (
+      missingOnly &&
+      !/^(서울|경기|부산|인천|대구|대전|광주|울산|충|전|경|세종|강원|제주)/.test(
+        b.road_address || b.standard_address || b.address,
+      )
+    )
+      continue;
+    if (
+      !missingOnly &&
+      cache[b.id] &&
+      !["error", "blocked"].includes(cache[b.id].status)
+    )
       continue;
     const attempts = [];
     let chosen = null;
@@ -272,7 +346,7 @@ try {
             continue;
           }
           const spec = parseOffice(page.text, page.url);
-          const match = identityMatch(b, spec, buildings);
+          const match = matchFloorIdentity(b, spec, buildings);
           attempts.push({
             url: page.url,
             name: spec.name,
@@ -304,6 +378,8 @@ try {
             content_hash: page.hash,
             observed_at: page.fetched_at,
             match_reason: match.reason,
+            identity_evidence: match.evidence,
+            identity_review_note: match.review_note,
           };
           return;
         }
@@ -319,6 +395,14 @@ try {
         }),
         attempts,
       });
+      console.log(
+        JSON.stringify({
+          name: b.name,
+          status: cache[b.id]?.status,
+          exclusive: cache[b.id]?.exclusive_pyeong,
+          requests,
+        }),
+      );
     } catch (e) {
       await persist(b, {
         status: stopped ? "blocked" : "error",

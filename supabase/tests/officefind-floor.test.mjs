@@ -36,6 +36,60 @@ const b = {
   road_address: "서울특별시 강남구 강남대로 560",
 };
 const source = parseOffice(page(), "");
+test("lot matching accepts an explicit additional-parcels suffix without matching another lot", () => {
+  const target = {
+    ...b,
+    road_address: null,
+    address: "서울특별시 강남구 논현동 50외 8필지",
+  };
+  assert.equal(identityMatch(target, source).ok, true);
+  assert.equal(
+    identityMatch(
+      { ...target, address: "서울특별시 강남구 논현동 500외 8필지" },
+      source,
+    ).ok,
+    false,
+  );
+});
+test("shared address accepts an exact building alias, but not a different tower", () => {
+  const target = {
+    ...b,
+    name: "테스트타워 (구, 테스트본사)",
+    status: "operating",
+  };
+  const other = { ...b, id: "2", name: "다른타워", status: "operating" };
+  assert.equal(identityMatch(target, source, [target, other]).ok, true);
+  assert.equal(identityMatch(other, source, [target, other]).ok, false);
+  assert.equal(
+    identityMatch(
+      { ...target, name: "테스트타워" },
+      { ...source, name: "변경된이름" },
+      [target, { ...other, status: "development" }],
+    ).ok,
+    true,
+  );
+});
+test("IFC numbered towers match their English names without crossing towers", () => {
+  const targets = [1, 2, 3].map((n) => ({
+    ...b,
+    id: String(n),
+    name: `서울 국제금융 센터 (IFC ${n})`,
+  }));
+  for (const [i, name] of ["One IFC", "Two IFC", "Three IFC"].entries())
+    for (const [j, target] of targets.entries())
+      assert.equal(
+        identityMatch(target, { ...source, name }, targets).ok,
+        i === j,
+      );
+});
+test("a former name's tower suffix does not change the current asset's scope", () => {
+  const target = { ...b, name: "테스트타워 (구, 과거 A동)" };
+  assert.equal(identityMatch(target, source, [target]).ok, true);
+  assert.equal(
+    identityMatch({ ...target, name: "테스트타워 <A동>" }, source).ok,
+    false,
+  );
+});
 test("asset matching requires address identity and disambiguates shared towers", () => {
   assert.equal(identityMatch(b, source, [b]).ok, true);
   assert.equal(
@@ -67,6 +121,24 @@ test("asset matching requires address identity and disambiguates shared towers",
   );
 });
 test("combined complex data cannot be filled from one component tower", () => {
+  for (const [name, sourceName] of [
+    ["센터필드(Center Field)", "센터필드 웨스트"],
+    ["트윈트리타워", "트윈트리타워 A"],
+  ]) {
+    assert.equal(
+      identityMatch({ ...b, name }, { ...source, name: sourceName }).ok,
+      false,
+    );
+  }
+  for (const name of ["남산스퀘어 증축 및 리모델링", "재화스퀘어 재건축"]) {
+    assert.equal(
+      identityMatch(
+        { ...b, name, status: "development" },
+        { ...source, name: name.split(" ")[0] },
+      ).ok,
+      false,
+    );
+  }
   assert.equal(
     identityMatch(
       { ...b, name: "광화문 D타워 (D1, D2)" },
@@ -81,6 +153,39 @@ test("combined complex data cannot be filled from one component tower", () => {
     ).ok,
     false,
   );
+});
+
+test("reviewed address exceptions require the exact asset and original source", async () => {
+  const { reviewedFloorIdentities, matchFloorIdentity } =
+    await import("../../scripts/officefind/reviewed-floor-identities.mjs");
+  for (const r of reviewedFloorIdentities) {
+    const building = { id: r.id, name: r.name, road_address: r.road };
+    const source = {
+      name: r.sourceName,
+      address: r.sourceAddress,
+      url: `https://officefind.co.kr${r.path}`,
+    };
+    assert.equal(
+      matchFloorIdentity(building, source).reason,
+      "reviewed-identity-evidence",
+    );
+    assert.equal(matchFloorIdentity(building, source).evidence, r.evidence);
+    assert.equal(
+      matchFloorIdentity({ ...building, id: "unreviewed" }, source).ok,
+      false,
+    );
+    assert.equal(
+      matchFloorIdentity(building, {
+        ...source,
+        url: "https://officefind.co.kr/other",
+      }).ok,
+      false,
+    );
+    assert.equal(
+      matchFloorIdentity(building, { ...source, name: "다른 동" }).ok,
+      false,
+    );
+  }
 });
 
 test("approval parser excludes forecasts and invalid dates, preserves original approval before remodeling", async () => {

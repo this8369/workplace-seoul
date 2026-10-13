@@ -2,8 +2,20 @@ import pg from "pg";
 import assert from "node:assert/strict";
 import { readFile, writeFile } from "node:fs/promises";
 import { createHash } from "node:crypto";
-import { identityMatch, parseOffice } from "./parser.mjs";
+import { parseOffice } from "./parser.mjs";
+import { matchFloorIdentity } from "./reviewed-floor-identities.mjs";
 const root = "data/private/officefind";
+const baselinePath = process.argv
+  .find((a) => a.startsWith("--baseline="))
+  ?.slice(11);
+const baseline = baselinePath
+  ? new Map(
+      JSON.parse(await readFile(baselinePath, "utf8")).buildings.map((b) => [
+        b.id,
+        b,
+      ]),
+    )
+  : null;
 const { reviewerEmail, ...config } = JSON.parse(
   await readFile("data/private/db-config.json", "utf8"),
 );
@@ -28,6 +40,14 @@ try {
   const rejected = [];
   let verified = 0;
   for (const record of imports) {
+    if (
+      baseline &&
+      (!baseline.has(record.building_id) ||
+        baseline.get(record.building_id).typical_floor_exclusive_pyeong !=
+          null ||
+        baseline.get(record.building_id).typical_floor_rentable_pyeong != null)
+    )
+      continue;
     const b = buildings.find((b) => b.id === record.building_id);
     const key = createHash("sha256").update(record.source_url).digest("hex");
     const page = JSON.parse(
@@ -38,12 +58,16 @@ try {
       record.content_hash,
     );
     const spec = parseOffice(page.text, record.source_url),
-      match = identityMatch(b, spec, buildings);
+      match = matchFloorIdentity(b, spec, buildings);
     if (!match.ok) {
       rejected.push({ name: b.name, source: spec.name, reason: match.reason });
       if (process.argv.includes("--repair")) {
         await db.query("begin");
         try {
+          await db.query(
+            "select set_config('app.review_origin','officefind_floor_validation',true), set_config('app.review_reason',$1,true)",
+            ["동·개발단계 범위 재검증으로 이번 수집 값 제외: " + match.reason],
+          );
           const result = await db.query(
             `update buildings set typical_floor_rentable_pyeong=null,typical_floor_exclusive_pyeong=null,typical_floor_source_url=null,typical_floor_source_period=null,typical_floor_collected_at=null where id=$1 and typical_floor_source_url=$2 and typical_floor_rentable_pyeong is not distinct from $3::numeric and typical_floor_exclusive_pyeong is not distinct from $4::numeric`,
             [

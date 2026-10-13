@@ -6,6 +6,16 @@ export type BuildingComplex = {
   representative_building_id: string;
   gross_area_m2: number;
   area_method: "aggregate_record" | "sum_components";
+  area_scope?: string;
+  common_facts?: {
+    label: string;
+    value: string;
+    source_name?: string;
+    source_url?: string;
+  }[];
+  parking_spaces?: number | null;
+  contracted_capacity_mw?: number | null;
+  dual_substation?: boolean | null;
 };
 export type BuildingTower = {
   id: string;
@@ -18,11 +28,31 @@ export type BuildingTower = {
   source_url: string | null;
   source_period: string | null;
   collected_at: string | null;
+  component_kind?: "building" | "building_group" | "facility";
+  parent_tower_id?: string | null;
+  gross_area_m2?: number | null;
+  net_area_m2?: number | null;
+  floors_above?: number | null;
+  floors_below?: number | null;
+  parking_spaces?: number | null;
+  contracted_capacity_mw?: number | null;
+  main_use?: string | null;
+  overview?: string | null;
+  evidence?: {
+    source_name?: string;
+    source_url?: string;
+    scope?: string;
+    register_pk?: string;
+  };
 };
-export type MapBuilding = Building & { member_ids?: string[] };
+export type MapBuilding = Building & {
+  member_ids?: string[];
+  member_names?: string[];
+  area_scope?: string;
+};
 
 // Preserve source records and IDs for favorites, trades and tenant histories.
-// Only the map projection combines physical towers into one named complex.
+// Map and list use the same projection; underlying records remain unchanged.
 export function complexMapBuildings(
   buildings: Building[],
   complexes: BuildingComplex[],
@@ -46,7 +76,20 @@ export function complexMapBuildings(
       name: complex.name,
       gross_area_m2: complex.gross_area_m2,
       typical_floor_scope: null,
-      member_ids: members.map((b) => b.id),
+      typical_floor_exclusive_pyeong: null,
+      typical_floor_rentable_pyeong: null,
+      floors_above: null,
+      floors_below: null,
+      parking_spaces: null,
+      area_scope: complex.area_scope,
+      member_names: members.flatMap(
+        (b) => (b as MapBuilding).member_names || [b.name],
+      ),
+      member_ids: [
+        ...new Set(
+          members.flatMap((b) => (b as MapBuilding).member_ids || [b.id]),
+        ),
+      ],
     });
   }
   return result;
@@ -54,9 +97,40 @@ export function complexMapBuildings(
 export const towersFor = (building: Building, towers: BuildingTower[]) =>
   building.complex_id
     ? towers
-        .filter((t) => t.complex_id === building.complex_id)
+        .filter(
+          (t) =>
+            t.complex_id === building.complex_id &&
+            t.component_kind !== "facility" &&
+            !t.parent_tower_id,
+        )
         .sort((a, b) => a.sort_order - b.sort_order)
     : [];
+
+/** Lists use a building's own value first; a complex has separate tower values. */
+export function buildingFloorText(
+  building: Building,
+  towers: BuildingTower[],
+  members: Building[] = [],
+) {
+  const own = building.typical_floor_exclusive_pyeong;
+  if (own != null && Number.isFinite(own) && own > 0)
+    return `${Math.trunc(own).toLocaleString("ko-KR")}평`;
+  const rows = towersFor(building, towers);
+  const linked = (building as MapBuilding).member_ids
+    ? []
+    : rows.filter((t) => t.building_id === building.id);
+  return rows.length
+    ? (linked.length ? linked : rows)
+        .map((t) => {
+          const value =
+            t.typical_floor_exclusive_pyeong ??
+            members.find((b) => b.id === t.building_id)
+              ?.typical_floor_exclusive_pyeong;
+          return `${t.label} ${value != null && Number.isFinite(value) && value > 0 ? `${Math.trunc(value).toLocaleString("ko-KR")}평` : "미확인"}`;
+        })
+        .join(" / ")
+    : "미확인";
+}
 
 export function towerFloorText(
   towers: BuildingTower[],

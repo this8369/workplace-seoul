@@ -24,6 +24,9 @@ export type Building = {
   asset_category?: AssetCategory;
   id: string;
   complex_id?: string | null;
+  complex_scope?: "aggregate" | "component" | "related" | null;
+  member_ids?: string[];
+  member_names?: string[];
   name: string;
   address: string;
   source_address?: string;
@@ -83,12 +86,12 @@ export function filterBuildings(
             (assetCategory === "mixed" && b.is_mixed_use === true))
         : (b.asset_category ?? "office") === "office") &&
       (!q ||
-        `${b.name} ${b.address} ${b.road_address || ""}`
+        `${b.name} ${(b.member_names || []).join(" ")} ${b.address} ${b.road_address || ""}`
           .toLocaleLowerCase("ko-KR")
           .includes(q)) &&
       (!region || b.region === region) &&
       (!status || b.status === status) &&
-      (!saved || saved.has(b.id)),
+      (!saved || saved.has(b.id) || b.member_ids?.some((id) => saved.has(id))),
   );
 }
 export function safeSourceUrl(value: string | null): string | undefined {

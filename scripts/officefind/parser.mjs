@@ -104,15 +104,29 @@ export function identityMatch(building, source, siblings = []) {
   building = { ...building, name: normalizeBuildingName(building.name) };
   if (!source.name || !source.address)
     return { ok: false, reason: "missing-identity" };
+  const phase = building.name.match(/재건축|재개발|증축|리모델링/)?.[0];
+  if (
+    building.status === "development" &&
+    phase &&
+    !source.name.includes(phase)
+  )
+    return { ok: false, reason: "development-phase-mismatch" };
   const addressMatches = Boolean(
     building.road_address &&
     roadKey(building.road_address) === roadKey(source.address),
   );
   const sourceLot = source.address.match(/[（(]([^）)]+)[）)]/)?.[1];
   const lot = building.standard_address || building.address || "";
+  const lotKey = (value) => {
+    const match = value?.match(
+      /([가-힣\d]+(?:동|가|읍|면|리))\s*(\d+(?:-\d+)?)(?!\d)/,
+    );
+    return match ? norm(match[1] + match[2]) : null;
+  };
   const lotMatches =
     sourceLot &&
-    norm(lot).endsWith(norm(sourceLot)) &&
+    lotKey(lot) &&
+    lotKey(lot) === lotKey(sourceLot) &&
     lot.match(/\S+구/)?.[0] === source.address.match(/\S+구/)?.[0];
   if (!addressMatches && !lotMatches)
     return { ok: false, reason: "address-mismatch" };
@@ -129,6 +143,8 @@ export function identityMatch(building, source, siblings = []) {
   const multiple = siblings.filter(
     (b) =>
       b.id !== building.id &&
+      // A future redevelopment at the same lot is not another operating tower.
+      (!building.status || !b.status || b.status === building.status) &&
       roadKey(b.road_address) &&
       roadKey(b.road_address) === roadKey(building.road_address),
   );
@@ -142,9 +158,31 @@ export function identityMatch(building, source, siblings = []) {
     )
   )
     return { ok: false, reason: "tower-ambiguous" };
+  const currentName = building.name.replace(
+    /[（(]\s*구[, .]*[^）)]*[）)]/g,
+    "",
+  );
+  const directionalTower = (name) =>
+    name.match(/(?:^|\s)(웨스트|이스트|West|East)(?:\s|$)/i)?.[1] ||
+    name.match(/타워\s+([A-D])(?:\b|$)/i)?.[1];
+  const sourceDirection = directionalTower(source.name);
+  if (
+    sourceDirection &&
+    norm(sourceDirection) !== norm(directionalTower(currentName) || "")
+  )
+    return { ok: false, reason: "tower-ambiguous" };
   const scope =
-    building.name.match(/<([^>]+)>/)?.[1] ||
-    building.name.match(/(?:타워\s*[1-9]|[1-9]\s*동|[A-Z]동)/i)?.[0];
+    currentName.match(/<([^>]+)>/)?.[1] ||
+    currentName.match(/(?:타워\s*[1-9]|[1-9]\s*동|[A-Z]동)/i)?.[0];
+  const ifcTower = (name) =>
+    name.match(/IFC\s*([123])(?:\D|$)/i)?.[1] ||
+    { one: "1", two: "2", three: "3" }[
+      name.match(/\b(one|two|three)\s+IFC\b/i)?.[1]?.toLowerCase()
+    ];
+  const targetIfc = ifcTower(building.name),
+    sourceIfc = ifcTower(source.name);
+  if ((targetIfc || sourceIfc) && targetIfc !== sourceIfc)
+    return { ok: false, reason: "tower-ambiguous" };
   // A component tower page cannot silently fill a whole-complex record.
   const sourceTower = source.name.match(
     /(?:타워\s*[1-9]|[1-9]\s*동|[A-Z]동)/i,
@@ -154,7 +192,10 @@ export function identityMatch(building, source, siblings = []) {
   if (multiple.length || scope) {
     const sourceName = norm(source.name),
       targetName = norm(building.name);
-    const exact = sourceName === targetName;
+    const exact =
+      sourceName === targetName ||
+      (!scope && aliases(building).some((a) => norm(a) === sourceName)) ||
+      (targetIfc && targetIfc === sourceIfc);
     if (!exact && (!scope || !sourceName.includes(norm(scope))))
       return { ok: false, reason: "tower-ambiguous" };
   }

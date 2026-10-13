@@ -6,6 +6,7 @@ import {
   DataReviewBoundary,
 } from "./DataReview";
 import BuildingRegister from "./BuildingRegister";
+import AssetOverview from "./AssetOverview";
 import { useScrollSections } from "./useScrollSections";
 import { AreaUnitProvider, useAreaUnit } from "./AreaUnit";
 import { fetchTransactionDetail } from "../lib/member-details";
@@ -50,6 +51,7 @@ import {
   type Transaction,
 } from "../lib/catalog";
 
+const IgisOperationsPanel = lazy(() => import("./IgisOperationsPanel"));
 const IgisAssetPanel = lazy(() => import("./IgisAssetPanel"));
 function Source({ item }: { item: Evidence }) {
   const url = safeSourceUrl(item.source_url);
@@ -206,8 +208,7 @@ function TransactionDialogContent({
         뒤 비교하세요.
       </p>
       {t.note && <p className="record-note">{t.note}</p>}
-      <ReviewRecordButton entity="transactions" id={t.id} />
-      <Source item={t} />
+
       {t.building_id ? (
         <button
           className="primary go-building"
@@ -512,17 +513,17 @@ const tabs = [
   "이지스",
   "토지",
   "건축물대장",
-  "임대 정보",
+  "시장 임대",
   "임차기업",
   "거래 이력",
   "개발·변경 이력",
   "주변",
-  "자료 출처",
 ] as const;
 type AssetTab = (typeof tabs)[number];
 export function AssetWorkspace(
   props: Parameters<typeof AssetWorkspaceContent>[0],
 ) {
+  if (props.embedded) return <AssetWorkspaceContent {...props} />;
   return (
     <AreaUnitProvider key={props.building.id}>
       <AssetWorkspaceContent {...props} />
@@ -539,6 +540,8 @@ function AssetWorkspaceContent({
   archiveStatus = "ready",
   onRetryArchive,
   onManageImages,
+  embedded = false,
+  sharedOverview,
 }: {
   building: Building;
   catalog: Catalog;
@@ -549,12 +552,15 @@ function AssetWorkspaceContent({
   archiveStatus?: "idle" | "loading" | "ready" | "error";
   onRetryArchive?: () => void;
   onManageImages?: () => void;
+  embedded?: boolean;
+  sharedOverview?: React.ReactNode;
 }) {
   const { unit, setUnit, formatArea, perPyeong } = useAreaUnit();
   const transactionArea = formatArea;
   const [tenantQuery, setTenantQuery] = useState(""),
     [tenantView, setTenantView] = useState("list"),
     [companyId, setCompanyId] = useState<string | null>(null);
+  const [sourcesOpen, setSourcesOpen] = useState(false);
   const [addressMode, setAddressMode] = useState<"parcel" | "road">("parcel");
   const addresses = [b.standard_address, b.address, b.source_address].filter(
     Boolean,
@@ -573,7 +579,11 @@ function AssetWorkspaceContent({
     loaded: loadedSections,
     goTo: goToSection,
   } = useScrollSections(page, tabs);
-  const context = useAssetContext(b.id, loadedSections, reviewVersion);
+  const context = useAssetContext(
+    b.id,
+    sourcesOpen ? [...loadedSections, "자료 출처"] : loadedSections,
+    reviewVersion,
+  );
   const photos = catalog.images.filter(
     (p) =>
       p.building_id === b.id &&
@@ -598,19 +608,28 @@ function AssetWorkspaceContent({
   );
   const photo = photos.find((p) => p.id === photoId) ?? photos[0];
   const noc = markerNocIndex(catalog.leasing).get(b.id);
-  const towerRows = towersFor(b, catalog.towers || []);
+  const towerRows = embedded
+    ? (catalog.towers || []).filter(
+        (t) =>
+          t.building_id === b.id &&
+          !t.parent_tower_id &&
+          t.component_kind !== "facility",
+      )
+    : towersFor(b, catalog.towers || []);
   useEffect(() => {
     const previous = document.activeElement as HTMLElement | null;
-    title.current?.focus({ preventScroll: true });
+    if (!embedded) title.current?.focus({ preventScroll: true });
     return () => {
-      if (previous?.isConnected) previous.focus({ preventScroll: true });
+      if (!embedded && previous?.isConnected)
+        previous.focus({ preventScroll: true });
     };
   }, []);
   useEffect(() => {
+    setSourcesOpen(false);
     setCompanyId(null);
     setTenantQuery("");
     setTenantView("list");
-    title.current?.focus();
+    if (!embedded) title.current?.focus();
   }, [b.id]);
   const trades = filterTransactions(
     catalog.transactions.filter((t) => t.building_id === b.id),
@@ -635,7 +654,7 @@ function AssetWorkspaceContent({
       kind === "rentable"
         ? "typical_floor_rentable_pyeong"
         : "typical_floor_exclusive_pyeong";
-    return towerRows.length ? (
+    return towerRows.length && !(embedded && b[field] != null) ? (
       towerRows.map((t, i) => (
         <span key={t.id}>
           {i > 0 && " / "}
@@ -669,13 +688,14 @@ function AssetWorkspaceContent({
     source_url: b.source_url,
     as_of: b.source_as_of || b.verified_on,
   };
-  const sectionContent: Record<AssetTab, React.ReactNode> = {
+  const sectionContent: Record<AssetTab | "자료 출처", React.ReactNode> = {
     이지스: (
       <Suspense
         fallback={
           <p className="context-note">이지스 정보를 불러오고 있습니다.</p>
         }
       >
+        <IgisOperationsPanel key={b.id} buildingId={b.id} />
         <IgisAssetPanel buildingId={b.id} />
       </Suspense>
     ),
@@ -713,6 +733,37 @@ function AssetWorkspaceContent({
         <div className="asset-source-list">
           {[
             evidence,
+            ...(b.completion_source_url
+              ? [
+                  {
+                    source_name: "준공연도 · 사용승인일",
+                    source_url: b.completion_source_url,
+                    as_of: b.completion_collected_at?.slice(0, 10) || null,
+                  },
+                ]
+              : []),
+            ...(b.typical_floor_source_url
+              ? [
+                  {
+                    source_name: "기준층 면적",
+                    source_url: b.typical_floor_source_url,
+                    as_of:
+                      b.typical_floor_source_period ||
+                      b.typical_floor_collected_at?.slice(0, 10) ||
+                      null,
+                  },
+                ]
+              : []),
+            ...towerRows.map((t) => ({
+              source_name: `${t.label} · 기준층 면적`,
+              source_url: t.source_url,
+              as_of: t.source_period || t.collected_at?.slice(0, 10) || null,
+            })),
+            ...(context.facts.data ?? []),
+            ...(context.natureSources.data ?? []).map((g) => ({
+              ...g,
+              source_name: `${g.source_name} · 자연환경 (공원 기준점 반경 500m)`,
+            })),
             ...leases,
             ...developments,
             ...trades,
@@ -756,170 +807,22 @@ function AssetWorkspaceContent({
     ),
     개요: (
       <>
-        <div className="asset-discovery-grid">
-          {(
-            [
-              [
-                "토지",
-                "필지와 토지이용계획",
-                context.parcels.data?.length
-                  ? `${context.parcels.data.length}개 필지`
-                  : "선택해서 필지 정보 보기",
-              ],
-              [
-                "건축물대장",
-                "건물·층별·전유공용",
-                context.register.data?.records.length
-                  ? `${context.register.data.records.length}개 대장 · ${context.register.data.floors.length}개 층별 항목`
-                  : "선택해서 건축물대장 보기",
-              ],
-              [
-                "주변",
-                "교통과 생활편의",
-                context.places.data?.length
-                  ? `${context.places.data.length}개 시설`
-                  : "선택해서 주변 시설 보기",
-              ],
-            ] as const
-          ).map(([target, label, desc]) => (
-            <button key={target} onClick={() => goToSection(target)}>
-              <span>{target}</span>
-              <strong>{label}</strong>
-              <small>{desc}</small>
-              <ArrowUpRight size={18} />
-            </button>
-          ))}
-        </div>
         <div className="overview-grid">
-          <section className="info-panel">
-            <div className="section-heading">
-              <h2>공간의 기본 정보</h2>
-              <Building2 size={18} />
-            </div>
-            <p className="asset-intro">
-              <RV entity="buildings" id={b.id} field="overview">
-                {b.overview ||
-                  "건물의 규모와 입지, 입주기업과 거래 이력을 한곳에서 살펴보세요."}
-              </RV>
-            </p>
-            <dl>
-              <div>
-                <dt>주소</dt>
-                <dd>
-                  <RV entity="buildings" id={b.id} field="address">
-                    {b.address}
-                  </RV>
-                </dd>
-              </div>
-              <div>
-                <dt>연면적 기준</dt>
-                <dd>
-                  <RV entity="buildings" id={b.id} field="area_basis">
-                    {b.area_basis === "actual" ? "실제 연면적" : "계획 연면적"}
-                  </RV>
-                </dd>
-              </div>
-              <div>
-                <dt>규모</dt>
-                <dd>
-                  <RV entity="buildings" id={b.id} field="floors_above">
-                    {b.floors_above != null
-                      ? `지상 ${b.floors_above}층`
-                      : "미확인"}
-                  </RV>
-                  <RV entity="buildings" id={b.id} field="floors_below">
-                    {b.floors_below != null
-                      ? ` / 지하 ${b.floors_below}층`
-                      : ""}
-                  </RV>
-                </dd>
-              </div>
-              <div>
-                <dt>{b.status === "development" ? "준공 예정" : "준공연도"}</dt>
-                <dd
-                  title={
-                    b.usage_approved_on
-                      ? `사용승인일 ${b.usage_approved_on}`
-                      : undefined
-                  }
-                >
-                  <RV
-                    entity={
-                      b.status === "development"
-                        ? "development_records"
-                        : "buildings"
-                    }
-                    id={
-                      b.status === "development" ? currentDevelopment?.id : b.id
-                    }
-                    field={
-                      b.status === "development" ? "year" : "completion_year"
-                    }
-                  >
-                    {b.status === "development"
-                      ? developmentSummary?.completion || "미확인"
-                      : b.completion_year || "미확인"}
-                  </RV>
-                </dd>
-              </div>
-              <div>
-                <dt>기준층 임대면적</dt>
-                <dd>{floorValues("rentable")}</dd>
-              </div>
-              <div>
-                <dt>기준층 전용면적</dt>
-                <dd>{floorValues("exclusive")}</dd>
-              </div>
-              <div>
-                <dt>주차</dt>
-                <dd>
-                  <RV entity="buildings" id={b.id} field="parking_spaces">
-                    {numeric(b.parking_spaces, "대")}
-                  </RV>
-                </dd>
-              </div>
-            </dl>
-            <ReviewRecordButton entity="buildings" id={b.id} />
-            <Source item={evidence} />
-            {b.completion_source_url && (
-              <Source
-                item={{
-                  source_name: "준공연도 · 오피스파인드 사용승인일 기준",
-                  source_url: b.completion_source_url,
-                  as_of: null,
-                }}
-              />
-            )}
-            {b.typical_floor_scope && !towerRows.length && (
-              <p className="context-note">{b.typical_floor_scope}</p>
-            )}
-            {b.typical_floor_source_url && !towerRows.length && (
-              <Source
-                item={{
-                  source_name: "기준층 면적 · 오피스파인드",
-                  source_url: b.typical_floor_source_url,
-                  as_of: b.typical_floor_source_period ?? null,
-                }}
-              />
-            )}
-            {towerRows.map((t) => (
-              <Source
-                key={t.id}
-                item={{
-                  source_name: `${t.label} 기준층 · ${t.source_url ? "오피스파인드" : "자료 미확인"}`,
-                  source_url: t.source_url,
-                  as_of: t.source_period,
-                }}
-              />
-            ))}
-          </section>
+          <AssetOverview
+            building={b}
+            floorValues={floorValues}
+            places={context.places.data || []}
+            contractor={currentDevelopment?.contractor}
+            register={context.register.data}
+          />
+          {sharedOverview}
           <section className="info-panel">
             <div className="section-heading">
               <h2>자산 기록</h2>
               <Clock3 size={18} />
             </div>
             {[
-              ["임대 정보", `${leases.length}개 분기`, "기준시점별 임대 조건"],
+              ["시장 임대", `${leases.length}개 분기`, "알스퀘어 시장 조사"],
               [
                 "임차기업",
                 confirmed.length ? `${confirmed.length}개사` : "자료 수집 예정",
@@ -1014,8 +917,6 @@ function AssetWorkspaceContent({
                         : String(f.value)}
                       {f.unit ? ` ${f.unit}` : ""}
                     </RV>
-                    <ReviewRecordButton entity="building_facts" id={f.id} />
-                    <Source item={f} />
                   </dd>
                 </div>
               ))}
@@ -1024,13 +925,14 @@ function AssetWorkspaceContent({
         )}
       </>
     ),
-    "임대 정보": (
+    "시장 임대": (
       <section className="asset-section">
         <div className="section-heading">
           <div>
-            <h2>분기별 임대 조건</h2>
+            <h2>시장 임대조건 · 알스퀘어</h2>
             <p>
-              기준시점이 같은 정보를 비교하세요. 미확인은 0을 의미하지 않습니다.
+              알스퀘어가 집계한 시장 조사 데이터입니다. 이지스의 실제 계약
+              임대료·수납액·운영실적은 별도 권한으로 관리합니다.
             </p>
           </div>
         </div>
@@ -1043,9 +945,9 @@ function AssetWorkspaceContent({
                     {[
                       "기준분기",
                       `보증금 (원/${unit})`,
-                      `월임대료 (원/${unit})`,
+                      `시장 월임대료 (원/${unit})`,
                       `관리비 (원/${unit})`,
-                      `NOC (원/${unit})`,
+                      `시장 NOC (원/${unit})`,
                       "공실률",
                       "렌트프리 (개월/년)",
                     ].map((x) => (
@@ -1105,8 +1007,6 @@ function AssetWorkspaceContent({
               {leases[0].area_basis} · {leases[0].vat_basis}. 원문 금액을 선택한
               면적 단위로 환산해 표시합니다.
             </p>
-            <ReviewRecordButton entity="leasing_quarters" id={leases[0].id} />
-            <Source item={leases[0]} />
           </>
         ) : (
           <Blank title="임대 조건을 수집하고 있습니다">
@@ -1289,7 +1189,7 @@ function AssetWorkspaceContent({
                   {company.overview || "기업 소개를 준비하고 있습니다."}
                 </RV>
               </p>
-              <ReviewRecordButton entity="companies" id={company.id} />
+
               {catalog.occupancies
                 .filter((o) => o.company_id === company.id)
                 .map((o) => (
@@ -1360,8 +1260,6 @@ function AssetWorkspaceContent({
                       {m.to_name || "도착 미확인"}
                     </RV>
                   </p>
-                  <ReviewRecordButton entity="tenant_movements" id={m.id} />
-                  <Source item={m} />
                 </article>
               ))}
             </div>
@@ -1442,8 +1340,6 @@ function AssetWorkspaceContent({
                   </div>
                 ))}
               </dl>
-              <ReviewRecordButton entity="development_records" id={d.id} />
-              <Source item={d} />
             </div>
           ))
         ) : (
@@ -1457,11 +1353,11 @@ function AssetWorkspaceContent({
   };
   return (
     <div
-      className="asset-popup"
+      className={`asset-popup${embedded ? " asset-popup-embedded" : ""}`}
       ref={popup}
-      role="dialog"
-      aria-modal="false"
-      aria-labelledby="asset-detail-title"
+      role={embedded ? "region" : "dialog"}
+      aria-modal={embedded ? undefined : "false"}
+      aria-labelledby={`asset-detail-title-${b.id}`}
       onKeyDown={(e) => {
         if (
           e.key === "Escape" &&
@@ -1515,7 +1411,7 @@ function AssetWorkspaceContent({
                   edit
                 />
               </div>
-              <h1 id="asset-detail-title" ref={title} tabIndex={-1}>
+              <h1 id={`asset-detail-title-${b.id}`} ref={title} tabIndex={-1}>
                 {b.is_igis && (
                   <span
                     className="igis-badge asset-heading-badge"
@@ -1599,7 +1495,7 @@ function AssetWorkspaceContent({
             </div>
             <div>
               <span>
-                {b.status === "development" ? "소유주·시행주체" : "F.NOC"}
+                {b.status === "development" ? "소유주·시행주체" : "시장 NOC"}
               </span>
               <strong>
                 <RV
@@ -1701,6 +1597,26 @@ function AssetWorkspaceContent({
               )}
             </section>
           ))}
+          <div className="asset-sources-footer">
+            <button
+              type="button"
+              className="asset-sources-toggle"
+              aria-expanded={sourcesOpen}
+              aria-controls="asset-sources-content"
+              onClick={() => setSourcesOpen((open) => !open)}
+            >
+              <FileText size={16} /> 자료 기준·출처 보기{" "}
+              <ChevronRight
+                size={16}
+                className={sourcesOpen ? "is-open" : ""}
+              />
+            </button>
+            {sourcesOpen && (
+              <div id="asset-sources-content">
+                {sectionContent["자료 출처"]}
+              </div>
+            )}
+          </div>
         </div>
       </section>
     </div>

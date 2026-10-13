@@ -49,13 +49,15 @@ export type Place = {
 };
 export type AssetFact = {
   id: string;
+  building_id: string;
   category: string;
   field_key: string;
+  complex_id?: string | null;
   value: unknown;
   unit: string | null;
   source_name: string;
   source_url: string | null;
-  as_of: string;
+  as_of: string | null;
 };
 export type Resource<T> = { data: T | null; error: boolean };
 function useDeferred<T>(
@@ -123,7 +125,7 @@ export function useAssetContext(
   const key = `${buildingId}:${attempt}:${revision}`;
   const register = useDeferred<RegisterData>(
     `${key}:register:${details}`,
-    details || enabled("토지") || sources,
+    details || enabled("개요") || enabled("토지") || sources,
     () => fetchBuildingRegister(buildingId, details),
   );
   const parcels = useDeferred<Parcel[]>(
@@ -133,19 +135,23 @@ export function useAssetContext(
   );
   const places = useDeferred<Place[]>(
     `${key}:places`,
-    enabled("주변") || sources,
+    enabled("주변") || enabled("개요") || sources,
     () => rows<Place>("building_places"),
   );
   const facts = useDeferred<AssetFact[]>(
     `${key}:facts`,
     enabled("개요") || sources,
-    () => rows<AssetFact>("building_facts"),
+    async () => (await rows<AssetFact>("building_facts")).filter(f => !f.complex_id),
   );
+  const natureSources = useDeferred<
+    { id: string; source_name: string; source_url: string; as_of: string }[]
+  >(`${key}:nature-sources`, sources, () => rows("building_green_spaces"));
   return {
     register,
     parcels,
     places,
     facts,
+    natureSources,
     retry: () => setAttempt((n) => n + 1),
   };
 }

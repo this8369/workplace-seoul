@@ -10,7 +10,7 @@ test("field review: fund ownership, request routing, atomic approval, scoped his
     staff = "40000000-0000-0000-0000-000000000002",
     building = "50000000-0000-0000-0000-000000000001";
   try {
-    await db.exec(`create role anon;create role authenticated;create schema auth;create schema private;
+    await db.exec(`create role anon;create role authenticated;create role service_role;create schema auth;create schema private;
  create table auth.users(id uuid primary key);create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;
  create table private.workplace_members(user_id uuid primary key,source_member_id uuid,enabled boolean,verified_until timestamptz,role text,display_name text);
  create function public.has_workplace_permission(feature text) returns boolean language sql stable security definer as $$select coalesce((select enabled and verified_until>now() from private.workplace_members where user_id=auth.uid()),false)$$;
@@ -26,6 +26,8 @@ test("field review: fund ownership, request routing, atomic approval, scoped his
       "202610120006_field_review_workflow",
       "202610120007_review_member_visibility",
       "202610120018_asset_history_dedup",
+      "202610130002_private_asset_operations",
+      "202610130003_source_finance_boundary",
     ])
       await db.exec(
         await readFile(

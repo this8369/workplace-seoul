@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {
   complexMapBuildings,
   towerFloorText,
+  buildingFloorText,
   towerNocFact,
   type BuildingComplex,
   type BuildingTower,
@@ -47,6 +48,31 @@ const towers = [
     typical_floor_exclusive_pyeong: 350,
   },
 ] as BuildingTower[];
+test("list cards show known tower floors without inventing a complex-wide area", () => {
+  assert.equal(
+    buildingFloorText({ ...a, id: "complex" }, towers),
+    "A동 400평 / B동 350평",
+  );
+  assert.equal(buildingFloorText(a, towers), "A동 400평");
+  assert.equal(
+    buildingFloorText({ ...a, typical_floor_exclusive_pyeong: 410 }, towers),
+    "410평",
+  );
+  assert.equal(buildingFloorText({ ...a, complex_id: null }, towers), "미확인");
+});
+test("list floor values truncate decimals while detail and map tower values keep precision", () => {
+  assert.equal(
+    buildingFloorText(
+      { ...a, typical_floor_exclusive_pyeong: 1236.99 },
+      towers,
+    ),
+    "1,236평",
+  );
+  const precise = [{ ...towers[0], typical_floor_exclusive_pyeong: 400.9 }];
+  assert.equal(buildingFloorText(a, precise), "A동 400평");
+  assert.equal(towerFloorText(precise, "exclusive"), "A동 400.9평");
+  assert.equal(precise[0].typical_floor_exclusive_pyeong, 400.9);
+});
 test("map combines only reviewed complex members, preserving filtering and original records", () => {
   const extra = { ...a, id: "x", complex_id: null };
   const source = [a, b, extra];
@@ -102,4 +128,61 @@ test("NOC is per tower only with verified links and matching observation bases",
     ).value,
     "동별 자료 확인 중",
   );
+});
+
+test("complex list groups keep aliases and child favorites without copying representative metrics", async () => {
+  const { filterBuildings } = await import("./domain.ts");
+  const member = {
+    ...a,
+    address: "서울",
+    region: "CBD",
+    typical_floor_exclusive_pyeong: 999,
+    parking_spaces: 50,
+  } as Building;
+  const grouped = complexMapBuildings(
+    [member, { ...b, address: "서울", region: "CBD" }],
+    [c],
+  );
+  assert.equal(grouped[0].typical_floor_exclusive_pyeong, null);
+  assert.equal(grouped[0].parking_spaces, null);
+  assert.equal(buildingFloorText(grouped[0], towers), "A동 400평 / B동 350평");
+  assert.equal(
+    filterBuildings(grouped, "B동", "", "", new Set(["b"])).length,
+    1,
+  );
+  assert.equal(
+    filterBuildings(grouped, "단지", "", "", new Set(["b"])).length,
+    1,
+  );
+  assert.deepEqual(complexMapBuildings(grouped, [c])[0].member_ids, ["a", "b"]);
+});
+test("common facilities and physical children do not become comparison choices or floor sums", async () => {
+  const { towersFor } = await import("./building-towers.ts");
+  const extended: BuildingTower[] = [
+    ...towers,
+    { ...towers[0], id: "mall", component_kind: "facility" },
+    { ...towers[0], id: "child", parent_tower_id: "ta" },
+  ];
+  assert.deepEqual(
+    towersFor(a, extended).map((t) => t.id),
+    ["ta", "tb"],
+  );
+});
+
+test("complex list reuses linked building floor observations without copying or summing them", () => {
+  const members = [
+    { ...a, typical_floor_exclusive_pyeong: 1146.9 },
+    { ...b, typical_floor_exclusive_pyeong: 427.7 },
+  ];
+  const missing = towers.map((t) => ({
+    ...t,
+    typical_floor_exclusive_pyeong: null,
+  }));
+  const projected = complexMapBuildings(members, [c])[0];
+  assert.equal(
+    buildingFloorText(projected, missing, members),
+    "A동 1,146평 / B동 427평",
+  );
+  assert.equal(missing[0].typical_floor_exclusive_pyeong, null);
+  assert.equal(members[0].typical_floor_exclusive_pyeong, 1146.9);
 });

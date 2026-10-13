@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { DataReviewProvider } from "./DataReview";
 import { X } from "lucide-react";
 import { AssetWorkspace } from "./AssetWorkspace";
@@ -6,9 +6,46 @@ import type { Building } from "../lib/domain";
 import type { Catalog } from "../lib/catalog";
 import { fetchMemberAsset } from "../lib/member-details";
 
+import type { BuildingComplex } from "../lib/building-towers";
+const ComplexAssetWorkspace = lazy(() => import("./ComplexAssetWorkspace"));
+
 // Mounted only while details.read is valid; keyed by account and selected asset.
 // No private result is merged into the public catalog or browser storage.
-export default function MemberAssetWorkspace({
+export type MemberWorkspaceProps = {
+  building: Building;
+  canReadTransactions: boolean;
+  onClose: () => void;
+  onBuilding: (id: string) => void;
+  saved: boolean;
+  onSave: () => void;
+  onManageImages?: () => void;
+  complexes?: BuildingComplex[];
+  single?: boolean;
+  embedded?: boolean;
+  sharedOverview?: React.ReactNode;
+  onSaveBuilding?: (id: string) => void;
+  savedIds?: Set<string>;
+  onManageBuildingImages?: (id: string) => void;
+};
+export default function MemberAssetWorkspace(props: MemberWorkspaceProps) {
+  const complex =
+    !props.single &&
+    props.complexes?.find((c) => c.id === props.building.complex_id);
+  if (complex)
+    return (
+      <Suspense
+        fallback={
+          <div className="asset-popup">
+            <div className="empty">단지 정보를 불러오고 있습니다.</div>
+          </div>
+        }
+      >
+        <ComplexAssetWorkspace {...props} complex={complex} />
+      </Suspense>
+    );
+  return <SingleAssetWorkspace {...props} />;
+}
+function SingleAssetWorkspace({
   building,
   canReadTransactions,
   onClose,
@@ -16,6 +53,8 @@ export default function MemberAssetWorkspace({
   saved,
   onSave,
   onManageImages,
+  embedded,
+  sharedOverview,
 }: {
   building: Building;
   canReadTransactions: boolean;
@@ -24,6 +63,8 @@ export default function MemberAssetWorkspace({
   saved: boolean;
   onSave: () => void;
   onManageImages?: () => void;
+  embedded?: boolean;
+  sharedOverview?: React.ReactNode;
 }) {
   const [catalog, setCatalog] = useState<Catalog | null>(null);
   const [failed, setFailed] = useState(false);
@@ -46,7 +87,7 @@ export default function MemberAssetWorkspace({
   if (!catalog)
     return (
       <div
-        className="asset-popup"
+        className={`asset-popup${embedded ? " asset-popup-embedded" : ""}`}
         role="dialog"
         aria-label={`${building.name} 자산 상세`}
       >
@@ -78,6 +119,8 @@ export default function MemberAssetWorkspace({
       onSaved={() => setAttempt((n) => n + 1)}
     >
       <AssetWorkspace
+        embedded={embedded}
+        sharedOverview={sharedOverview}
         building={{
           ...catalog.buildings[0],
           region: building.region,

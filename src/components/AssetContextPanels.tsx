@@ -8,16 +8,12 @@ import {
   Store,
   Layers,
 } from "lucide-react";
-import { safeSourceUrl, type Building } from "../lib/domain";
+import { type Building } from "../lib/domain";
 import { registerValue, type RegisterData } from "../lib/building-register";
 import type { Parcel, Place, Resource } from "../lib/asset-context";
 import ParcelMap from "./ParcelMap";
 import OfficialLandPrices from "./OfficialLandPrices";
-import {
-  ReviewValue as RV,
-  ReviewRecordButton,
-  type ReviewTarget,
-} from "./DataReview";
+import { ReviewValue as RV, type ReviewTarget } from "./DataReview";
 
 const emptyParcels: Parcel[] = [];
 function DataStatus({
@@ -87,29 +83,6 @@ function Rows({
         </div>
       ))}
     </dl>
-  );
-}
-function Provenance({
-  item,
-}: {
-  item: {
-    source_name: string;
-    source_url: string | null;
-    as_of: string | null;
-  };
-}) {
-  const url = safeSourceUrl(item.source_url);
-  return (
-    <p className="context-provenance">
-      {url ? (
-        <a href={url} target="_blank" rel="noreferrer">
-          {item.source_name} <ArrowUpRight size={12} />
-        </a>
-      ) : (
-        item.source_name
-      )}
-      {item.as_of && ` · ${item.as_of} 기준`}
-    </p>
   );
 }
 export function LandPanel({
@@ -228,10 +201,7 @@ export function LandPanel({
             ]}
           />
           {parcel ? (
-            <>
-              <ReviewRecordButton entity="building_parcels" id={parcel.id} />
-              <Provenance item={parcel} />
-            </>
+            <></>
           ) : (
             <p className="context-note">
               —는 미연결 항목입니다. 대장상 대지면적과 개별 필지 면적은 다를 수
@@ -404,11 +374,9 @@ export function SurroundingsPanel({
               </p>
               <p className="context-note">
                 {p.walking_minutes != null && p.walking_source
-                  ? `도보 ${p.walking_minutes}분 · ${p.walking_source}`
+                  ? `도보 ${p.walking_minutes}분`
                   : "직선거리 기준 · 도보 경로 미연결"}
               </p>
-              <ReviewRecordButton entity="building_places" id={p.id} />
-              <Provenance item={p} />
             </article>
           ))}
         </div>

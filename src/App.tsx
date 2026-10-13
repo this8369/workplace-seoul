@@ -7,6 +7,12 @@ import PhotoManager from "./components/PhotoManager";
 import AssetNotifications from "./components/AssetNotifications";
 import { sharedAssetId } from "./lib/asset-link";
 import MemberAssetWorkspace from "./components/MemberAssetWorkspace";
+import {
+  buildingFloorText,
+  complexMapBuildings,
+  towersFor,
+  towerNocFact,
+} from "./lib/building-towers";
 import { clearPrivatePhotoUrls } from "./lib/photo-urls";
 import AssetTypeSelect from "./components/AssetTypeSelect";
 import FilterSelect from "./components/FilterSelect";
@@ -104,36 +110,49 @@ export default function App() {
   );
   const cardMetrics = useMemo(() => {
     return new Map(
-      catalog.buildings.map((building) => {
-        const facts = mapMarkerFacts(
-          building,
-          noc.get(building.id),
-          developmentSummary.get(building.id),
-        );
-        return [
-          building.id,
-          {
-            floor:
-              building.typical_floor_exclusive_pyeong != null &&
-              Number.isFinite(building.typical_floor_exclusive_pyeong) &&
-              building.typical_floor_exclusive_pyeong > 0
-                ? `${building.typical_floor_exclusive_pyeong.toLocaleString("ko-KR", { maximumFractionDigits: 1 })}평`
-                : "미확인",
-            noc: facts.find((fact) => fact.label === "NOC")?.value ?? "—",
-            period: noc.get(building.id)?.period,
-            completion:
-              facts.find(
-                (fact) =>
-                  fact.label ===
-                  (building.status === "development"
-                    ? "준공 예정"
-                    : "준공년도"),
-              )?.value ?? "미확인",
-          },
-        ];
-      }),
+      complexMapBuildings(catalog.buildings, catalog.complexes).map(
+        (building) => {
+          const facts = mapMarkerFacts(
+            building,
+            noc.get(building.id),
+            developmentSummary.get(building.id),
+          );
+          return [
+            building.id,
+            {
+              floor: buildingFloorText(
+                building,
+                catalog.towers,
+                catalog.buildings,
+              ),
+              noc: building.member_ids
+                ? towerNocFact(
+                    building,
+                    towersFor(building, catalog.towers),
+                    noc,
+                  ).value
+                : (facts.find((fact) => fact.label === "NOC")?.value ?? "—"),
+              period: noc.get(building.id)?.period,
+              completion:
+                facts.find(
+                  (fact) =>
+                    fact.label ===
+                    (building.status === "development"
+                      ? "준공 예정"
+                      : "준공년도"),
+                )?.value ?? "미확인",
+            },
+          ];
+        },
+      ),
     );
-  }, [catalog.buildings, noc, developmentSummary]);
+  }, [
+    catalog.buildings,
+    catalog.complexes,
+    catalog.towers,
+    noc,
+    developmentSummary,
+  ]);
   const [buildings, setBuildings] = useState<Building[]>([]),
     [load, setLoad] = useState<"loading" | "ready" | "error" | "setup">(
       supabase ? "loading" : "setup",
@@ -167,10 +186,16 @@ export default function App() {
   const access = useWorkplaceAccess(session, setNotice);
   const can = (permission: string) => access.permissions.includes(permission);
   const canReadDetails = !!session && can("details.read");
+  const accessPending =
+    !authReady ||
+    (!!session &&
+      !canReadDetails &&
+      (access.status === "checking" || access.status === "unavailable"));
   const canManageImages = canReadDetails && can("images.manage");
   const canReadTransactions = canReadDetails && can("transactions.read");
   const [adminImages, setAdminImages] = useState<Catalog["images"]>([]);
   const pendingBuilding = useRef<string | null>(initialAsset);
+  const accessUser = useRef(session?.user.id);
   const [comparisonDetails, setComparisonDetails] = useState<Building[]>([]);
   useEffect(() => {
     setComparisonDetails([]);
@@ -190,17 +215,28 @@ export default function App() {
     };
   }, [showCompare, canReadDetails, compare, session?.user.id]);
   useEffect(() => {
+    const changedAccount =
+      !!accessUser.current && accessUser.current !== session?.user.id;
+    accessUser.current = session?.user.id;
+    if (changedAccount) pendingBuilding.current = null;
     if (!canReadDetails) {
+      clearPrivatePhotoUrls();
+      // Keep the navigation intent while revalidating, but render private data
+      // only after the server has issued a fresh attestation.
+      if (accessPending && !changedAccount) return;
       setView((current) => (current === "my" ? "all" : current));
       setSelected(null);
       setShowCompare(false);
       dialog.current?.close();
-      clearPrivatePhotoUrls();
     } else if (pendingBuilding.current) {
       setSelected(pendingBuilding.current);
       pendingBuilding.current = null;
     }
-  }, [canReadDetails, session?.user.id]);
+  }, [canReadDetails, accessPending, session?.user.id]);
+  useEffect(() => {
+    if (canReadDetails && loginMode === "email" && !recoveryRoute)
+      setLogin(false);
+  }, [canReadDetails, loginMode]);
   const dialog = useRef<HTMLDialogElement>(null),
     search = useRef<HTMLInputElement>(null);
   const mapCamera = useRef<MapCamera | null>(null);
@@ -304,18 +340,13 @@ export default function App() {
   }, [view, canManageImages, session?.user.id, imageBuilding, imageAttempt]);
   useEffect(() => {
     if (!supabase) return;
-    let alive = true;
-    supabase.auth.getSession().then(({ data }) => {
-      if (alive) {
-        setSession(data.session);
-        setAuthReady(true);
-      }
+    // INITIAL_SESSION arrives after persisted-session restoration. Using one
+    // source avoids a late getSession result overwriting a newer auth event.
+    const { data } = supabase.auth.onAuthStateChange((_event, value) => {
+      setSession(value);
+      setAuthReady(true);
     });
-    const { data } = supabase.auth.onAuthStateChange((_event, value) =>
-      setSession(value),
-    );
     return () => {
-      alive = false;
       data.subscription.unsubscribe();
     };
   }, []);
@@ -334,7 +365,7 @@ export default function App() {
     return () => {
       alive = false;
     };
-  }, [session]);
+  }, [session?.user.id]);
   useEffect(() => {
     const handler = (event: KeyboardEvent) => {
       if ((event.metaKey || event.ctrlKey) && event.key === "k") {
@@ -358,7 +389,7 @@ export default function App() {
   const results = useMemo(
     () =>
       filterBuildings(
-        buildings,
+        complexMapBuildings(buildings, catalog.complexes),
         query,
         region,
         status,
@@ -366,7 +397,17 @@ export default function App() {
         igisMode,
         assetCategory,
       ).filter(hasLocation),
-    [buildings, query, region, status, view, saved, igisMode, assetCategory],
+    [
+      buildings,
+      catalog.complexes,
+      query,
+      region,
+      status,
+      view,
+      saved,
+      igisMode,
+      assetCategory,
+    ],
   );
   const developmentYears = useMemo(
     () =>
@@ -403,8 +444,9 @@ export default function App() {
   const requireLogin = useCallback(() => {
     setLoginMode("email");
     setLogin(true);
-    setNotice("상세정보는 등록된 사용자만 확인할 수 있습니다.");
-  }, []);
+    if (!accessPending)
+      setNotice("상세정보는 등록된 사용자만 확인할 수 있습니다.");
+  }, [accessPending]);
   const select = useCallback(
     (id: string) => {
       if (!canReadDetails) {
@@ -935,7 +977,10 @@ export default function App() {
                               <span className="card-metric-label">
                                 기준층(전용)
                               </span>
-                              <span className="card-metric-value">
+                              <span
+                                className="card-metric-value"
+                                title={cardMetrics.get(b.id)?.floor}
+                              >
                                 {cardValue(cardMetrics.get(b.id)?.floor)}
                               </span>
                             </span>
@@ -1061,6 +1106,17 @@ export default function App() {
                   <MemberAssetWorkspace
                     key={`${session?.user.id}:${active.id}`}
                     building={active}
+                    complexes={catalog.complexes}
+                    savedIds={saved}
+                    onSaveBuilding={toggleSave}
+                    onManageBuildingImages={
+                      can("images.manage")
+                        ? (id) => {
+                            setImageBuilding(id);
+                            setView("images");
+                          }
+                        : undefined
+                    }
                     canReadTransactions={canReadTransactions}
                     onClose={() => setSelected(null)}
                     onBuilding={select}
@@ -1169,31 +1225,49 @@ export default function App() {
           </div>
         )}
       </dialog>
-      {login && (
-        <IgisLogin
-          initialMode={loginMode}
-          initialEmail={
-            loginMode === "change" ? session?.user.email : undefined
-          }
-          initialName={loginMode === "change" ? access.display_name || "" : ""}
-          onClose={() => {
-            pendingBuilding.current = null;
-            setLogin(false);
-            setLoginMode("email");
-          }}
-          onSuccess={() => {
-            setLogin(false);
-            setLoginMode("email");
-          }}
-        />
-      )}
+      {login &&
+        (recoveryRoute ||
+          loginMode === "change" ||
+          (!accessPending && !canReadDetails)) && (
+          <IgisLogin
+            initialMode={loginMode}
+            initialEmail={
+              loginMode === "change" ? session?.user.email : undefined
+            }
+            initialName={
+              loginMode === "change" ? access.display_name || "" : ""
+            }
+            onClose={() => {
+              pendingBuilding.current = null;
+              setLogin(false);
+              setLoginMode("email");
+            }}
+            onSuccess={() => {
+              setLogin(false);
+              setLoginMode("email");
+            }}
+          />
+        )}
       {canReadDetails && session && (
         <AssetNotifications key={session.user.id} onOpen={select} />
       )}
-      {notice && (
+      {accessPending &&
+      (login ||
+        selected ||
+        view === "my" ||
+        view === "images" ||
+        showCompare) ? (
         <div className="toast" role="status">
-          {notice}
+          {access.status === "unavailable"
+            ? "인증 서버에 다시 연결하고 있습니다. 잠시 후 자동으로 다시 시도합니다."
+            : "로그인 상태를 확인하고 있습니다."}
         </div>
+      ) : (
+        notice && (
+          <div className="toast" role="status">
+            {notice}
+          </div>
+        )
       )}
     </div>
   );

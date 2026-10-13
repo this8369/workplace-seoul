@@ -93,6 +93,10 @@ const movements = table("05").map((r) => ({
 }));
 const leasing = table("02").map((r) => ({
   ...evidence(r),
+  data_domain: "market_leasing",
+  provider_code: "rsquare",
+  provider_confirmation: "user_confirmed_2026-10-13",
+  observation_basis: "market_survey",
   id: r["임대기록ID"],
   building_id: r["건물ID"],
   period: r["기준분기"],
