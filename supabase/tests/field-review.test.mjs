@@ -28,6 +28,7 @@ test("field review: fund ownership, request routing, atomic approval, scoped his
       "202610120018_asset_history_dedup",
       "202610130002_private_asset_operations",
       "202610130003_source_finance_boundary",
+      "202610130011_review_null_and_history_delete",
     ])
       await db.exec(
         await readFile(
@@ -497,6 +498,119 @@ test("field review: fund ownership, request routing, atomic approval, scoped his
       () => db.exec("update private.data_record_history set reason='erase'"),
       /immutable/,
     );
+    // Reproduce PostgREST sending a JSON null argument as SQL NULL.
+    await db.exec(
+      "alter table public.buildings add column typical_floor_exclusive_pyeong numeric",
+    );
+    await db.exec("set role authenticated");
+    await login(steward);
+    const saveArea = (expected, proposed) =>
+      db.query(
+        "select public.data_save_field('buildings',$1,'typical_floor_exclusive_pyeong',$2,$3,'verified area') value",
+        [building, expected, proposed],
+      );
+    assert.equal(
+      (await saveArea(null, '"900"')).rows[0].value
+        .typical_floor_exclusive_pyeong,
+      "900",
+    );
+    await assert.rejects(
+      () => saveArea(null, '"901"'),
+      /revision_conflict/,
+      "real conflicts still blocked",
+    );
+    assert.equal(
+      (await saveArea('"900"', null)).rows[0].value
+        .typical_floor_exclusive_pyeong,
+      null,
+    );
+    await assert.rejects(() => saveArea(null, null), /no_change/);
+    await login(other);
+    const nullRequestParams = [
+      building,
+      null,
+      '"925"',
+      "60000000-0000-0000-0000-000000000077",
+    ];
+    const submitNull = () =>
+      db.query(
+        "select public.data_submit_request('buildings',$1,'typical_floor_exclusive_pyeong',$2,$3,'verified area request',$4) id",
+        nullRequestParams,
+      );
+    const nullRequest = (await submitNull()).rows[0].id;
+    assert.equal((await submitNull()).rows[0].id, nullRequest);
+    await login(steward);
+    await db.query(
+      "select public.data_decide_request($1,true,'verified area request')",
+      [nullRequest],
+    );
+    const areaHistory = async () =>
+      (
+        await db.query(
+          "select public.data_field_history('buildings',$1,'typical_floor_exclusive_pyeong') value",
+          [building],
+        )
+      ).rows[0].value;
+    let timeline = await areaHistory();
+    assert.equal(timeline.can_delete, true);
+    const historyId = timeline.records[0].id;
+    const beforeLength = timeline.records.length;
+    const deleteHistory = (deleted = true) =>
+      db.query("select public.data_set_history_deleted($1,$2)", [
+        historyId,
+        deleted,
+      ]);
+    await deleteHistory();
+    timeline = await areaHistory();
+    assert.equal(timeline.records.length, beforeLength - 1);
+    assert(!timeline.records.some((h) => h.id === historyId));
+    assert.equal(
+      (
+        await db.query(
+          "select public.data_field_context('buildings',$1) value",
+          [building],
+        )
+      ).rows[0].value.record.typical_floor_exclusive_pyeong,
+      "925",
+      "history deletion never reverts asset values",
+    );
+    await login(other);
+    assert.equal((await areaHistory()).can_delete, false);
+    assert(!(await areaHistory()).records.some((h) => h.id === historyId));
+    await assert.rejects(() => deleteHistory(), /history_delete_denied/);
+    await assert.rejects(() => deleteHistory(false), /history_delete_denied/);
+    // Another planning admin with the same display name cannot gain this permission.
+    await db.exec("reset role");
+    await db.query(
+      "update private.workplace_members set source_member_id='14eaf982-9d0d-4243-a0b4-eb10626f690a',role='admin',display_name='전기영' where user_id=$1",
+      [other],
+    );
+    await db.exec("set role authenticated");
+    assert.equal((await areaHistory()).can_delete, false);
+    await assert.rejects(() => deleteHistory(), /history_delete_denied/);
+    await login(steward);
+    await deleteHistory(false);
+    assert.equal((await areaHistory()).records.length, beforeLength);
+    await db.exec("reset role");
+    assert.equal(
+      (
+        await db.query(
+          "select count(*)::int n from private.data_record_history where id=$1",
+          [historyId],
+        )
+      ).rows[0].n,
+      1,
+      "immutable audit retained for canonical corrections",
+    );
+    await db.query(
+      "update private.workplace_members set verified_until=now()-interval '1 second' where user_id=$1",
+      [steward],
+    );
+    await db.exec("set role authenticated");
+    await assert.rejects(() => deleteHistory(), /history_delete_denied/);
+    await db.exec("set role anon");
+    await assert.rejects(() => deleteHistory(), /permission denied/);
+    await db.exec("reset role");
     await db.query(
       "update private.workplace_members set verified_until=now()-interval '1 second' where user_id=$1",
       [other],

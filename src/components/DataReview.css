@@ -210,6 +210,51 @@
   line-height: 1.6;
   overflow-wrap: anywhere;
 }
+.review-history-entry-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.review-history-entry-header p {
+  margin: 4px 0;
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+.review-history-delete,
+.review-history-notice button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  flex-shrink: 0;
+  border: 0;
+  border-radius: 8px;
+  padding: 7px 9px;
+  background: transparent;
+  color: #69778d;
+  font: inherit;
+  cursor: pointer;
+}
+.review-history-delete:hover {
+  color: #a32e35;
+  background: #fff0f0;
+}
+.review-history-notice {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #e9edf7;
+  font-size: 12px;
+}
+.review-history-notice button {
+  color: #283982;
+  text-decoration: underline;
+}
 .review-history article,
 .review-inbox article {
   padding: 16px 0;

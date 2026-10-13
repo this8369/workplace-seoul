@@ -7,7 +7,7 @@ import {
   type ReactNode,
 } from "react";
 import { createPortal } from "react-dom";
-import { History, MessageSquareText, Pencil, X } from "lucide-react";
+import { History, MessageSquareText, Pencil, Trash2, X } from "lucide-react";
 import { masterDisplay, masterRpc } from "../lib/master-data";
 import { masterFields } from "../lib/master-fields";
 import { registerGroups } from "../lib/building-register";
@@ -295,6 +295,10 @@ export function FieldDialog({
     [more, setMore] = useState(false),
     [offset, setOffset] = useState(0),
     [historyLoading, setHistoryLoading] = useState(false);
+  const [canDeleteHistory, setCanDeleteHistory] = useState(false);
+  const [historyVersion, setHistoryVersion] = useState(0);
+  const [historyBusy, setHistoryBusy] = useState<number | null>(null);
+  const [deletedHistory, setDeletedHistory] = useState<number | null>(null);
   const dialog = useRef<HTMLDialogElement>(null),
     nonce = useRef(crypto.randomUUID());
   useEffect(() => {
@@ -345,20 +349,23 @@ export function FieldDialog({
     let alive = true;
     setHistoryLoading(true);
     setHistory([]);
-    void masterRpc<{ records: Change[]; has_more: boolean }>(
-      "data_field_history",
-      {
-        entity: target.entity,
-        rid: target.id,
-        field: mode === "field" ? field : null,
-        asset_key: mode === "asset" ? asset : null,
-        page_offset: offset,
-      },
-    )
+    setCanDeleteHistory(false);
+    void masterRpc<{
+      records: Change[];
+      has_more: boolean;
+      can_delete: boolean;
+    }>("data_field_history", {
+      entity: target.entity,
+      rid: target.id,
+      field: mode === "field" ? field : null,
+      asset_key: mode === "asset" ? asset : null,
+      page_offset: offset,
+    })
       .then((x) => {
         if (alive) {
           setHistory(x.records);
           setMore(x.has_more);
+          setCanDeleteHistory(x.can_delete === true);
         }
       })
       .catch((e) => {
@@ -370,7 +377,32 @@ export function FieldDialog({
     return () => {
       alive = false;
     };
-  }, [context, field, mode, asset, offset, target.entity, target.id]);
+  }, [
+    context,
+    field,
+    mode,
+    asset,
+    offset,
+    target.entity,
+    target.id,
+    historyVersion,
+  ]);
+  async function setHistoryDeleted(id: number, deleted: boolean) {
+    if (!canDeleteHistory || historyBusy !== null) return;
+    setHistoryBusy(id);
+    setError("");
+    try {
+      await masterRpc("data_set_history_deleted", { history_key: id, deleted });
+      setDeletedHistory(deleted ? id : null);
+      setHistoryVersion((n) => n + 1);
+      if (deleted && history.length === 1 && offset > 0)
+        setOffset((n) => Math.max(0, n - 50));
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setHistoryBusy(null);
+    }
+  }
   async function submit() {
     if (!context || !selected || busy) return;
     setBusy(true);
@@ -558,6 +590,17 @@ export function FieldDialog({
           )}
           <div className="review-history">
             <h3>수정 이력</h3>
+            {deletedHistory !== null && (
+              <p className="review-history-notice" role="status">
+                수정 이력을 삭제했습니다. 자산 값은 유지됩니다.
+                <button
+                  disabled={historyLoading || historyBusy !== null}
+                  onClick={() => setHistoryDeleted(deletedHistory, false)}
+                >
+                  실행 취소
+                </button>
+              </p>
+            )}
             <div className="review-history-tabs">
               {(
                 ["field", "record", ...(asset ? ["asset"] : [])] as (
@@ -587,7 +630,21 @@ export function FieldDialog({
             ) : (
               history.map((h) => (
                 <article key={h.id}>
-                  <p>{h.record_label}</p>
+                  <header className="review-history-entry-header">
+                    <p>{h.record_label}</p>
+                    {canDeleteHistory && (
+                      <button
+                        type="button"
+                        className="review-history-delete"
+                        disabled={historyBusy !== null}
+                        onClick={() => setHistoryDeleted(h.id, true)}
+                        aria-label={`${h.record_label} 수정 이력 삭제`}
+                      >
+                        <Trash2 size={14} aria-hidden="true" />
+                        {historyBusy === h.id ? "삭제 중" : "삭제"}
+                      </button>
+                    )}
+                  </header>
                   <strong>
                     {h.changed_by_name || "시스템"} ·{" "}
                     {new Date(h.changed_at).toLocaleString("ko-KR")}
