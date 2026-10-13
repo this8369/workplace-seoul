@@ -664,10 +664,6 @@ function AssetWorkspaceContent({
     ? sharedBuilding!.id
     : b.id;
   const companies = [...catalog.companies, ...(sharedCatalog?.companies || [])];
-  const scopeNote = (inherited: boolean) =>
-    inherited ? (
-      <p className="asset-shared-scope">{sharedBuilding?.name} · 단지 기준</p>
-    ) : null;
   const photos = catalog.images.filter(
     (p) =>
       p.building_id === b.id &&
@@ -784,7 +780,6 @@ function AssetWorkspaceContent({
           <p className="context-note">이지스 정보를 불러오고 있습니다.</p>
         }
       >
-        {scopeNote(!!sharedBuilding)}
         <IgisOperationsPanel
           key={sharedBuilding?.id || b.id}
           buildingId={sharedBuilding?.id || b.id}
@@ -794,9 +789,6 @@ function AssetWorkspaceContent({
     ),
     건축물대장: (
       <>
-        {scopeNote(
-          context.register === sharedContext.register && !!sharedBuilding,
-        )}
         <BuildingRegister
           key={b.id}
           buildingId={
@@ -811,9 +803,6 @@ function AssetWorkspaceContent({
     ),
     토지: (
       <>
-        {scopeNote(
-          context.parcels === sharedContext.parcels && !!sharedBuilding,
-        )}
         <LandPanel
           building={
             context.parcels === sharedContext.parcels ? sharedBuilding! : b
@@ -826,7 +815,6 @@ function AssetWorkspaceContent({
     ),
     주변: (
       <>
-        {scopeNote(context.places === sharedContext.places && !!sharedBuilding)}
         <SurroundingsPanel
           building={b}
           places={context.places}
@@ -993,7 +981,6 @@ function AssetWorkspaceContent({
               <ArrowRight size={14} />
             </button>
           </div>
-          {scopeNote(tradesSource.inherited)}
           {trades[0] ? (
             <>
               <div className="recent-trade-summary">
@@ -1067,7 +1054,6 @@ function AssetWorkspaceContent({
             </p>
           </div>
         </div>
-        {scopeNote(leasesSource.inherited)}
         {leases.length ? (
           <>
             <div className="table-scroll">
@@ -1157,7 +1143,6 @@ function AssetWorkspaceContent({
             </div>
             <Users size={20} />
           </div>
-          {scopeNote(occupanciesSource.inherited)}
           <div className="tenant-controls">
             <div className="search">
               <Search size={16} />
@@ -1413,7 +1398,6 @@ function AssetWorkspaceContent({
     "거래 이력":
       archiveStatus === "ready" ? (
         <>
-          {scopeNote(tradesSource.inherited)}
           <Transactions
             catalog={tradesSource.inherited ? sharedCatalog! : catalog}
             query=""
@@ -1441,7 +1425,6 @@ function AssetWorkspaceContent({
             <p>계획과 실제 진행상황을 구분해 기록합니다.</p>
           </div>
         </div>
-        {scopeNote(developmentsSource.inherited)}
         {developments.length ? (
           developments.map((d) => (
             <div className="info-panel" key={d.id}>

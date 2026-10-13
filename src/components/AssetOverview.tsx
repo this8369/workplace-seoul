@@ -16,7 +16,6 @@ import { safeSourceUrl } from "../lib/domain";
 import type { Place } from "../lib/asset-context";
 import type { RegisterData } from "../lib/building-register";
 import {
-  areaBases,
   certificateStates,
   certificateState,
   lineColors,
@@ -206,8 +205,6 @@ export default function AssetOverview({
       : entity === "buildings"
         ? buildingFields.sourceId(field as keyof Building)
         : profileFields.sourceId(field as keyof AssetProfile);
-  const sharedNote = (field: string, entity = "building_asset_profiles") =>
-    sourceId(field, entity) === sharedBuilding?.id && !!sharedBuilding;
   const ownOfficial = (field: string) =>
     overviewRegisterFact(
       b.area_basis === "planned" ? [] : register?.records || [],
@@ -233,7 +230,6 @@ export default function AssetOverview({
     field: string,
     fallback: ReactNode,
     format: (value: number) => ReactNode,
-    showScope = true,
   ) => {
     const fact = official(field);
     if (!fact) return fallback;
@@ -248,14 +244,13 @@ export default function AssetOverview({
       : "building_asset_profiles";
     // Registry remains immutable evidence. A user correction is an editable
     // overview override at the same common/component scope as other values.
-    return edit(key, format(Number(fact.value)), entity, showScope);
+    return edit(key, format(Number(fact.value)), entity);
   };
 
   const edit = (
     field: string,
     content: ReactNode,
     entity = "building_asset_profiles",
-    showScope = true,
   ) => (
     <span className="overview-scoped-value">
       <RV
@@ -270,9 +265,6 @@ export default function AssetOverview({
       >
         {content}
       </RV>
-      {showScope && sharedNote(field, entity) && (
-        <small className="asset-shared-scope">단지 기준</small>
-      )}
     </span>
   );
   const row = (label: string, content: ReactNode, sub?: ReactNode) => (
@@ -350,9 +342,6 @@ export default function AssetOverview({
             >
               {displayedBuilding.overview}
             </RV>
-            {!!sharedBuilding && (
-              <small className="asset-shared-scope">단지 기준</small>
-            )}
           </p>
         )}
         <dl className="overview-facts">
@@ -407,10 +396,8 @@ export default function AssetOverview({
                     ? "지하 미확인"
                     : `B${displayedBuilding.floors_below}`,
                   "buildings",
-                  false,
                 ),
                 (v) => `B${v}`,
-                false,
               )}{" "}
               /{" "}
               {officialValue(
@@ -421,16 +408,10 @@ export default function AssetOverview({
                     ? "지상 미확인"
                     : `${displayedBuilding.floors_above}F`,
                   "buildings",
-                  false,
                 ),
                 (v) => `${v}F`,
-                false,
               )}
             </span>,
-            buildingFields.inherited.has("floors_below") ||
-              buildingFields.inherited.has("floors_above")
-              ? "단지 기준"
-              : undefined,
           )}
           {row(
             "천정고",
@@ -466,26 +447,10 @@ export default function AssetOverview({
           {row(
             "오피스면적",
             edit("office_area_m2", formatArea(p?.office_area_m2)),
-            p?.office_area_m2 != null
-              ? edit(
-                  "office_area_basis",
-                  areaBases[p.office_area_basis],
-                  "building_asset_profiles",
-                  false,
-                )
-              : undefined,
           )}
           {row(
             "리테일면적",
             edit("retail_area_m2", formatArea(p?.retail_area_m2)),
-            p?.retail_area_m2 != null
-              ? edit(
-                  "retail_area_basis",
-                  areaBases[p.retail_area_basis],
-                  "building_asset_profiles",
-                  false,
-                )
-              : undefined,
           )}
           {row("기준층면적(전용)", floorValues("exclusive"))}
           {row("기준층면적(임대)", floorValues("rentable"))}
@@ -594,9 +559,6 @@ export default function AssetOverview({
                 <>
                   {scalar(density)}
                   <small>W/평</small>
-                  {powerFields.inherited.has("contracted_capacity_mw") && (
-                    <small className="asset-shared-scope">단지 기준</small>
-                  )}
                 </>
               )}
             </strong>
@@ -655,9 +617,6 @@ export default function AssetOverview({
                 : null;
             })}
           </dl>
-        )}
-        {profileFields.inherited.has("certifications") && (
-          <span className="asset-shared-scope">단지 기준</span>
         )}
         <div className="overview-certificates">
           {p?.certifications.length ? (
