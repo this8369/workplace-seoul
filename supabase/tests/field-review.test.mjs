@@ -15,7 +15,9 @@ test("field review: fund ownership, request routing, atomic approval, scoped his
  create table private.workplace_members(user_id uuid primary key,source_member_id uuid,enabled boolean,verified_until timestamptz,role text,display_name text);
  create function public.has_workplace_permission(feature text) returns boolean language sql stable security definer as $$select coalesce((select enabled and verified_until>now() from private.workplace_members where user_id=auth.uid()),false)$$;
  create table public.buildings(id uuid primary key,name text,address text,gross_area_m2 numeric,published boolean,complex_id uuid);
- create table public.companies(id uuid primary key);create table public.occupancies(id uuid primary key,building_id uuid,company_id uuid);create table public.building_complexes(id uuid primary key);create table public.building_towers(id uuid primary key);
+ create table public.companies(id uuid primary key);create table public.occupancies(id uuid primary key,building_id uuid,company_id uuid);create table public.building_complexes(id uuid primary key);create table public.building_towers(id uuid primary key, complex_id uuid, building_id uuid, label text, typical_floor_exclusive_pyeong numeric check(typical_floor_exclusive_pyeong>0), typical_floor_rentable_pyeong numeric check(typical_floor_rentable_pyeong>0), source_url text, collected_at timestamptz, content_hash text, evidence jsonb not null default '{}', published boolean default false,
+ constraint building_towers_check check(typical_floor_exclusive_pyeong<=typical_floor_rentable_pyeong),
+ constraint building_towers_check1 check((typical_floor_exclusive_pyeong is null and typical_floor_rentable_pyeong is null) or (source_url is not null and collected_at is not null and content_hash is not null)));
  create table public.building_register_links(id uuid primary key,record_id uuid,building_id uuid,status text);
  create table public.building_register_records(id uuid primary key,building_name text,gross_area_m2 numeric);
  grant usage on schema public,auth to anon,authenticated;`);
@@ -30,6 +32,7 @@ test("field review: fund ownership, request routing, atomic approval, scoped his
       "202610130003_source_finance_boundary",
       "202610130011_review_null_and_history_delete",
       "202610130012_short_edit_reasons",
+      "202610130013_manual_tower_floor_evidence",
     ])
       await db.exec(
         await readFile(
@@ -536,6 +539,77 @@ test("field review: fund ownership, request routing, atomic approval, scoped his
       /invalid_change/,
     );
     await db.exec("reset role");
+    // Real tower constraint: manually entered areas must not require scraped metadata.
+    const tower = "50000000-0000-0000-0000-000000000010";
+    await db.query(
+      "insert into public.building_towers(id,building_id,label) values($1,$2,'남측')",
+      [tower, building],
+    );
+    await db.exec("set role authenticated");
+    await login(steward);
+    await db.query(
+      "select public.data_save_field('building_towers',$1,'typical_floor_exclusive_pyeong',null,'\"600\"','ㅇ')",
+      [tower],
+    );
+    const towerContext = (
+      await db.query(
+        "select public.data_field_context('building_towers',$1) value",
+        [tower],
+      )
+    ).rows[0].value;
+    assert.equal(towerContext.record.typical_floor_exclusive_pyeong, "600");
+    assert.equal(towerContext.record.source_url, null);
+    assert.equal(towerContext.record.content_hash, null);
+    assert.equal(
+      towerContext.record.evidence.manual_floor_edits
+        .typical_floor_exclusive_pyeong.edited_by,
+      steward,
+    );
+    assert.equal(
+      towerContext.record.evidence.manual_floor_edits
+        .typical_floor_exclusive_pyeong.reason,
+      "ㅇ",
+    );
+    await db.query(
+      "select public.data_save_field('building_towers',$1,'typical_floor_rentable_pyeong',null,'\"900\"','확인')",
+      [tower],
+    );
+    await assert.rejects(
+      () =>
+        db.query(
+          "select public.data_save_field('building_towers',$1,'typical_floor_exclusive_pyeong','\"600\"','\"901\"','계획')",
+          [tower],
+        ),
+      /building_towers_check/,
+    );
+    await assert.rejects(
+      () =>
+        db.query(
+          "select public.data_save_field('building_towers',$1,'typical_floor_exclusive_pyeong','\"600\"','\"0\"','계획')",
+          [tower],
+        ),
+      /check constraint/,
+    );
+    await login(other);
+    await assert.rejects(
+      () =>
+        db.query(
+          "select public.data_save_field('building_towers',$1,'typical_floor_exclusive_pyeong','\"600\"','\"700\"','계획')",
+          [tower],
+        ),
+      /write_denied/,
+    );
+    await db.exec("reset role");
+    await db.query("select set_config('request.jwt.claim.sub','',false)");
+    await assert.rejects(
+      () =>
+        db.query(
+          "update public.building_towers set typical_floor_exclusive_pyeong=700 where id=$1",
+          [tower],
+        ),
+      /tower_floor_provenance/,
+      "unaudited updates must not reuse stale manual evidence",
+    );
     // Reproduce PostgREST sending a JSON null argument as SQL NULL.
     await db.exec(
       "alter table public.buildings add column typical_floor_exclusive_pyeong numeric",
