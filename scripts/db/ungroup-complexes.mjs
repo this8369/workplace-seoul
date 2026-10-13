@@ -4,13 +4,27 @@ import { connectDatabase } from "../building-register/vworld-client.mjs";
 import { standaloneComplexes } from "./complex-policies.mjs";
 const db = await connectDatabase();
 const apply = process.argv.includes("--apply");
+const complexId = process.argv
+  .find((arg) => arg.startsWith("--complex="))
+  ?.slice(10);
+const policies = standaloneComplexes.filter(
+  (p) => !complexId || p.id === complexId,
+);
+assert(policies.length > 0, "Unknown standalone complex");
 try {
   await db.query("begin");
-  await db.query(
-    "select set_config('app.review_origin','complex_scope_correction',true),set_config('app.review_reason','사용자 요청: 코엑스 단지 연결 해제, 개별 건물로 표시',true)",
-  );
   const report = [];
-  for (const policy of standaloneComplexes) {
+  for (const policy of policies) {
+    await db.query(
+      "select set_config('app.review_origin','complex_scope_correction',true),set_config('app.review_reason',$1,true)",
+      [policy.reason],
+    );
+    const imagesBefore = (
+      await db.query(
+        "select * from public.building_images where building_id=any($1::uuid[]) order by id",
+        [policy.buildingIds],
+      )
+    ).rows;
     const before = {
       buildings: (
         await db.query(
@@ -54,7 +68,7 @@ try {
     );
     if (apply)
       await writeFile(
-        `data/private/complexes/ungroup-before-${Date.now()}.json`,
+        `data/private/complexes/ungroup-before-${policy.id}-${Date.now()}.json`,
         JSON.stringify(before, null, 2),
       );
     // Keep all source and review records; retire only the presentation links.
@@ -120,8 +134,18 @@ try {
         [policy.buildingIds],
       )
     ).rows;
-    assert.equal(visible.length, 3);
+    assert.equal(visible.length, policy.buildingIds.length);
     assert(visible.every((b) => b.complex_id === null));
+    assert.deepEqual(
+      (
+        await db.query(
+          "select * from public.building_images where building_id=any($1::uuid[]) order by id",
+          [policy.buildingIds],
+        )
+      ).rows,
+      imagesBefore,
+      "Existing photos and crop settings must remain unchanged",
+    );
     report.push({
       name: policy.name,
       detached: detached.rowCount,

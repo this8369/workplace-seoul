@@ -1,6 +1,13 @@
 // Explicit product decisions take precedence over shared parcel/register evidence.
 export const standaloneComplexes = [
   {
+    id: "0a598ba6-381b-52bd-adb9-9208445d1bf7",
+    name: "원그로브",
+    reason:
+      "2026-10-13 사용자 요청: 원그로브는 동을 나누지 않고 기존 단일 자산으로 표시",
+    buildingIds: ["c8fcd516-c2f4-579e-b93a-0413ec303fb1"],
+  },
+  {
     id: "e72264a5-6842-5e09-a17c-d85fa1773d03",
     name: "코엑스·한국무역센터",
     reason:
