@@ -36,7 +36,7 @@ try {
   );
   const saved = (
     await db.query(
-      "select public.data_save_field('buildings',$1,'typical_floor_exclusive_pyeong',$2,$3,'transaction-only verification') value",
+      "select public.data_save_field('buildings',$1,'typical_floor_exclusive_pyeong',$2,$3,'계획') value",
       [record.id, null, '"900"'],
     )
   ).rows[0].value;
@@ -51,7 +51,7 @@ try {
   const history = await timeline();
   assert.equal(history.can_delete, true);
   const h = history.records.find(
-    (h) => h.reason === "transaction-only verification",
+    (h) => h.reason === "계획",
   );
   assert(h);
   await db.query("select public.data_set_history_deleted($1,true)", [h.id]);
@@ -83,7 +83,7 @@ try {
     null,
   );
   console.log(
-    "PASS: live DB null area save, owner delete/restore, other admin denied; all probes rolled back",
+    "PASS: live DB short-reason null area save, owner delete/restore, other admin denied; all probes rolled back",
   );
 } finally {
   await db.query("rollback").catch(() => {});

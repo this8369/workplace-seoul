@@ -29,6 +29,7 @@ test("field review: fund ownership, request routing, atomic approval, scoped his
       "202610130002_private_asset_operations",
       "202610130003_source_finance_boundary",
       "202610130011_review_null_and_history_delete",
+      "202610130012_short_edit_reasons",
     ])
       await db.exec(
         await readFile(
@@ -498,6 +499,43 @@ test("field review: fund ownership, request routing, atomic approval, scoped his
       () => db.exec("update private.data_record_history set reason='erase'"),
       /immutable/,
     );
+    await db.exec("set role authenticated");
+    await login(steward);
+    const currentName = (
+      await db.query("select public.data_field_context('buildings',$1) value", [
+        building,
+      ])
+    ).rows[0].value.record.name;
+    await db.query(
+      "select public.data_save_field('buildings',$1,'name',$2,$3,'계획')",
+      [
+        building,
+        JSON.stringify(currentName),
+        JSON.stringify("서리풀 프로젝트 (South Office)"),
+      ],
+    );
+    assert.equal(
+      (
+        await db.query("select public.master_asset_corrections($1) value", [
+          building,
+        ])
+      ).rows[0].value.asset.name,
+      "서리풀 프로젝트 (South Office)",
+      "short reason saves public name and canonical name",
+    );
+    await assert.rejects(
+      () =>
+        db.query(
+          "select public.data_save_field('buildings',$1,'name',$2,$3,'  ')",
+          [
+            building,
+            JSON.stringify("서리풀 프로젝트 (South Office)"),
+            JSON.stringify("blank reason"),
+          ],
+        ),
+      /invalid_change/,
+    );
+    await db.exec("reset role");
     // Reproduce PostgREST sending a JSON null argument as SQL NULL.
     await db.exec(
       "alter table public.buildings add column typical_floor_exclusive_pyeong numeric",
@@ -506,7 +544,7 @@ test("field review: fund ownership, request routing, atomic approval, scoped his
     await login(steward);
     const saveArea = (expected, proposed) =>
       db.query(
-        "select public.data_save_field('buildings',$1,'typical_floor_exclusive_pyeong',$2,$3,'verified area') value",
+        "select public.data_save_field('buildings',$1,'typical_floor_exclusive_pyeong',$2,$3,'계획') value",
         [building, expected, proposed],
       );
     assert.equal(
@@ -534,16 +572,15 @@ test("field review: fund ownership, request routing, atomic approval, scoped his
     ];
     const submitNull = () =>
       db.query(
-        "select public.data_submit_request('buildings',$1,'typical_floor_exclusive_pyeong',$2,$3,'verified area request',$4) id",
+        "select public.data_submit_request('buildings',$1,'typical_floor_exclusive_pyeong',$2,$3,'계획',$4) id",
         nullRequestParams,
       );
     const nullRequest = (await submitNull()).rows[0].id;
     assert.equal((await submitNull()).rows[0].id, nullRequest);
     await login(steward);
-    await db.query(
-      "select public.data_decide_request($1,true,'verified area request')",
-      [nullRequest],
-    );
+    await db.query("select public.data_decide_request($1,true,'계획 확인')", [
+      nullRequest,
+    ]);
     const areaHistory = async () =>
       (
         await db.query(

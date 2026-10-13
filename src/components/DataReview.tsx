@@ -403,13 +403,20 @@ export function FieldDialog({
       setHistoryBusy(null);
     }
   }
+  function editValue(next: string) {
+    setValue(next);
+    setMessage("");
+  }
+  function editReason(next: string) {
+    setReason(next);
+    setMessage("");
+  }
   async function submit() {
     if (!context || !selected || busy) return;
     setBusy(true);
     setError("");
     try {
-      if (reason.trim().length < 3)
-        throw Error("수정 사유를 3자 이상 입력해 주세요.");
+      if (!reason.trim()) throw Error("수정 사유를 입력해 주세요.");
       const proposed =
         value === ""
           ? null
@@ -528,7 +535,7 @@ export function FieldDialog({
                   <OverviewFieldEditor
                     field={field}
                     value={value}
-                    onChange={setValue}
+                    onChange={editValue}
                   />
                 ) : selected?.type === "boolean" ? (
                   <select
@@ -536,7 +543,7 @@ export function FieldDialog({
                       context.can_edit ? "수정할 값" : "수정 요청할 값"
                     }
                     value={value}
-                    onChange={(e) => setValue(e.target.value)}
+                    onChange={(e) => editValue(e.target.value)}
                   >
                     <option value="">미확인</option>
                     <option value="true">
@@ -553,7 +560,7 @@ export function FieldDialog({
                     }
                     rows={selected?.type === "jsonb" ? 6 : 2}
                     value={value}
-                    onChange={(e) => setValue(e.target.value)}
+                    onChange={(e) => editValue(e.target.value)}
                   />
                 )}
               </div>
@@ -562,13 +569,13 @@ export function FieldDialog({
                 <textarea
                   rows={2}
                   value={reason}
-                  onChange={(e) => setReason(e.target.value)}
+                  onChange={(e) => editReason(e.target.value)}
                   placeholder="확인한 내용과 근거를 적어주세요"
                 />
               </label>
               <button
                 className="review-submit"
-                disabled={busy || reason.trim().length < 3 || !!message}
+                disabled={busy || !reason.trim() || !!message}
                 onClick={submit}
               >
                 {context.can_edit ? (
