@@ -329,6 +329,19 @@ export function FieldDialog({
     };
   }, [target.entity, target.id, attempt]);
   const selected = context?.fields.find((f) => f.key === field);
+  const isFloorArea =
+    /^(typical_floor_exclusive_pyeong|typical_floor_rentable_pyeong)$/.test(
+      field,
+    );
+  const floorValueError =
+    isFloorArea &&
+    value.trim() !== "" &&
+    (!/^(?:[0-9]+(?:\.[0-9]+)?|\.[0-9]+)$/.test(value.trim()) ||
+      !Number.isFinite(Number(value)) ||
+      Number(value) <= 0)
+      ? "0보다 큰 숫자 하나만 입력해 주세요. ‘약’, 범위, 단위는 입력할 수 없습니다."
+      : "";
+
   useEffect(() => {
     setValue(
       selected?.value == null
@@ -416,9 +429,10 @@ export function FieldDialog({
     setBusy(true);
     setError("");
     try {
+      if (floorValueError) throw Error(floorValueError);
       if (!reason.trim()) throw Error("수정 사유를 입력해 주세요.");
       const proposed =
-        value === ""
+        value.trim() === ""
           ? null
           : selected.type === "boolean"
             ? value === "true"
@@ -537,6 +551,34 @@ export function FieldDialog({
                     value={value}
                     onChange={editValue}
                   />
+                ) : isFloorArea ? (
+                  <>
+                    <input
+                      type="text"
+                      inputMode="decimal"
+                      autoComplete="off"
+                      aria-label={
+                        context.can_edit ? "수정할 값" : "수정 요청할 값"
+                      }
+                      aria-describedby="floor-area-help"
+                      aria-invalid={!!floorValueError}
+                      placeholder="예: 600 또는 600.5"
+                      value={value}
+                      onChange={(e) => editValue(e.target.value)}
+                    />
+                    <span
+                      id="floor-area-help"
+                      className={
+                        floorValueError
+                          ? "review-input-error"
+                          : "review-input-help"
+                      }
+                      role={floorValueError ? "alert" : undefined}
+                    >
+                      {floorValueError ||
+                        "단일 숫자만 입력 · 단위: 평 · 미확인은 비워두세요."}
+                    </span>
+                  </>
                 ) : selected?.type === "boolean" ? (
                   <select
                     aria-label={
@@ -575,7 +617,9 @@ export function FieldDialog({
               </label>
               <button
                 className="review-submit"
-                disabled={busy || !reason.trim() || !!message}
+                disabled={
+                  busy || !reason.trim() || !!message || !!floorValueError
+                }
                 onClick={submit}
               >
                 {context.can_edit ? (

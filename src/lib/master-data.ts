@@ -31,6 +31,13 @@ export async function masterRpc<T>(
       throw Error(
         "기준층 면적은 0보다 큰 숫자로 입력해 주세요. 미확인은 값을 비워 주세요.",
       );
+    if (
+      error.code === "22P02" &&
+      /numeric|integer|double precision|real/.test(error.message)
+    )
+      throw Error(
+        "숫자 하나만 입력해 주세요. ‘약’, 범위, 단위는 입력할 수 없습니다.",
+      );
     if (error.message.includes("no_change"))
       throw Error("현재 값과 같습니다. 변경할 값을 입력해 주세요.");
     throw Error("처리하지 못했습니다. 입력값과 연결 상태를 확인해 주세요.");

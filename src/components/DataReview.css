@@ -114,6 +114,7 @@
   color: #283982;
 }
 .data-review-dialog button:focus-visible,
+.data-review-dialog input:focus-visible,
 .data-review-dialog select:focus-visible,
 .data-review-dialog textarea:focus-visible {
   outline: 2px solid #283982;
@@ -127,6 +128,7 @@
   font-size: 13px;
   color: #617088;
 }
+.data-review-dialog input,
 .data-review-dialog select,
 .data-review-dialog textarea,
 .review-inbox textarea {
@@ -322,4 +324,16 @@
     padding: 20px;
     border-radius: 18px;
   }
+}
+
+.review-input-help,
+.review-input-error {
+  font-size: 12px;
+  line-height: 1.5;
+}
+.review-input-error {
+  color: #b4232c;
+}
+.data-review-dialog input[aria-invalid="true"] {
+  border-color: #b4232c;
 }
