@@ -1,3 +1,4 @@
+import { imageEditPatch, keepPrimaryOnPublish } from "../lib/image-edit";
 import PhotoBatchImport from "./PhotoBatchImport";
 import { useEffect, useRef, useState } from "react";
 import {
@@ -247,34 +248,13 @@ export default function PhotoManager({
       setBusy(false);
     }
   }
-  async function save() {
-    if (!draft || !supabase) return;
+  async function save(replacingFile = false) {
+    if (!draft || !row || !supabase) return;
+    const patch = imageEditPatch(row, draft, replacingFile);
+    if (!Object.keys(patch).length) return;
     const { error } = await supabase
       .from("building_images")
-      .update({
-        title: draft.title.trim(),
-        kind: draft.kind,
-        floor_label:
-          draft.kind === "floor_plan"
-            ? draft.floor_label?.trim() || null
-            : null,
-        sort_order: draft.sort_order || 0,
-        source_name: draft.source_name.trim(),
-        source_url: draft.source_url || null,
-        captured_on: draft.captured_on || null,
-        credit: draft.credit.trim(),
-        license_name: draft.license_name.trim(),
-        rights_status: draft.rights_status,
-        rights_note: draft.rights_note.trim(),
-        review_note: draft.review_note,
-        focal_x: draft.focal_x,
-        focal_y: draft.focal_y,
-        zoom_percent: draft.zoom_percent ?? 100,
-        review_status: "candidate",
-        is_primary: false,
-        reviewed_at: null,
-        reviewed_by: null,
-      })
+      .update(patch)
       .eq("id", draft.id);
     if (error) throw error;
   }
@@ -298,7 +278,7 @@ export default function PhotoManager({
         });
         if (error) throw error;
       }
-      await save();
+      await save(true);
       const { error } = await supabase
         .from("building_images")
         .update({
@@ -764,8 +744,8 @@ export default function PhotoManager({
                 </label>
                 {draft.is_primary && (
                   <p className="photo-muted">
-                    내용을 수정해 저장하면 대표 사진에서 해제됩니다. 확인 후
-                    다시 지정하세요.
+                    위치·확대율·표시 순서는 대표 사진을 유지하며 반영됩니다.
+                    이미지 파일이나 정보를 바꾸면 다시 게시해 주세요.
                   </p>
                 )}
                 <div className="photo-actions" aria-label="이미지 저장 및 적용">
@@ -780,7 +760,11 @@ export default function PhotoManager({
                         await save();
                         const { error } = await supabase!.rpc(
                           "approve_building_image",
-                          { image_id: draft.id, make_primary: false },
+                          {
+                            image_id: draft.id,
+                            make_primary:
+                              !!row && keepPrimaryOnPublish(row, draft),
+                          },
                         );
                         if (error) throw error;
                       })

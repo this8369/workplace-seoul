@@ -1,6 +1,13 @@
 // Explicit product decisions take precedence over shared parcel/register evidence.
 export const standaloneComplexes = [
   {
+    id: "4acaec75-4e22-59b8-affc-7732ae6df1ed",
+    name: "롯데월드타워",
+    reason:
+      "2026-10-13 사용자 요청: 롯데월드타워는 몰·부속시설의 단지 합계가 아닌 타워 단독 자산으로 표시",
+    buildingIds: ["2f28dba6-5a11-5418-a3d0-7aeaa0b782f0"],
+  },
+  {
     id: "0a598ba6-381b-52bd-adb9-9208445d1bf7",
     name: "원그로브",
     reason:
