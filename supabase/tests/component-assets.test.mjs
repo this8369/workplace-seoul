@@ -72,6 +72,24 @@ test("component assets keep unknown areas, independent media and synchronized co
         [b],
       );
     }
+    await db.exec(
+      await readFile(
+        new URL(
+          "../migrations/202610130015_component_shared_information.sql",
+          import.meta.url,
+        ),
+        "utf8",
+      ),
+    );
+    assert.equal(
+      (
+        await db.query(
+          "select count(*)::int n from buildings where component_source_building_id=$1",
+          [parent],
+        )
+      ).rows[0].n,
+      2,
+    );
     assert.equal(
       (await db.query("select count(*)::int n from catalog_buildings")).rows[0]
         .n,

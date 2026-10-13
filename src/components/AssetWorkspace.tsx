@@ -1,3 +1,4 @@
+import { scopedRows } from "../lib/shared-asset";
 import {
   ReviewValue as RV,
   ReviewRecordButton,
@@ -579,11 +580,86 @@ function AssetWorkspaceContent({
     loaded: loadedSections,
     goTo: goToSection,
   } = useScrollSections(page, tabs);
-  const context = useAssetContext(
+  const ownContext = useAssetContext(
     b.id,
     sourcesOpen ? [...loadedSections, "자료 출처"] : loadedSections,
     reviewVersion,
   );
+  const sharedCatalog = catalog.sharedAsset;
+  const sharedBuilding = sharedCatalog?.buildings[0];
+  const sharedContext = useAssetContext(
+    sharedBuilding?.id || b.id,
+    sharedBuilding
+      ? sourcesOpen
+        ? [...loadedSections, "자료 출처"]
+        : loadedSections
+      : [],
+    reviewVersion,
+  );
+  const pickContext = <T,>(
+    own: { data: T | null; error: boolean },
+    shared: { data: T | null; error: boolean },
+    has: (value: T) => boolean,
+  ) =>
+    own.data && has(own.data)
+      ? own
+      : sharedBuilding && shared.data && has(shared.data)
+        ? shared
+        : own;
+  const context = {
+    ...ownContext,
+    register: pickContext(
+      ownContext.register,
+      sharedContext.register,
+      (d) => !!d.records.length,
+    ),
+    parcels: pickContext(
+      ownContext.parcels,
+      sharedContext.parcels,
+      (d) => !!d.length,
+    ),
+    places: pickContext(
+      ownContext.places,
+      sharedContext.places,
+      (d) => !!d.length,
+    ),
+    facts: pickContext(
+      ownContext.facts,
+      sharedContext.facts,
+      (d) => !!d.length,
+    ),
+    natureSources: pickContext(
+      ownContext.natureSources,
+      sharedContext.natureSources,
+      (d) => !!d.length,
+    ),
+    retry: () => {
+      ownContext.retry();
+      sharedContext.retry();
+    },
+  };
+  const leasesSource = scopedRows(catalog.leasing, sharedCatalog?.leasing);
+  const tradesSource = scopedRows(
+    catalog.transactions,
+    sharedCatalog?.transactions,
+  );
+  const developmentsSource = scopedRows(
+    catalog.developments,
+    sharedCatalog?.developments,
+  );
+  const occupanciesSource = scopedRows(
+    catalog.occupancies,
+    sharedCatalog?.occupancies,
+  );
+  const movesSource = scopedRows(catalog.movements, sharedCatalog?.movements);
+  const occupancyBuildingId = occupanciesSource.inherited
+    ? sharedBuilding!.id
+    : b.id;
+  const companies = [...catalog.companies, ...(sharedCatalog?.companies || [])];
+  const scopeNote = (inherited: boolean) =>
+    inherited ? (
+      <p className="asset-shared-scope">{sharedBuilding?.name} · 단지 기준</p>
+    ) : null;
   const photos = catalog.images.filter(
     (p) =>
       p.building_id === b.id &&
@@ -607,7 +683,9 @@ function AssetWorkspaceContent({
     primaryImage(catalog.images, b.id)?.id ?? photos[0]?.id,
   );
   const photo = photos.find((p) => p.id === photoId) ?? photos[0];
-  const noc = markerNocIndex(catalog.leasing).get(b.id);
+  const noc = markerNocIndex(leasesSource.rows).get(
+    leasesSource.inherited ? sharedBuilding!.id : b.id,
+  );
   const towerRows = embedded
     ? (catalog.towers || []).filter(
         (t) =>
@@ -632,20 +710,20 @@ function AssetWorkspaceContent({
     if (!embedded) title.current?.focus();
   }, [b.id]);
   const trades = filterTransactions(
-    catalog.transactions.filter((t) => t.building_id === b.id),
+    tradesSource.rows,
     "",
     "",
     "",
     "",
     "recent",
   );
-  const leases = catalog.leasing
-    .filter((t) => t.building_id === b.id)
-    .sort((a, b) => b.period.localeCompare(a.period));
-  const developments = catalog.developments.filter(
-    (t) => t.building_id === b.id,
+  const leases = leasesSource.rows.sort((a, b) =>
+    b.period.localeCompare(a.period),
   );
-  const developmentSummary = markerDevelopmentIndex(developments).get(b.id);
+  const developments = developmentsSource.rows;
+  const developmentSummary = markerDevelopmentIndex(developments).get(
+    developmentsSource.inherited ? sharedBuilding!.id : b.id,
+  );
   const currentDevelopment = [...developments].sort((a, b) =>
     (b.as_of || "").localeCompare(a.as_of || ""),
   )[0];
@@ -672,13 +750,16 @@ function AssetWorkspaceContent({
       </RV>
     );
   };
-  const { confirmed, other } = occupancyGroups(catalog.occupancies, b.id);
-  const moves = catalog.movements
-    .filter((t) => t.from_building_id === b.id || t.to_building_id === b.id)
-    .sort((a, b) => b.period.localeCompare(a.period));
-  const company = catalog.companies.find((c) => c.id === companyId);
+  const { confirmed, other } = occupancyGroups(
+    occupanciesSource.rows,
+    occupancyBuildingId,
+  );
+  const moves = movesSource.rows.sort((a, b) =>
+    b.period.localeCompare(a.period),
+  );
+  const company = companies.find((c) => c.id === companyId);
   const filteredTenants = confirmed.filter((o) => {
-    const c = catalog.companies.find((c) => c.id === o.company_id);
+    const c = companies.find((c) => c.id === o.company_id);
     return `${c?.name} ${c?.industry}`
       .toLowerCase()
       .includes(tenantQuery.toLowerCase());
@@ -695,32 +776,55 @@ function AssetWorkspaceContent({
           <p className="context-note">이지스 정보를 불러오고 있습니다.</p>
         }
       >
-        <IgisOperationsPanel key={b.id} buildingId={b.id} />
-        <IgisAssetPanel buildingId={b.id} />
+        {scopeNote(!!sharedBuilding)}
+        <IgisOperationsPanel
+          key={sharedBuilding?.id || b.id}
+          buildingId={sharedBuilding?.id || b.id}
+        />
+        <IgisAssetPanel buildingId={sharedBuilding?.id || b.id} />
       </Suspense>
     ),
     건축물대장: (
-      <BuildingRegister
-        key={b.id}
-        buildingId={b.id}
-        resource={context.register}
-        onRetry={context.retry}
-      />
+      <>
+        {scopeNote(
+          context.register === sharedContext.register && !!sharedBuilding,
+        )}
+        <BuildingRegister
+          key={b.id}
+          buildingId={
+            context.register === sharedContext.register
+              ? sharedBuilding!.id
+              : b.id
+          }
+          resource={context.register}
+          onRetry={context.retry}
+        />
+      </>
     ),
     토지: (
-      <LandPanel
-        building={b}
-        parcels={context.parcels}
-        register={context.register}
-        onRetry={context.retry}
-      />
+      <>
+        {scopeNote(
+          context.parcels === sharedContext.parcels && !!sharedBuilding,
+        )}
+        <LandPanel
+          building={
+            context.parcels === sharedContext.parcels ? sharedBuilding! : b
+          }
+          parcels={context.parcels}
+          register={context.register}
+          onRetry={context.retry}
+        />
+      </>
     ),
     주변: (
-      <SurroundingsPanel
-        building={b}
-        places={context.places}
-        onRetry={context.retry}
-      />
+      <>
+        {scopeNote(context.places === sharedContext.places && !!sharedBuilding)}
+        <SurroundingsPanel
+          building={b}
+          places={context.places}
+          onRetry={context.retry}
+        />
+      </>
     ),
     "자료 출처": (
       <section className="info-panel">
@@ -813,7 +917,9 @@ function AssetWorkspaceContent({
             floorValues={floorValues}
             places={context.places.data || []}
             contractor={currentDevelopment?.contractor}
-            register={context.register.data}
+            register={ownContext.register.data}
+            sharedBuilding={sharedBuilding}
+            sharedRegister={sharedContext.register.data}
           />
           {sharedOverview}
           <section className="info-panel">
@@ -863,6 +969,7 @@ function AssetWorkspaceContent({
               <ArrowRight size={14} />
             </button>
           </div>
+          {scopeNote(tradesSource.inherited)}
           {trades[0] ? (
             <>
               <div className="recent-trade-summary">
@@ -936,6 +1043,7 @@ function AssetWorkspaceContent({
             </p>
           </div>
         </div>
+        {scopeNote(leasesSource.inherited)}
         {leases.length ? (
           <>
             <div className="table-scroll">
@@ -1025,6 +1133,7 @@ function AssetWorkspaceContent({
             </div>
             <Users size={20} />
           </div>
+          {scopeNote(occupanciesSource.inherited)}
           <div className="tenant-controls">
             <div className="search">
               <Search size={16} />
@@ -1070,9 +1179,7 @@ function AssetWorkspaceContent({
                   </thead>
                   <tbody>
                     {filteredTenants.map((o) => {
-                      const c = catalog.companies.find(
-                        (c) => c.id === o.company_id,
-                      );
+                      const c = companies.find((c) => c.id === o.company_id);
                       return (
                         <tr key={o.id}>
                           <td>
@@ -1135,8 +1242,8 @@ function AssetWorkspaceContent({
                         </RV>
                       </strong>
                       <button onClick={() => setCompanyId(o.company_id)}>
-                        {catalog.companies.find((c) => c.id === o.company_id)
-                          ?.name || "기업 정보 미확인"}
+                        {companies.find((c) => c.id === o.company_id)?.name ||
+                          "기업 정보 미확인"}
                       </button>
                       <span>
                         <RV entity="occupancies" id={o.id} field="area_m2">
@@ -1281,14 +1388,17 @@ function AssetWorkspaceContent({
       ),
     "거래 이력":
       archiveStatus === "ready" ? (
-        <Transactions
-          catalog={catalog}
-          query=""
-          region=""
-          onBuilding={onBuilding}
-          buildingId={b.id}
-          canReadDetails
-        />
+        <>
+          {scopeNote(tradesSource.inherited)}
+          <Transactions
+            catalog={tradesSource.inherited ? sharedCatalog! : catalog}
+            query=""
+            region=""
+            onBuilding={onBuilding}
+            buildingId={tradesSource.inherited ? sharedBuilding!.id : b.id}
+            canReadDetails
+          />
+        </>
       ) : (
         <div className="context-status" role="status">
           {archiveStatus === "error"
@@ -1307,6 +1417,7 @@ function AssetWorkspaceContent({
             <p>계획과 실제 진행상황을 구분해 기록합니다.</p>
           </div>
         </div>
+        {scopeNote(developmentsSource.inherited)}
         {developments.length ? (
           developments.map((d) => (
             <div className="info-panel" key={d.id}>
@@ -1495,7 +1606,11 @@ function AssetWorkspaceContent({
             </div>
             <div>
               <span>
-                {b.status === "development" ? "소유주·시행주체" : "시장 NOC"}
+                {b.status === "development"
+                  ? "소유주·시행주체"
+                  : leasesSource.inherited
+                    ? "시장 NOC · 단지"
+                    : "시장 NOC"}
               </span>
               <strong>
                 <RV
@@ -1520,7 +1635,13 @@ function AssetWorkspaceContent({
               </strong>
             </div>
             <div>
-              <span>{b.status === "development" ? "준공 예정" : "준공"}</span>
+              <span>
+                {b.status === "development"
+                  ? "준공 예정"
+                  : !b.completion_year && sharedBuilding?.completion_year
+                    ? "준공 · 단지"
+                    : "준공"}
+              </span>
               <strong>
                 <RV
                   entity={
@@ -1529,7 +1650,11 @@ function AssetWorkspaceContent({
                       : "buildings"
                   }
                   id={
-                    b.status === "development" ? currentDevelopment?.id : b.id
+                    b.status === "development"
+                      ? currentDevelopment?.id
+                      : !b.completion_year && sharedBuilding?.completion_year
+                        ? sharedBuilding.id
+                        : b.id
                   }
                   field={
                     b.status === "development" ? "year" : "completion_year"
@@ -1537,8 +1662,8 @@ function AssetWorkspaceContent({
                 >
                   {b.status === "development"
                     ? developmentSummary?.completion || "—"
-                    : b.completion_year
-                      ? `${b.completion_year}년`
+                    : b.completion_year || sharedBuilding?.completion_year
+                      ? `${b.completion_year || sharedBuilding?.completion_year}년`
                       : "—"}
                 </RV>
               </strong>

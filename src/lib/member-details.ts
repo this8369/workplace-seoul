@@ -17,6 +17,7 @@ export async function fetchTransactionDetail(id: string): Promise<Transaction> {
 export async function fetchMemberAsset(
   id: string,
   includeTransactions: boolean,
+  includeShared = true,
 ): Promise<Catalog> {
   if (!supabase) throw new Error("not-configured");
   const [{ data, error }, master] = await Promise.all([
@@ -93,8 +94,19 @@ export async function fetchMemberAsset(
   const companies = companyIds.length
     ? await rows("companies", (q) => q.in("id", companyIds))
     : [];
+  const sharedAsset =
+    includeShared &&
+    building.component_source_building_id &&
+    building.component_source_building_id !== id
+      ? await fetchMemberAsset(
+          building.component_source_building_id,
+          includeTransactions,
+          false,
+        )
+      : undefined;
   return {
     ...emptyCatalog,
+    sharedAsset,
     buildings: [building],
     images,
     leasing,

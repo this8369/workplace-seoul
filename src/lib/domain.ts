@@ -46,6 +46,7 @@ export type Building = {
   completion_source_url?: string | null;
   completion_collected_at?: string | null;
   typical_floor_area_pyeong?: number | null;
+  component_source_building_id?: string | null;
   typical_floor_rentable_pyeong?: number | null;
   typical_floor_exclusive_pyeong?: number | null;
   typical_floor_scope?: string | null;

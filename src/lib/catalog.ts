@@ -80,6 +80,7 @@ export type Development = Evidence & {
   progress: string;
 };
 export type Catalog = {
+  sharedAsset?: Catalog;
   complexes: BuildingComplex[];
   towers: BuildingTower[];
   buildings: Building[];

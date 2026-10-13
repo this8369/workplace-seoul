@@ -60,6 +60,10 @@ try {
       [t.id, child, parent.id],
     );
     await db.query(
+      "update public.buildings set component_source_building_id=$1 where id=$2",
+      [parent.id, child],
+    );
+    await db.query(
       "update public.building_towers set building_id=$1 where id=$2",
       [child, t.id],
     );

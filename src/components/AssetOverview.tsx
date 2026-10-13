@@ -1,3 +1,4 @@
+import { hasAssetValue, sharedFields } from "../lib/shared-asset";
 import { useEffect, useState, type ReactNode } from "react";
 import {
   Building2,
@@ -59,8 +60,12 @@ export default function AssetOverview({
   places,
   contractor,
   register,
+  sharedBuilding,
+  sharedRegister,
 }: {
   building: Building;
+  sharedBuilding?: Building;
+  sharedRegister?: RegisterData | null;
   floorValues: (kind: "rentable" | "exclusive") => ReactNode;
   places: Place[];
   contractor?: string | null;
@@ -73,6 +78,8 @@ export default function AssetOverview({
       profile: AssetProfile;
       power: PowerSpec;
       options: CertificationOption[];
+      sharedProfile?: AssetProfile;
+      sharedPower?: PowerSpec;
       green: {
         id: string;
         name: string;
@@ -106,16 +113,39 @@ export default function AssetOverview({
         .select("*")
         .eq("building_id", b.id)
         .order("distance_m"),
+      sharedBuilding
+        ? supabase
+            .from("building_asset_profiles")
+            .select("*")
+            .eq("id", sharedBuilding.id)
+            .single()
+        : Promise.resolve({ data: null, error: null }),
+      sharedBuilding
+        ? supabase
+            .from("building_power_specs")
+            .select("*")
+            .eq("id", sharedBuilding.id)
+            .single()
+        : Promise.resolve({ data: null, error: null }),
     ])
-      .then(([profile, power, options, green]) => {
+      .then(([profile, power, options, green, sharedProfile, sharedPower]) => {
         if (!live) return;
-        if (profile.error || power.error || options.error || green.error) {
+        if (
+          profile.error ||
+          power.error ||
+          options.error ||
+          green.error ||
+          sharedProfile.error ||
+          sharedPower.error
+        ) {
           setError(true);
           return;
         }
         setData({
           id: b.id,
           profile: profile.data,
+          sharedProfile: sharedProfile.data || undefined,
+          sharedPower: sharedPower.data || undefined,
           power: power.data,
           options: options.data,
           green: green.data || [],
@@ -127,25 +157,95 @@ export default function AssetOverview({
     return () => {
       live = false;
     };
-  }, [b.id, version, attempt]);
-  const current = data?.id === b.id ? data : null,
-    p = current?.profile,
-    power = current?.power;
-  const official = (field: string) =>
+  }, [b.id, sharedBuilding?.id, version, attempt]);
+  const current = data?.id === b.id ? data : null;
+  const profileFields = sharedFields(current?.profile, current?.sharedProfile, [
+    "owner_name",
+    "site_area_m2",
+    "floor_area_ratio",
+    "efficiency_pct",
+    "ceiling_height_m",
+    "lease_span_m",
+    "office_area_m2",
+    "retail_area_m2",
+    "contractor_name",
+    "architect_name",
+    "views",
+    "green_spaces",
+    "hotels",
+    "amenity_operators",
+    "retail_operators",
+    "subway_connections",
+    "certifications",
+  ]);
+  const powerFields = sharedFields(current?.power, current?.sharedPower, [
+    "contracted_capacity_mw",
+    "dual_substation",
+  ]);
+  const buildingFields = sharedFields(b, sharedBuilding, [
+    "floors_below",
+    "floors_above",
+    "parking_spaces",
+  ]);
+  const p = profileFields.values,
+    power = powerFields.values,
+    displayedBuilding = buildingFields.values || b;
+  // Area bases belong to the same observation as their corresponding area.
+  if (p && current?.sharedProfile)
+    for (const prefix of ["office", "retail"] as const) {
+      if (profileFields.inherited.has(`${prefix}_area_m2`)) {
+        p[`${prefix}_area_basis`] =
+          current.sharedProfile[`${prefix}_area_basis`];
+        profileFields.inherited.add(`${prefix}_area_basis`);
+      }
+    }
+  const sourceId = (field: string, entity = "building_asset_profiles") =>
+    entity === "building_power_specs"
+      ? powerFields.sourceId(field as keyof PowerSpec)
+      : entity === "buildings"
+        ? buildingFields.sourceId(field as keyof Building)
+        : profileFields.sourceId(field as keyof AssetProfile);
+  const sharedNote = (field: string, entity = "building_asset_profiles") =>
+    sourceId(field, entity) === sharedBuilding?.id && !!sharedBuilding;
+  const ownOfficial = (field: string) =>
     overviewRegisterFact(
       b.area_basis === "planned" ? [] : register?.records || [],
       field,
     );
+  const official = (field: string) => {
+    const own = ownOfficial(field);
+    if (own || field === "gross_area_m2") return own;
+    const key = field === "parking_total" ? "parking_spaces" : field;
+    const componentValue =
+      (current?.profile as unknown as Record<string, unknown> | undefined)?.[
+        key
+      ] ?? (b as unknown as Record<string, unknown>)[key];
+    if (hasAssetValue(componentValue)) return undefined;
+    return overviewRegisterFact(
+      b.area_basis === "planned" ? [] : sharedRegister?.records || [],
+      field,
+    );
+  };
   const officialValue = (
     field: string,
     fallback: ReactNode,
     format: (value: number) => ReactNode,
+    showScope = true,
   ) => {
     const fact = official(field);
     return fact ? (
-      <RV entity="building_register_records" id={fact.record.id} field={field}>
-        {format(Number(fact.value))}
-      </RV>
+      <span className="overview-scoped-value">
+        <RV
+          entity="building_register_records"
+          id={fact.record.id}
+          field={field}
+        >
+          {format(Number(fact.value))}
+        </RV>
+        {showScope && !ownOfficial(field) && (
+          <small className="asset-shared-scope">단지 기준</small>
+        )}
+      </span>
     ) : (
       fallback
     );
@@ -154,10 +254,20 @@ export default function AssetOverview({
     field: string,
     content: ReactNode,
     entity = "building_asset_profiles",
+    showScope = true,
   ) => (
-    <RV entity={entity} id={current ? b.id : null} field={field}>
-      {content}
-    </RV>
+    <span className="overview-scoped-value">
+      <RV
+        entity={entity}
+        id={current ? sourceId(field, entity) : null}
+        field={field}
+      >
+        {content}
+      </RV>
+      {showScope && sharedNote(field, entity) && (
+        <small className="asset-shared-scope">단지 기준</small>
+      )}
+    </span>
   );
   const row = (label: string, content: ReactNode, sub?: ReactNode) => (
     <div className="overview-fact" key={label}>
@@ -196,7 +306,11 @@ export default function AssetOverview({
   const stations = nearbyStations(places),
     density = loadDensity(
       power?.contracted_capacity_mw,
-      Number(official("gross_area_m2")?.value || b.gross_area_m2),
+      Number(
+        powerFields.inherited.has("contracted_capacity_mw")
+          ? sharedBuilding?.gross_area_m2
+          : official("gross_area_m2")?.value || b.gross_area_m2,
+      ),
     );
   const greenCandidates = current?.green || [];
   return (
@@ -219,6 +333,20 @@ export default function AssetOverview({
               자산 정보를 불러오는 중입니다.
             </p>
           )
+        )}
+        {(b.overview || sharedBuilding?.overview) && (
+          <p className="context-note">
+            <RV
+              entity="buildings"
+              id={b.overview ? b.id : sharedBuilding?.id}
+              field="overview"
+            >
+              {b.overview || sharedBuilding?.overview}
+            </RV>
+            {!b.overview && (
+              <small className="asset-shared-scope">단지 기준</small>
+            )}
+          </p>
         )}
         <dl className="overview-facts">
           {row("소유주", edit("owner_name", p?.owner_name || "미확인"))}
@@ -257,22 +385,34 @@ export default function AssetOverview({
                 "floors_below",
                 edit(
                   "floors_below",
-                  b.floors_below == null ? "지하 미확인" : `B${b.floors_below}`,
+                  displayedBuilding.floors_below == null
+                    ? "지하 미확인"
+                    : `B${displayedBuilding.floors_below}`,
                   "buildings",
+                  false,
                 ),
                 (v) => `B${v}`,
+                false,
               )}{" "}
               /{" "}
               {officialValue(
                 "floors_above",
                 edit(
                   "floors_above",
-                  b.floors_above == null ? "지상 미확인" : `${b.floors_above}F`,
+                  displayedBuilding.floors_above == null
+                    ? "지상 미확인"
+                    : `${displayedBuilding.floors_above}F`,
                   "buildings",
+                  false,
                 ),
                 (v) => `${v}F`,
+                false,
               )}
             </span>,
+            buildingFields.inherited.has("floors_below") ||
+              buildingFields.inherited.has("floors_above")
+              ? "단지 기준"
+              : undefined,
           )}
           {row(
             "천정고",
@@ -288,7 +428,7 @@ export default function AssetOverview({
               "parking_total",
               edit(
                 "parking_spaces",
-                scalar(b.parking_spaces, "대"),
+                scalar(displayedBuilding.parking_spaces, "대"),
                 "buildings",
               ),
               (v) => scalar(v, "대"),
@@ -298,14 +438,24 @@ export default function AssetOverview({
             "오피스면적",
             edit("office_area_m2", formatArea(p?.office_area_m2)),
             p?.office_area_m2 != null
-              ? edit("office_area_basis", areaBases[p.office_area_basis])
+              ? edit(
+                  "office_area_basis",
+                  areaBases[p.office_area_basis],
+                  "building_asset_profiles",
+                  false,
+                )
               : undefined,
           )}
           {row(
             "리테일면적",
             edit("retail_area_m2", formatArea(p?.retail_area_m2)),
             p?.retail_area_m2 != null
-              ? edit("retail_area_basis", areaBases[p.retail_area_basis])
+              ? edit(
+                  "retail_area_basis",
+                  areaBases[p.retail_area_basis],
+                  "building_asset_profiles",
+                  false,
+                )
               : undefined,
           )}
           {row("기준층면적(전용)", floorValues("exclusive"))}
@@ -415,6 +565,9 @@ export default function AssetOverview({
                 <>
                   {scalar(density)}
                   <small>W/평</small>
+                  {powerFields.inherited.has("contracted_capacity_mw") && (
+                    <small className="asset-shared-scope">단지 기준</small>
+                  )}
                 </>
               )}
             </strong>
@@ -472,6 +625,9 @@ export default function AssetOverview({
                 : null;
             })}
           </dl>
+        )}
+        {profileFields.inherited.has("certifications") && (
+          <span className="asset-shared-scope">단지 기준</span>
         )}
         <div className="overview-certificates">
           {p?.certifications.length ? (
@@ -534,7 +690,7 @@ export default function AssetOverview({
         <div className="overview-card-footer">
           <ReviewRecordButton
             entity="building_asset_profiles"
-            id={b.id}
+            id={sourceId("certifications")}
             field="certifications"
             label="인증 추가·수정"
             edit

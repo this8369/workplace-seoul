@@ -502,3 +502,14 @@
 .asset-overview-stack .asset-power-card .overview-fact {
   align-items: center;
 }
+
+.overview-scoped-value {
+  display: inline;
+}
+.asset-shared-scope {
+  display: block;
+  color: #617088;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.5;
+}
