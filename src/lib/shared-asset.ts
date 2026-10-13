@@ -27,3 +27,25 @@ export function scopedRows<T>(own: readonly T[], shared: readonly T[] = []) {
     inherited: !own.length && !!shared.length,
   };
 }
+
+// Overview fields have one complex source, including empty values. A cleared
+// shared value must never reappear from a stale component record.
+export function overviewFields<T extends { id: string }>(
+  own: T | undefined,
+  shared: T | undefined,
+  fields: readonly (keyof T)[],
+) {
+  const values = own ? { ...own } : undefined;
+  const inherited = new Set<keyof T>();
+  if (values && shared)
+    for (const field of fields) {
+      values[field] = shared[field];
+      inherited.add(field);
+    }
+  return {
+    values,
+    inherited,
+    sourceId: (field: keyof T) =>
+      shared && fields.includes(field) ? shared.id : own?.id,
+  };
+}

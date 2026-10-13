@@ -1,4 +1,4 @@
-import { hasAssetValue, sharedFields } from "../lib/shared-asset";
+import { hasAssetValue, overviewFields } from "../lib/shared-asset";
 import { useEffect, useState, type ReactNode } from "react";
 import {
   Building2,
@@ -10,6 +10,7 @@ import {
   ArrowUpRight,
 } from "lucide-react";
 import { supabase } from "../lib/supabase";
+import type { BuildingComplex } from "../lib/building-towers";
 import type { Building } from "../lib/domain";
 import { safeSourceUrl } from "../lib/domain";
 import type { Place } from "../lib/asset-context";
@@ -62,8 +63,10 @@ export default function AssetOverview({
   register,
   sharedBuilding,
   sharedRegister,
+  complex,
 }: {
   building: Building;
+  complex?: BuildingComplex;
   sharedBuilding?: Building;
   sharedRegister?: RegisterData | null;
   floorValues: (kind: "rentable" | "exclusive") => ReactNode;
@@ -111,7 +114,7 @@ export default function AssetOverview({
       supabase
         .from("building_green_spaces")
         .select("*")
-        .eq("building_id", b.id)
+        .eq("building_id", sharedBuilding?.id || b.id)
         .order("distance_m"),
       sharedBuilding
         ? supabase
@@ -159,36 +162,34 @@ export default function AssetOverview({
     };
   }, [b.id, sharedBuilding?.id, version, attempt]);
   const current = data?.id === b.id ? data : null;
-  const profileFields = sharedFields(current?.profile, current?.sharedProfile, [
-    "owner_name",
-    "site_area_m2",
-    "floor_area_ratio",
-    "efficiency_pct",
-    "ceiling_height_m",
-    "lease_span_m",
-    "office_area_m2",
-    "retail_area_m2",
-    "contractor_name",
-    "architect_name",
-    "views",
-    "green_spaces",
-    "hotels",
-    "amenity_operators",
-    "retail_operators",
-    "subway_connections",
-    "certifications",
-  ]);
-  const powerFields = sharedFields(current?.power, current?.sharedPower, [
+  const profileFields = overviewFields(
+    current?.profile,
+    current?.sharedProfile,
+    [
+      "owner_name",
+      "site_area_m2",
+      "floor_area_ratio",
+      "efficiency_pct",
+      "retail_area_m2",
+      "retail_area_basis",
+      "contractor_name",
+      "architect_name",
+      "views",
+      "green_spaces",
+      "hotels",
+      "amenity_operators",
+      "retail_operators",
+      "subway_connections",
+      "certifications",
+    ],
+  );
+  const powerFields = overviewFields(current?.power, current?.sharedPower, [
     "contracted_capacity_mw",
     "dual_substation",
   ]);
-  const buildingFields = sharedFields(b, sharedBuilding, [
-    "floors_below",
-    "floors_above",
-    "parking_spaces",
-  ]);
+  const buildingFields = overviewFields(b, sharedBuilding, ["overview"]);
   const p = profileFields.values,
-    power = powerFields.values,
+    power = complex || powerFields.values,
     displayedBuilding = buildingFields.values || b;
   // Area bases belong to the same observation as their corresponding area.
   if (p && current?.sharedProfile)
@@ -201,7 +202,7 @@ export default function AssetOverview({
     }
   const sourceId = (field: string, entity = "building_asset_profiles") =>
     entity === "building_power_specs"
-      ? powerFields.sourceId(field as keyof PowerSpec)
+      ? complex?.id || powerFields.sourceId(field as keyof PowerSpec)
       : entity === "buildings"
         ? buildingFields.sourceId(field as keyof Building)
         : profileFields.sourceId(field as keyof AssetProfile);
@@ -213,16 +214,18 @@ export default function AssetOverview({
       field,
     );
   const official = (field: string) => {
-    const own = ownOfficial(field);
-    if (own || field === "gross_area_m2") return own;
-    const key = field === "parking_total" ? "parking_spaces" : field;
-    const componentValue =
-      (current?.profile as unknown as Record<string, unknown> | undefined)?.[
-        key
-      ] ?? (b as unknown as Record<string, unknown>)[key];
-    if (hasAssetValue(componentValue)) return undefined;
+    if (field === "floors_above" || field === "floors_below")
+      return b[field] == null ? ownOfficial(field) : null;
+    if (complex && (field === "gross_area_m2" || field === "parking_total"))
+      return null;
+    const profileValue = (
+      p as unknown as Record<string, unknown> | undefined
+    )?.[field];
+    if (hasAssetValue(profileValue)) return null;
     return overviewRegisterFact(
-      b.area_basis === "planned" ? [] : sharedRegister?.records || [],
+      b.area_basis === "planned"
+        ? []
+        : (sharedBuilding ? sharedRegister : register)?.records || [],
       field,
     );
   };
@@ -233,23 +236,21 @@ export default function AssetOverview({
     showScope = true,
   ) => {
     const fact = official(field);
-    return fact ? (
-      <span className="overview-scoped-value">
-        <RV
-          entity="building_register_records"
-          id={fact.record.id}
-          field={field}
-        >
-          {format(Number(fact.value))}
-        </RV>
-        {showScope && !ownOfficial(field) && (
-          <small className="asset-shared-scope">단지 기준</small>
-        )}
-      </span>
-    ) : (
-      fallback
-    );
+    if (!fact) return fallback;
+    const key = field === "parking_total" ? "parking_spaces" : field;
+    const entity = [
+      "floors_above",
+      "floors_below",
+      "gross_area_m2",
+      "parking_spaces",
+    ].includes(key)
+      ? "buildings"
+      : "building_asset_profiles";
+    // Registry remains immutable evidence. A user correction is an editable
+    // overview override at the same common/component scope as other values.
+    return edit(key, format(Number(fact.value)), entity, showScope);
   };
+
   const edit = (
     field: string,
     content: ReactNode,
@@ -258,9 +259,14 @@ export default function AssetOverview({
   ) => (
     <span className="overview-scoped-value">
       <RV
-        entity={entity}
+        entity={
+          entity === "building_power_specs" && complex
+            ? "building_complexes"
+            : entity
+        }
         id={current ? sourceId(field, entity) : null}
         field={field}
+        allowedFields={[field]}
       >
         {content}
       </RV>
@@ -307,8 +313,8 @@ export default function AssetOverview({
     density = loadDensity(
       power?.contracted_capacity_mw,
       Number(
-        powerFields.inherited.has("contracted_capacity_mw")
-          ? sharedBuilding?.gross_area_m2
+        complex
+          ? complex.gross_area_m2
           : official("gross_area_m2")?.value || b.gross_area_m2,
       ),
     );
@@ -334,16 +340,17 @@ export default function AssetOverview({
             </p>
           )
         )}
-        {(b.overview || sharedBuilding?.overview) && (
+        {displayedBuilding.overview && (
           <p className="context-note">
             <RV
               entity="buildings"
-              id={b.overview ? b.id : sharedBuilding?.id}
+              id={buildingFields.sourceId("overview")}
               field="overview"
+              allowedFields={["overview"]}
             >
-              {b.overview || sharedBuilding?.overview}
+              {displayedBuilding.overview}
             </RV>
-            {!b.overview && (
+            {!!sharedBuilding && (
               <small className="asset-shared-scope">단지 기준</small>
             )}
           </p>
@@ -362,7 +369,18 @@ export default function AssetOverview({
             "연면적",
             officialValue(
               "gross_area_m2",
-              edit("gross_area_m2", formatArea(b.gross_area_m2), "buildings"),
+              complex ? (
+                <RV
+                  entity="building_complexes"
+                  id={complex.id}
+                  field="gross_area_m2"
+                  allowedFields={["gross_area_m2"]}
+                >
+                  {formatArea(complex.gross_area_m2)}
+                </RV>
+              ) : (
+                edit("gross_area_m2", formatArea(b.gross_area_m2), "buildings")
+              ),
               (v) => formatArea(v),
             ),
           )}
@@ -426,10 +444,21 @@ export default function AssetOverview({
             "주차대수",
             officialValue(
               "parking_total",
-              edit(
-                "parking_spaces",
-                scalar(displayedBuilding.parking_spaces, "대"),
-                "buildings",
+              complex ? (
+                <RV
+                  entity="building_complexes"
+                  id={complex.id}
+                  field="parking_spaces"
+                  allowedFields={["parking_spaces"]}
+                >
+                  {scalar(complex.parking_spaces, "대")}
+                </RV>
+              ) : (
+                edit(
+                  "parking_spaces",
+                  scalar(b.parking_spaces, "대"),
+                  "buildings",
+                )
               ),
               (v) => scalar(v, "대"),
             ),
@@ -618,6 +647,7 @@ export default function AssetOverview({
                       entity="building_register_records"
                       id={fact.record.id}
                       field={field}
+                      allowedFields={[field]}
                     >
                       {String(fact.value)}
                     </RV>,
@@ -692,6 +722,7 @@ export default function AssetOverview({
             entity="building_asset_profiles"
             id={sourceId("certifications")}
             field="certifications"
+            allowedFields={["certifications"]}
             label="인증 추가·수정"
             edit
           />

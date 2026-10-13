@@ -20,6 +20,7 @@ export type ReviewTarget = {
   field?: string;
   label?: string;
   assetId?: string;
+  allowedFields?: string[];
 };
 type Field = { key: string; type: string; value: unknown };
 type Context = {
@@ -159,15 +160,19 @@ export function DataReviewProvider({
   children,
   assetId,
   onSaved,
+  externalVersion = 0,
 }: {
   children: ReactNode;
   assetId?: string;
   onSaved?: () => void;
+  externalVersion?: number;
 }) {
   const [target, setTarget] = useState<ReviewTarget | null>(null);
   const [version, setVersion] = useState(0);
   return (
-    <ReviewContext.Provider value={{ open: setTarget, assetId, version }}>
+    <ReviewContext.Provider
+      value={{ open: setTarget, assetId, version: version + externalVersion }}
+    >
       {children}
       {target && (
         <FieldDialog
@@ -187,12 +192,14 @@ export function ReviewValue({
   entity,
   id,
   field,
+  allowedFields,
   label,
   children,
 }: {
   entity: string;
   id?: string | null;
   field: string;
+  allowedFields?: string[];
   label?: string;
   children: ReactNode;
 }) {
@@ -206,7 +213,7 @@ export function ReviewValue({
       title="정보 수정·요청 및 변경 이력"
       onClick={(e) => {
         e.stopPropagation();
-        ctx.open({ entity, id, field, label });
+        ctx.open({ entity, id, field, label, allowedFields });
       }}
     >
       {children}
@@ -218,12 +225,14 @@ export function ReviewRecordButton({
   entity,
   id,
   field,
+  allowedFields,
   label = "모든 항목·수정 이력",
   edit = false,
 }: {
   entity: string;
   id?: string | null;
   field?: string;
+  allowedFields?: string[];
   label?: string;
   edit?: boolean;
 }) {
@@ -233,7 +242,7 @@ export function ReviewRecordButton({
     <button
       type="button"
       className="review-record-button"
-      onClick={() => ctx.open({ entity, id, field })}
+      onClick={() => ctx.open({ entity, id, field, allowedFields })}
     >
       {edit ? <Pencil size={13} /> : <History size={14} />}
       {entity.startsWith("building_register_") &&
@@ -315,6 +324,13 @@ export function FieldDialog({
     })
       .then((x) => {
         if (alive) {
+          if (target.allowedFields)
+            x = {
+              ...x,
+              fields: x.fields.filter((f) =>
+                target.allowedFields!.includes(f.key),
+              ),
+            };
           setContext(x);
           setField((f) =>
             x.fields.some((x) => x.key === f) ? f : x.fields[0]?.key || "",

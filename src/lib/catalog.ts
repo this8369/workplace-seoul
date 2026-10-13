@@ -81,6 +81,8 @@ export type Development = Evidence & {
 };
 export type Catalog = {
   sharedAsset?: Catalog;
+  overviewAsset?: Catalog;
+  overviewComplex?: BuildingComplex;
   complexes: BuildingComplex[];
   towers: BuildingTower[];
   buildings: Building[];

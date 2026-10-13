@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { Building2, RotateCw, X } from "lucide-react";
-import type { AssetFact } from "../lib/asset-context";
 import type { Building } from "../lib/domain";
 import { safeSourceUrl } from "../lib/domain";
 import type { BuildingComplex, BuildingTower } from "../lib/building-towers";
@@ -16,7 +15,6 @@ type ComplexData = {
   complex: BuildingComplex;
   towers: BuildingTower[];
   members: Building[];
-  facts: AssetFact[];
 };
 export default function ComplexAssetWorkspace(
   props: MemberWorkspaceProps & { complex: BuildingComplex },
@@ -63,7 +61,7 @@ function ComplexContent(
     setFailed(false);
     async function load() {
       if (!supabase) throw new Error("not-configured");
-      const [a, b, d, f] = await Promise.all([
+      const [a, b, d] = await Promise.all([
         supabase
           .from("building_complexes")
           .select("*")
@@ -79,20 +77,13 @@ function ComplexContent(
           .select("*")
           .eq("complex_id", props.complex.id)
           .order("name"),
-        supabase
-          .from("building_facts")
-          .select("*")
-          .eq("complex_id", props.complex.id)
-          .order("id"),
       ]);
-      if (a.error || b.error || d.error || f.error)
-        throw a.error || b.error || d.error || f.error;
+      if (a.error || b.error || d.error) throw a.error || b.error || d.error;
       if (alive) {
         setData({
           complex: a.data,
           towers: b.data,
           members: d.data,
-          facts: f.data,
         });
       }
     }
@@ -134,6 +125,8 @@ function ComplexContent(
       is_igis: b.is_igis ?? props.building.is_igis,
       asset_category: b.asset_category ?? props.building.asset_category,
     },
+    informationRevision: revision,
+    onInformationSaved: () => setRevision((n) => n + 1),
     single: true,
     embedded: true,
     sharedOverview: data ? (
@@ -330,24 +323,6 @@ function SharedComplexDetails({
     (t) => t.component_kind !== "facility" && !t.parent_tower_id,
   );
   const facilities = data.towers.filter((t) => t.component_kind === "facility");
-  // Keep one stable editable source row per shared field. Historical copies
-  // stay intact; changing the displayed value must not create a second row.
-  const sharedFacts = [...data.facts].sort(
-    (a, b) =>
-      Number(b.building_id === c.representative_building_id) -
-        Number(a.building_id === c.representative_building_id) ||
-      a.id.localeCompare(b.id),
-  );
-  const commonFacts = sharedFacts.filter(
-    (f, i, all) =>
-      !/연면적|GFA|기준층/.test(f.field_key) &&
-      all.findIndex(
-        (x) =>
-          x.field_key === f.field_key &&
-          x.unit === f.unit &&
-          x.source_name === f.source_name,
-      ) === i,
-  );
   return (
     <div className="complex-shared-overview">
       <DataReviewProvider assetId={assetId} onSaved={onSaved}>
@@ -423,26 +398,6 @@ function SharedComplexDetails({
                     <dd>{f.value}</dd>
                   </div>
                 ))}
-            </dl>
-          </section>
-        )}
-        {!!commonFacts.length && (
-          <section className="complex-overview-card">
-            <h2>공통 시설·운영 정보</h2>
-            <dl>
-              {commonFacts.map((f) => (
-                <div key={f.id}>
-                  <dt>{f.field_key.replace(/^.*? 전체 · /, "")}</dt>
-                  <dd>
-                    <RV entity="building_facts" id={f.id} field="value">
-                      {typeof f.value === "object"
-                        ? JSON.stringify(f.value)
-                        : String(f.value)}
-                      {f.unit ? ` ${f.unit}` : ""}
-                    </RV>
-                  </dd>
-                </div>
-              ))}
             </dl>
           </section>
         )}

@@ -23,6 +23,8 @@ export type MemberWorkspaceProps = {
   single?: boolean;
   embedded?: boolean;
   sharedOverview?: React.ReactNode;
+  informationRevision?: number;
+  onInformationSaved?: () => void;
   onSaveBuilding?: (id: string) => void;
   savedIds?: Set<string>;
   onManageBuildingImages?: (id: string) => void;
@@ -55,6 +57,8 @@ function SingleAssetWorkspace({
   onManageImages,
   embedded,
   sharedOverview,
+  informationRevision = 0,
+  onInformationSaved,
 }: {
   building: Building;
   canReadTransactions: boolean;
@@ -65,6 +69,8 @@ function SingleAssetWorkspace({
   onManageImages?: () => void;
   embedded?: boolean;
   sharedOverview?: React.ReactNode;
+  informationRevision?: number;
+  onInformationSaved?: () => void;
 }) {
   const [catalog, setCatalog] = useState<Catalog | null>(null);
   const [failed, setFailed] = useState(false);
@@ -83,7 +89,7 @@ function SingleAssetWorkspace({
     return () => {
       alive = false;
     };
-  }, [building.id, canReadTransactions, attempt]);
+  }, [building.id, canReadTransactions, attempt, informationRevision]);
   if (!catalog)
     return (
       <div
@@ -116,7 +122,11 @@ function SingleAssetWorkspace({
   return (
     <DataReviewProvider
       assetId={building.id}
-      onSaved={() => setAttempt((n) => n + 1)}
+      externalVersion={informationRevision}
+      onSaved={() => {
+        setAttempt((n) => n + 1);
+        onInformationSaved?.();
+      }}
     >
       <AssetWorkspace
         embedded={embedded}

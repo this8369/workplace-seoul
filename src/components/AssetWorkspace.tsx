@@ -596,6 +596,14 @@ function AssetWorkspaceContent({
       : [],
     reviewVersion,
   );
+  const overviewBuilding = catalog.overviewAsset?.buildings[0];
+  const overviewContext = useAssetContext(
+    overviewBuilding?.id || b.id,
+    overviewBuilding && overviewBuilding.id !== sharedBuilding?.id
+      ? loadedSections
+      : [],
+    reviewVersion,
+  );
   const pickContext = <T,>(
     own: { data: T | null; error: boolean },
     shared: { data: T | null; error: boolean },
@@ -915,11 +923,27 @@ function AssetWorkspaceContent({
           <AssetOverview
             building={b}
             floorValues={floorValues}
-            places={context.places.data || []}
-            contractor={currentDevelopment?.contractor}
+            places={
+              (overviewBuilding
+                ? (overviewBuilding.id === sharedBuilding?.id
+                    ? sharedContext
+                    : overviewContext
+                  ).places.data
+                : ownContext.places.data) || []
+            }
+            contractor={
+              catalog.overviewComplex
+                ? undefined
+                : currentDevelopment?.contractor
+            }
             register={ownContext.register.data}
-            sharedBuilding={sharedBuilding}
-            sharedRegister={sharedContext.register.data}
+            sharedBuilding={overviewBuilding}
+            complex={catalog.overviewComplex}
+            sharedRegister={
+              overviewBuilding?.id === sharedBuilding?.id
+                ? sharedContext.register.data
+                : overviewContext.register.data
+            }
           />
           {sharedOverview}
           <section className="info-panel">

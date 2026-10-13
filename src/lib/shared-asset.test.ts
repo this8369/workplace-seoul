@@ -40,3 +40,38 @@ test("tower overrides win and shared observations are not relabeled as tower dat
     { rows: [{ id: "own", building_id: "east", noc: 123 }], inherited: false },
   );
 });
+
+// Complex overview has a canonical source even when values exist in both rows.
+import { overviewFields } from "./shared-asset.ts";
+test("common overview edits use one source; empty shared values remain empty", () => {
+  const east = {
+    id: "east",
+    owner: "old east" as string | null,
+    height: 3,
+    office: 100,
+    retail: 20,
+  };
+  const common = {
+    id: "complex",
+    owner: null,
+    height: 4,
+    office: 500,
+    retail: 80,
+  };
+  const west = {
+    ...east,
+    id: "west",
+    owner: "old west" as string | null,
+    height: 2.7,
+  };
+  const a = overviewFields(east, common, ["owner", "retail"]);
+  const b = overviewFields(west, common, ["owner", "retail"]);
+  assert.equal(a.values?.owner, null);
+  assert.equal(a.sourceId("owner"), b.sourceId("owner"));
+  assert.equal(a.values?.retail, 80);
+  assert.equal(a.values?.height, 3);
+  assert.equal(b.values?.height, 2.7);
+  assert.equal(a.sourceId("height"), "east");
+  assert.equal(b.sourceId("height"), "west");
+  assert.equal(a.values?.office, 100);
+});

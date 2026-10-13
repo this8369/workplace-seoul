@@ -104,9 +104,26 @@ export async function fetchMemberAsset(
           false,
         )
       : undefined;
+  const overviewComplex =
+    includeShared && building.complex_id
+      ? (
+          await rows("building_complexes", (q) =>
+            q.eq("id", building.complex_id).eq("published", true),
+          )
+        )[0]
+      : undefined;
+  const overviewId = overviewComplex?.representative_building_id;
+  const overviewAsset =
+    overviewId && overviewId !== id
+      ? sharedAsset?.buildings[0]?.id === overviewId
+        ? sharedAsset
+        : await fetchMemberAsset(overviewId, false, false)
+      : undefined;
   return {
     ...emptyCatalog,
     sharedAsset,
+    overviewAsset,
+    overviewComplex,
     buildings: [building],
     images,
     leasing,
