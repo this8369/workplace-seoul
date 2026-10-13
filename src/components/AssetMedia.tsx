@@ -93,6 +93,7 @@ export default function AssetMedia({
       ? floorPlans.find((p) => p.id === planId) || floorPlans[0]
       : photo;
   const imageCaption = [
+    shown?.inherited_from_image_id && "단지 공통 사진",
     shown?.floor_label,
     shown?.captured_on && `촬영 ${shown.captured_on}`,
   ]
@@ -230,7 +231,11 @@ export default function AssetMedia({
         className="asset-photo-frame asset-media-frame"
         data-mode={mode}
         onKeyDown={(event) =>
-          galleryKey(event, moveImage, !expanded && mode !== "roadview" && gallery.length > 1)
+          galleryKey(
+            event,
+            moveImage,
+            !expanded && mode !== "roadview" && gallery.length > 1,
+          )
         }
         ref={anchor}
       >
@@ -296,10 +301,9 @@ export default function AssetMedia({
           )}
         </div>
       )}
-      {!expanded &&
-        shown &&
-        mode !== "roadview" &&
-        imageCaption && <figcaption>{imageCaption}</figcaption>}
+      {!expanded && shown && mode !== "roadview" && imageCaption && (
+        <figcaption>{imageCaption}</figcaption>
+      )}
       {notice && !expanded && (
         <p className="asset-media-notice" role="status">
           {notice}

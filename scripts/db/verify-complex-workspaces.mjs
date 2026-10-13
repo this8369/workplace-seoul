@@ -10,7 +10,15 @@ try {
   const { rows: buildings } = await db.query(
     "select id,complex_id,complex_scope from public.buildings",
   );
-  assert.equal(buildings.length, plan.audited_buildings);
+  const generated = (
+    await db.query(
+      "select tower_id,building_id from private.complex_component_assets",
+    )
+  ).rows;
+  const materialized = new Map(
+    generated.map((r) => [r.tower_id, r.building_id]),
+  );
+  assert.equal(buildings.length, plan.audited_buildings + generated.length);
   const { rows: towers } = await db.query(
     "select id,complex_id,building_id,label,parent_tower_id,component_kind from public.building_towers",
   );
@@ -29,7 +37,10 @@ try {
       const actual = towers.find((x) => x.id === t.id);
       assert(actual);
       assert.equal(actual.label, t.label);
-      assert.equal(actual.building_id, t.building_id || null);
+      assert.equal(
+        actual.building_id,
+        materialized.get(t.id) || t.building_id || null,
+      );
       assert.equal(actual.parent_tower_id, t.parent_tower_id || null);
     }
   }
@@ -72,6 +83,74 @@ try {
     "select f.id from public.building_facts f join public.buildings b on b.id=f.building_id where f.complex_id is not null and f.complex_id is distinct from b.complex_id",
   );
   assert.equal(invalid.length, 0);
+  const missing = (
+    await db.query(
+      "select t.id from public.building_towers t join public.building_complexes c on c.id=t.complex_id where c.published and t.published and t.building_id is null and t.parent_tower_id is null and t.component_kind<>'facility'",
+    )
+  ).rows;
+  assert.equal(
+    missing.length,
+    0,
+    "all display components have full detail assets",
+  );
+  await db.query("begin");
+  try {
+    const member = (
+      await db.query(
+        "select user_id from private.workplace_members where source_member_id='809a0b49-37da-40e4-b664-8adc2eba4ad3' and enabled limit 1",
+      )
+    ).rows[0];
+    await db.query(
+      "update private.workplace_members set verified_until=now()+interval '5 minutes' where user_id=$1",
+      [member.user_id],
+    );
+    await db.query("set local role authenticated");
+    await db.query("select set_config('request.jwt.claim.sub',$1,true)", [
+      member.user_id,
+    ]);
+    const ids = generated.map((r) => r.building_id);
+    assert.equal(
+      (
+        await db.query(
+          "select count(*)::int n from public.buildings where id=any($1::uuid[])",
+          [ids],
+        )
+      ).rows[0].n,
+      ids.length,
+    );
+    for (const id of ids) {
+      const ctx = (
+        await db.query(
+          "select public.data_field_context('buildings',$1) value",
+          [id],
+        )
+      ).rows[0].value;
+      assert.equal(ctx.can_edit, true);
+      assert.equal(ctx.record.id, id);
+    }
+    const id = ids[0];
+    if (id) {
+      const ctx = (
+        await db.query(
+          "select public.data_field_context('buildings',$1) value",
+          [id],
+        )
+      ).rows[0].value;
+      const saved = (
+        await db.query(
+          "select public.data_save_field('buildings',$1,'name',$2,$3,'검증') value",
+          [
+            id,
+            JSON.stringify(ctx.record.name),
+            JSON.stringify(ctx.record.name + " 검증"),
+          ],
+        )
+      ).rows[0].value;
+      assert.equal(saved.name, ctx.record.name + " 검증");
+    }
+  } finally {
+    await db.query("rollback");
+  }
   console.log(
     JSON.stringify({
       buildings: buildings.length,
@@ -79,6 +158,7 @@ try {
       components: towers.length,
       labels: true,
       membership: true,
+      allComponentsEditable: true,
       sharedFacts: true,
       rls: true,
       publicProjectionBoundary: true,

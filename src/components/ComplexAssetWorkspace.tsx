@@ -128,7 +128,12 @@ function ComplexContent(
   }
   const childProps = (b: Building): MemberWorkspaceProps => ({
     ...props,
-    building: { ...b, region: b.region || props.building.region },
+    building: {
+      ...b,
+      region: b.region || props.building.region,
+      is_igis: b.is_igis ?? props.building.is_igis,
+      asset_category: b.asset_category ?? props.building.asset_category,
+    },
     single: true,
     embedded: true,
     sharedOverview: data ? (
@@ -281,22 +286,14 @@ function ComplexContent(
                     {b ? (
                       <MemberAssetWorkspace {...childProps(b)} />
                     ) : (
-                      <DataReviewProvider
-                        assetId={props.building.id}
-                        onSaved={() => setRevision((n) => n + 1)}
-                      >
-                        <TowerDetail
-                          onClose={props.onClose}
-                          tower={t}
-                          sharedOverview={
-                            <SharedComplexDetails
-                              data={data}
-                              assetId={props.building.id}
-                              onSaved={() => setRevision((n) => n + 1)}
-                            />
-                          }
-                        />
-                      </DataReviewProvider>
+                      <div className="empty" role="alert">
+                        <p>
+                          {c.name} {t.label}의 상세 연결을 불러오지 못했습니다.
+                        </p>
+                        <button onClick={() => setRevision((n) => n + 1)}>
+                          다시 불러오기
+                        </button>
+                      </div>
                     )}
                   </section>
                 );
@@ -318,112 +315,6 @@ function ComplexContent(
     </div>
   );
 }
-function TowerDetail({
-  onClose,
-  tower: t,
-  sharedOverview,
-}: {
-  tower: BuildingTower;
-  onClose: () => void;
-  sharedOverview: React.ReactNode;
-}) {
-  const { formatArea } = useAreaUnit();
-  const rows: [string, string, string][] = [
-    ["연면적", "gross_area_m2", formatArea(t.gross_area_m2)],
-    ["전용면적", "net_area_m2", formatArea(t.net_area_m2)],
-    [
-      "기준층면적(전용)",
-      "typical_floor_exclusive_pyeong",
-      formatArea(t.typical_floor_exclusive_pyeong, "평"),
-    ],
-    [
-      "기준층면적(임대)",
-      "typical_floor_rentable_pyeong",
-      formatArea(t.typical_floor_rentable_pyeong, "평"),
-    ],
-    [
-      "지상 층수",
-      "floors_above",
-      t.floors_above == null ? "미확인" : `${t.floors_above}층`,
-    ],
-    [
-      "지하 층수",
-      "floors_below",
-      t.floors_below == null ? "미확인" : `${t.floors_below}층`,
-    ],
-    [
-      "주차대수",
-      "parking_spaces",
-      t.parking_spaces == null ? "미확인" : `${t.parking_spaces}대`,
-    ],
-    [
-      "계약수전량",
-      "contracted_capacity_mw",
-      t.contracted_capacity_mw == null
-        ? "미확인"
-        : `${t.contracted_capacity_mw} MW`,
-    ],
-  ];
-  return (
-    <>
-      <div className="asset-popup-toolbar complex-unlinked-toolbar">
-        <button
-          className="asset-popup-close"
-          onClick={onClose}
-          aria-label="상세 닫기"
-        >
-          <X size={21} />
-        </button>
-      </div>
-      <div className="complex-tower-detail">
-        <div className="complex-tower-hero">
-          <Building2 size={32} />
-          <h3>{t.label}</h3>
-          <p>{t.main_use || "동별 자산 정보"}</p>
-          {t.overview && <p>{t.overview}</p>}
-        </div>
-        <section className="complex-overview-card">
-          <h2>자산 개요</h2>
-          <dl>
-            {rows.map(([label, field, value]) => (
-              <div key={field}>
-                <dt>{label}</dt>
-                <dd>
-                  <RV entity="building_towers" id={t.id} field={field}>
-                    {value}
-                  </RV>
-                </dd>
-              </div>
-            ))}
-          </dl>
-        </section>
-        <section className="complex-overview-card">
-          <h2>시장 임대</h2>
-          <p className="context-note">
-            이 동에 연결된 시장 임대 자료가 아직 없습니다.
-          </p>
-        </section>
-        {sharedOverview}
-        <details className="complex-sources">
-          <summary>자료 기준·출처 보기</summary>
-          <p>{t.evidence?.source_name || "동별 등록 자료"}</p>
-          {safeSourceUrl(t.evidence?.source_url || t.source_url || null) && (
-            <a
-              href={safeSourceUrl(
-                t.evidence?.source_url || t.source_url || null,
-              )}
-              target="_blank"
-              rel="noreferrer"
-            >
-              원문 보기
-            </a>
-          )}
-        </details>
-      </div>
-    </>
-  );
-}
-
 function SharedComplexDetails({
   data,
   assetId,

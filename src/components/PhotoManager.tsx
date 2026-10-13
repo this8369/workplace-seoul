@@ -42,6 +42,27 @@ export default function PhotoManager({
 }) {
   const [query, setQuery] = useState(""),
     [filter, setFilter] = useState("");
+  const [componentBuildings, setComponentBuildings] = useState<Building[]>([]);
+  useEffect(() => {
+    let live = true;
+    if (supabase)
+      void supabase
+        .from("buildings")
+        .select("*")
+        .eq("complex_scope", "component")
+        .order("name")
+        .then(({ data, error }) => {
+          if (live && !error) setComponentBuildings(data || []);
+        });
+    return () => {
+      live = false;
+    };
+  }, []);
+  const availableBuildings = [
+    ...new Map(
+      [...buildings, ...componentBuildings].map((b) => [b.id, b]),
+    ).values(),
+  ];
   const [selected, setSelected] = useState<string>("");
   const [operationBusy, setBusy] = useState(false),
     [message, setMessage] = useState("");
@@ -82,7 +103,7 @@ export default function PhotoManager({
     setDraft(row ? { ...row } : undefined);
     setMatched(false);
   }, [row]);
-  const names = new Map(buildings.map((b) => [b.id, b]));
+  const names = new Map(availableBuildings.map((b) => [b.id, b]));
   const filtered = images
     .filter(
       (i) =>
@@ -280,7 +301,11 @@ export default function PhotoManager({
       await save();
       const { error } = await supabase
         .from("building_images")
-        .update({ object_path: paths[0], thumbnail_path: paths[1] })
+        .update({
+          object_path: paths[0],
+          thumbnail_path: paths[1],
+          inherited_from_image_id: null,
+        })
         .eq("id", draft.id);
       if (error) throw error;
     } catch (e) {
@@ -395,7 +420,7 @@ export default function PhotoManager({
                 }}
               >
                 <option value="">전체 자산</option>
-                {buildings.map((item) => (
+                {availableBuildings.map((item) => (
                   <option key={item.id} value={item.id}>
                     {item.name}
                   </option>
@@ -480,7 +505,7 @@ export default function PhotoManager({
             <details className="photo-batch-tools">
               <summary>여러 자산 일괄 등록</summary>
               <PhotoBatchImport
-                buildings={buildings}
+                buildings={availableBuildings}
                 onRefresh={onRefresh}
                 onBusyChange={setBatchBusy}
               />

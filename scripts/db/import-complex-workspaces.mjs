@@ -73,6 +73,13 @@ try {
     complexes: (await db.query("select * from public.building_complexes")).rows,
     towers: (await db.query("select * from public.building_towers")).rows,
   };
+  const materialized = new Map(
+    (
+      await db.query(
+        "select tower_id,building_id from private.complex_component_assets",
+      )
+    ).rows.map((r) => [r.tower_id, r.building_id]),
+  );
   if (apply)
     await writeFile(
       `data/private/complexes/before-${Date.now()}.json`,
@@ -156,12 +163,15 @@ try {
       if (t.building_id) assert(ids.includes(t.building_id));
       const patch = {
         complex_id: p.id,
-        building_id: t.building_id || null,
+        building_id: materialized.get(t.id) || t.building_id || null,
         label: t.label,
         sort_order: t.sort_order,
         component_kind: t.component_kind || "building",
         published: true,
-        evidence: t.evidence || {},
+        evidence: {
+          ...before.towers.find((row) => row.id === t.id)?.evidence,
+          ...t.evidence,
+        },
       };
       for (const k of [
         "parent_tower_id",

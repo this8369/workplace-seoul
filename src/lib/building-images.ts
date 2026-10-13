@@ -2,6 +2,7 @@ import { supabase } from "./supabase";
 export type BuildingImage = {
   id: string;
   building_id: string;
+  inherited_from_image_id?: string | null;
   title: string;
   kind: "photo" | "rendering" | "floor_plan";
   floor_label?: string | null;
