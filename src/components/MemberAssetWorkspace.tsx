@@ -136,6 +136,7 @@ function SingleAssetWorkspace({
     <DataReviewProvider
       assetId={building.id}
       enabled={canReadIgis}
+      onRequireLogin={onRequireLogin}
       externalVersion={informationRevision}
       onSaved={() => {
         setAttempt((n) => n + 1);

@@ -163,22 +163,32 @@ export function DataReviewProvider({
   onSaved,
   externalVersion = 0,
   enabled = true,
+  onRequireLogin,
 }: {
   children: ReactNode;
   assetId?: string;
   onSaved?: () => void;
   externalVersion?: number;
   enabled?: boolean;
+  onRequireLogin?: () => void;
 }) {
   const [target, setTarget] = useState<ReviewTarget | null>(null);
   const [version, setVersion] = useState(0);
   return (
     <ReviewContext.Provider
       value={{
-        open: setTarget,
+        open: (next) => {
+          if (!enabled) {
+            onRequireLogin?.();
+            return;
+          }
+          setTarget(next);
+        },
         assetId,
         version: version + externalVersion,
-        readOnly: !enabled,
+        // Keep available controls visible; authorize before mounting the dialog
+        // that loads private edit context and history.
+        readOnly: !enabled && !onRequireLogin,
       }}
     >
       {children}

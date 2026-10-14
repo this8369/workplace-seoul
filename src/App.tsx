@@ -627,11 +627,23 @@ export default function App() {
     return () => window.removeEventListener("popstate", restore);
   }, []);
   const requireLogin = useCallback(() => {
+    if (session && !accessPending) {
+      setNotice("이 기능을 이용할 권한이 없습니다.");
+      return;
+    }
     setLoginMode("email");
     setLogin(true);
-    if (!accessPending)
-      setNotice("로그인 후 이용할 수 있습니다.");
-  }, [accessPending]);
+    if (!accessPending) setNotice("로그인 후 이용할 수 있습니다.");
+  }, [session, accessPending]);
+  function openPhotoManager(id = "", fromNavigation = false) {
+    if (!canManageImages) {
+      requireLogin();
+      return;
+    }
+    setImageBuilding(id);
+    setView("images");
+    if (fromNavigation) setSelected(null);
+  }
   const select = useCallback(
     (id: string) => {
       if (mobileMap && !selected) returnToList.current = mobileListOpen;
@@ -647,7 +659,7 @@ export default function App() {
   };
   async function toggleSave(id: string) {
     if (!supabase || !session) {
-      setLogin(true);
+      requireLogin();
       return;
     }
     if (!can("favorites.write")) {
@@ -865,7 +877,7 @@ export default function App() {
             title="관심 건물"
             onClick={() => {
               if (!session) {
-                setLogin(true);
+                requireLogin();
                 return;
               }
               setMobileListOpen(true);
@@ -895,7 +907,7 @@ export default function App() {
             className={view === "my" ? "current" : ""}
             onClick={() => {
               if (!canReadDetails) {
-                setLogin(true);
+                requireLogin();
                 return;
               }
               setView("my");
@@ -906,24 +918,18 @@ export default function App() {
             <span className="nav-text">MY</span>
           </button>
         </nav>
-        {can("images.manage") && (
-          <nav className="admin-navigation" aria-label="관리 메뉴">
-            <div className="nav-label">관리</div>
-            <button
-              aria-label="사진 관리"
-              title="사진 관리"
-              className={view === "images" ? "current" : ""}
-              onClick={() => {
-                setImageBuilding("");
-                setView("images");
-                setSelected(null);
-              }}
-            >
-              <ImagePlus size={18} />
-              <span className="nav-text">사진 관리</span>
-            </button>
-          </nav>
-        )}
+        <nav className="admin-navigation" aria-label="관리 메뉴">
+          <div className="nav-label">관리</div>
+          <button
+            aria-label="사진 관리"
+            title="사진 관리"
+            className={view === "images" ? "current" : ""}
+            onClick={() => openPhotoManager("", true)}
+          >
+            <ImagePlus size={18} />
+            <span className="nav-text">사진 관리</span>
+          </button>
+        </nav>
         <AccountMenu
           name={access.display_name || ""}
           email={session?.user.email}
@@ -954,6 +960,7 @@ export default function App() {
             <DataReviewProvider
               key={`${session?.user.id}:${canReadDetails}`}
               enabled={canReadDetails && can("transactions.read")}
+              onRequireLogin={requireLogin}
             >
               <Transactions
                 catalog={catalog}
@@ -1402,14 +1409,7 @@ export default function App() {
                     onActiveBuilding={focusBuilding}
                     savedIds={saved}
                     onSaveBuilding={toggleSave}
-                    onManageBuildingImages={
-                      can("images.manage")
-                        ? (id) => {
-                            setImageBuilding(id);
-                            setView("images");
-                          }
-                        : undefined
-                    }
+                    onManageBuildingImages={openPhotoManager}
                     canReadTransactions={canReadTransactions}
                     canReadIgis={canReadDetails}
                     onRequireLogin={requireLogin}
@@ -1417,14 +1417,7 @@ export default function App() {
                     onBuilding={select}
                     saved={saved.has(active.id)}
                     onSave={() => toggleSave(active.id)}
-                    onManageImages={
-                      can("images.manage")
-                        ? () => {
-                            setImageBuilding(active.id);
-                            setView("images");
-                          }
-                        : undefined
-                    }
+                    onManageImages={() => openPhotoManager(active.id)}
                   />
                 )}
                 {view === "images" && canManageImages && (

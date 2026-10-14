@@ -140,6 +140,7 @@ function ComplexContent(
         data={data}
         assetId={b.id}
         canReview={!!props.canReadIgis}
+        onRequireLogin={props.onRequireLogin}
         onSaved={() => setRevision((n) => n + 1)}
       />
     ) : undefined,
@@ -317,6 +318,7 @@ function ComplexContent(
                     data={data}
                     assetId={props.building.id}
                     canReview={!!props.canReadIgis}
+                    onRequireLogin={props.onRequireLogin}
                     onSaved={() => setRevision((n) => n + 1)}
                   />
                 </div>
@@ -332,11 +334,13 @@ function SharedComplexDetails({
   data,
   assetId,
   canReview,
+  onRequireLogin,
   onSaved,
 }: {
   data: ComplexData;
   assetId: string;
   canReview: boolean;
+  onRequireLogin?: () => void;
   onSaved: () => void;
 }) {
   const c = data.complex;
@@ -350,6 +354,7 @@ function SharedComplexDetails({
       <DataReviewProvider
         assetId={assetId}
         enabled={canReview}
+        onRequireLogin={onRequireLogin}
         onSaved={onSaved}
       >
         <section className="complex-overview-card">
