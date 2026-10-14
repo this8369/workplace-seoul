@@ -213,8 +213,9 @@ export default function AssetOverview({
   const official = (field: string) => {
     if (field === "floors_above" || field === "floors_below")
       return b[field] == null ? ownOfficial(field) : null;
-    if (complex && (field === "gross_area_m2" || field === "parking_total"))
-      return null;
+    // A tower's GFA must never fall back to the complex or its total register.
+    if (field === "gross_area_m2") return complex ? null : ownOfficial(field);
+    if (complex && field === "parking_total") return null;
     const profileValue = (
       p as unknown as Record<string, unknown> | undefined
     )?.[field];
@@ -356,22 +357,7 @@ export default function AssetOverview({
           )}
           {row(
             "연면적",
-            officialValue(
-              "gross_area_m2",
-              complex ? (
-                <RV
-                  entity="building_complexes"
-                  id={complex.id}
-                  field="gross_area_m2"
-                  allowedFields={["gross_area_m2"]}
-                >
-                  {formatArea(complex.gross_area_m2)}
-                </RV>
-              ) : (
-                edit("gross_area_m2", formatArea(b.gross_area_m2), "buildings")
-              ),
-              (v) => formatArea(v),
-            ),
+            edit("gross_area_m2", formatArea(b.gross_area_m2), "buildings"),
           )}
           {row(
             "용적률",
