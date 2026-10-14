@@ -22,6 +22,30 @@
 .asset-overview-stack .section-heading > svg {
   color: #8794a7;
 }
+.asset-overview-card .overview-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-height: 32px;
+  padding: 6px 10px;
+  border: 0;
+  border-radius: 10px;
+  background: #f0f3f8;
+  color: #65738a;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.5;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.asset-overview-card .overview-toggle:hover {
+  background: #e6ebf4;
+  color: #293d8c;
+}
+.asset-overview-card .overview-fact[hidden] {
+  display: none;
+}
 .overview-facts {
   margin: 0 !important;
 }

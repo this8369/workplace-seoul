@@ -1,7 +1,8 @@
 import { hasAssetValue, overviewFields } from "../lib/shared-asset";
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useId, useState, type ReactNode } from "react";
 import {
-  Building2,
+  ChevronDown,
+  ChevronUp,
   Leaf,
   TrainFront,
   Zap,
@@ -54,6 +55,14 @@ const scalar = (n: number | null | undefined, unit = "") =>
   n == null
     ? "미확인"
     : `${Number(n).toLocaleString("ko-KR", { maximumFractionDigits: 2 })}${unit}`;
+const previewLabels = new Set([
+  "소유주",
+  "대지면적",
+  "연면적",
+  "용적률",
+  "전용률",
+  "규모",
+]);
 export default function AssetOverview({
   building: b,
   floorValues,
@@ -75,6 +84,9 @@ export default function AssetOverview({
 }) {
   const version = useDataReviewVersion(),
     { formatArea } = useAreaUnit();
+  const [expanded, setExpanded] = useState(false);
+  const factsId = useId();
+  useEffect(() => setExpanded(false), [b.id]);
   const [data, setData] = useState<{
       id: string;
       profile: AssetProfile;
@@ -268,8 +280,17 @@ export default function AssetOverview({
       </RV>
     </span>
   );
-  const row = (label: string, content: ReactNode, sub?: ReactNode) => (
-    <div className="overview-fact" key={label}>
+  const row = (
+    label: string,
+    content: ReactNode,
+    sub?: ReactNode,
+    collapsible = false,
+  ) => (
+    <div
+      className="overview-fact"
+      key={label}
+      hidden={collapsible && !expanded && !previewLabels.has(label)}
+    >
       <dt>{label}</dt>
       <dd>
         {content}
@@ -277,6 +298,8 @@ export default function AssetOverview({
       </dd>
     </div>
   );
+  const overviewRow = (label: string, content: ReactNode, sub?: ReactNode) =>
+    row(label, content, sub, true);
   const tags = (
     field:
       | "views"
@@ -317,7 +340,17 @@ export default function AssetOverview({
       <section className="info-panel asset-overview-card">
         <div className="section-heading">
           <h2>자산 개요</h2>
-          <Building2 size={19} />
+          <button
+            type="button"
+            className="overview-toggle"
+            aria-expanded={expanded}
+            aria-controls={factsId}
+            aria-label={`자산개요 ${expanded ? "접기" : "펼치기"}`}
+            onClick={() => setExpanded((value) => !value)}
+          >
+            {expanded ? "접기" : "펼치기"}
+            {expanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+          </button>
         </div>
         {error ? (
           <p className="overview-load-error" role="alert">
@@ -333,7 +366,7 @@ export default function AssetOverview({
             </p>
           )
         )}
-        {displayedBuilding.overview && (
+        {expanded && displayedBuilding.overview && (
           <p className="context-note">
             <RV
               entity="buildings"
@@ -345,9 +378,9 @@ export default function AssetOverview({
             </RV>
           </p>
         )}
-        <dl className="overview-facts">
-          {row("소유주", edit("owner_name", p?.owner_name || "미확인"))}
-          {row(
+        <dl className="overview-facts" id={factsId}>
+          {overviewRow("소유주", edit("owner_name", p?.owner_name || "미확인"))}
+          {overviewRow(
             "대지면적",
             officialValue(
               "site_area_m2",
@@ -355,11 +388,11 @@ export default function AssetOverview({
               (v) => formatArea(v),
             ),
           )}
-          {row(
+          {overviewRow(
             "연면적",
             edit("gross_area_m2", formatArea(b.gross_area_m2), "buildings"),
           )}
-          {row(
+          {overviewRow(
             "용적률",
             officialValue(
               "floor_area_ratio",
@@ -367,11 +400,11 @@ export default function AssetOverview({
               (v) => scalar(v, "%"),
             ),
           )}
-          {row(
+          {overviewRow(
             "전용률",
             edit("efficiency_pct", scalar(p?.efficiency_pct, "%")),
           )}
-          {row(
+          {overviewRow(
             "규모",
             <span>
               {officialValue(
@@ -399,15 +432,15 @@ export default function AssetOverview({
               )}
             </span>,
           )}
-          {row(
+          {overviewRow(
             "천정고",
             edit("ceiling_height_m", scalar(p?.ceiling_height_m, "m")),
           )}
-          {row(
+          {overviewRow(
             "Lease Span",
             edit("lease_span_m", scalar(p?.lease_span_m, "m")),
           )}
-          {row(
+          {overviewRow(
             "주차대수",
             officialValue(
               "parking_total",
@@ -430,25 +463,28 @@ export default function AssetOverview({
               (v) => scalar(v, "대"),
             ),
           )}
-          {row(
+          {overviewRow(
             "오피스면적",
             edit("office_area_m2", formatArea(p?.office_area_m2)),
           )}
-          {row(
+          {overviewRow(
             "리테일면적",
             edit("retail_area_m2", formatArea(p?.retail_area_m2)),
           )}
-          {row("기준층면적(전용)", floorValues("exclusive"))}
-          {row("기준층면적(임대)", floorValues("rentable"))}
-          {row(
+          {overviewRow("기준층면적(전용)", floorValues("exclusive"))}
+          {overviewRow("기준층면적(임대)", floorValues("rentable"))}
+          {overviewRow(
             "시공사",
             edit(
               "contractor_name",
               p?.contractor_name || contractor || "미확인",
             ),
           )}
-          {row("설계사", edit("architect_name", p?.architect_name || "미확인"))}
-          {row(
+          {overviewRow(
+            "설계사",
+            edit("architect_name", p?.architect_name || "미확인"),
+          )}
+          {overviewRow(
             "지하철 직연결",
             edit(
               "subway_connections",
@@ -476,7 +512,7 @@ export default function AssetOverview({
             ),
           )}
           {stations.length > 0 &&
-            row(
+            overviewRow(
               "인근 역 · 500m",
               <span className="overview-connections">
                 {stations.map((s) => (
@@ -489,8 +525,8 @@ export default function AssetOverview({
                 ))}
               </span>,
             )}
-          {row("VIEW", tags("views"))}
-          {row(
+          {overviewRow("VIEW", tags("views"))}
+          {overviewRow(
             "자연환경",
             tags("green_spaces"),
             greenCandidates.length ? (
@@ -505,9 +541,9 @@ export default function AssetOverview({
               </span>
             ) : undefined,
           )}
-          {row("호텔", tags("hotels"))}
-          {row("어메니티 운영사", tags("amenity_operators"))}
-          {row("브랜드 리테일 운영사", tags("retail_operators"))}
+          {overviewRow("호텔", tags("hotels"))}
+          {overviewRow("어메니티 운영사", tags("amenity_operators"))}
+          {overviewRow("브랜드 리테일 운영사", tags("retail_operators"))}
         </dl>
       </section>
       <section className="info-panel asset-power-card">
