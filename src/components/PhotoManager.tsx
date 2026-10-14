@@ -693,6 +693,9 @@ export default function PhotoManager({
                         field("sort_order", Math.trunc(Number(e.target.value)))
                       }
                     />
+                    <small className="photo-muted">
+                      낮은 숫자부터 표시하며, 게시된 첫 사진이 대표 사진입니다.
+                    </small>
                   </label>
                   <label>
                     출처명
@@ -744,8 +747,8 @@ export default function PhotoManager({
                 </label>
                 {draft.is_primary && (
                   <p className="photo-muted">
-                    위치·확대율·표시 순서는 대표 사진을 유지하며 반영됩니다.
-                    이미지 파일이나 정보를 바꾸면 다시 게시해 주세요.
+                    위치·확대율은 대표 사진을 유지하며 반영됩니다. 이미지
+                    파일이나 정보를 바꾸면 다시 게시해 주세요.
                   </p>
                 )}
                 <div className="photo-actions" aria-label="이미지 저장 및 적용">

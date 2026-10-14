@@ -54,4 +54,7 @@ export function imageEditPatch(
 export const keepPrimaryOnPublish = (
   original: BuildingImage,
   draft: BuildingImage,
-) => original.is_primary && draft.kind !== "floor_plan";
+) =>
+  original.is_primary &&
+  draft.kind !== "floor_plan" &&
+  (original.sort_order ?? 0) === (draft.sort_order ?? 0);

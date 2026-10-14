@@ -45,3 +45,19 @@ test("replacement, identity and floor plan changes still require review", () => 
     false,
   );
 });
+test("saving a cover's new order does not force it back to first when publishing", () => {
+  assert.deepEqual(
+    imageEditPatch(
+      { ...original, sort_order: 1 },
+      { ...original, sort_order: 2 },
+    ),
+    { sort_order: 2 },
+  );
+  assert.equal(
+    keepPrimaryOnPublish(
+      { ...original, sort_order: 1 },
+      { ...original, sort_order: 2 },
+    ),
+    false,
+  );
+});

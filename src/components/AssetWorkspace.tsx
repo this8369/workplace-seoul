@@ -678,8 +678,12 @@ function AssetWorkspaceContent({
         a.title.localeCompare(b.title),
     );
   photos.sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
-  const [photoId, setPhotoId] = useState(
-    primaryImage(catalog.images, b.id)?.id ?? photos[0]?.id,
+  const representativePhotoId =
+    primaryImage(catalog.images, b.id)?.id ?? photos[0]?.id;
+  const [photoId, setPhotoId] = useState(representativePhotoId);
+  useEffect(
+    () => setPhotoId(representativePhotoId),
+    [b.id, representativePhotoId],
   );
   const photo = photos.find((p) => p.id === photoId) ?? photos[0];
   const noc = markerNocIndex(leasesSource.rows).get(
