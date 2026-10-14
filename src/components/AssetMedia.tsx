@@ -179,7 +179,7 @@ export default function AssetMedia({
     target?.focus({ preventScroll: true });
   }
   const photoContent = shown ? (
-    <BuildingPhoto image={shown} detail />
+    <BuildingPhoto image={shown} detail publicRead />
   ) : (
     <div className="asset-media-empty">
       {mode === "floor_plan" ? (
@@ -383,7 +383,7 @@ export default function AssetMedia({
                     onClick={() => selectImage(item.id)}
                     aria-label={`${i + 1}번: ${item.floor_label || item.title}`}
                   >
-                    <BuildingPhoto image={item} memberOnly />
+                    <BuildingPhoto image={item} publicRead />
                   </button>
                 ))}
               </div>

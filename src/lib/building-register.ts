@@ -1,4 +1,4 @@
-import { supabase } from "./supabase";
+import { assetDetailClient as supabase } from "./asset-detail-client";
 export type RegisterRecord = {
   id: string;
   register_pk: string;

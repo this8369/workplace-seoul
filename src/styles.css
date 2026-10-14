@@ -1633,6 +1633,19 @@ tbody th {
   grid-template-columns: 1.1fr 1fr;
   gap: 16px;
 }
+.igis-detail-locked > svg {
+  color: var(--muted);
+}
+.igis-detail-locked p {
+  color: var(--muted);
+  line-height: 1.6;
+}
+.igis-detail-locked .primary {
+  margin-top: 8px;
+}
+.asset-media-actions:empty {
+  display: none;
+}
 .info-panel {
   background: var(--surface);
   border: 1px solid var(--line);

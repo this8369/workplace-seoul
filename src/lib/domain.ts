@@ -20,6 +20,7 @@ export const assetCategoryOptions = [
 ];
 export type Building = {
   is_igis?: boolean;
+  igis_source_building_id?: string | null;
   is_mixed_use?: boolean;
   asset_category?: AssetCategory;
   id: string;

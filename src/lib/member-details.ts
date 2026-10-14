@@ -1,10 +1,10 @@
 import { regionForBuilding } from "./map-regions";
-import { supabase } from "./supabase";
+import { assetDetailClient as supabase } from "./asset-detail-client";
 import { emptyCatalog, type Catalog, type Transaction } from "./catalog";
 import type { Building } from "./domain";
 import { masterRpc, type MasterRecord } from "./master-data";
 
-// These requests always use the member session. Database RLS is authoritative.
+// General detail uses the published projection without a member session.
 export async function fetchTransactionDetail(id: string): Promise<Transaction> {
   if (!supabase) throw new Error("not-configured");
   const { data, error } = await supabase
@@ -15,7 +15,7 @@ export async function fetchTransactionDetail(id: string): Promise<Transaction> {
   if (error) throw error;
   return data as Transaction;
 }
-// A direct link can identify a member-only component absent from catalog_buildings.
+// A direct link can identify a published component absent from the grouped list.
 export async function fetchMemberBuilding(id: string): Promise<Building> {
   if (!supabase) throw new Error("not-configured");
   const { data, error } = await supabase
@@ -36,14 +36,17 @@ export async function fetchMemberAsset(
   id: string,
   includeTransactions: boolean,
   includeShared = true,
+  memberCorrections = false,
 ): Promise<Catalog> {
   if (!supabase) throw new Error("not-configured");
   const [{ data, error }, master] = await Promise.all([
     supabase.from("buildings").select("*").eq("id", id).single(),
-    masterRpc<{ asset: MasterRecord; edited_fields: string[] } | null>(
-      "master_asset_corrections",
-      { building_key: id },
-    ),
+    memberCorrections
+      ? masterRpc<{ asset: MasterRecord; edited_fields: string[] } | null>(
+          "master_asset_corrections",
+          { building_key: id },
+        )
+      : Promise.resolve(null),
   ]);
   if (error) throw error;
   const building: Building = {
@@ -120,6 +123,7 @@ export async function fetchMemberAsset(
           building.component_source_building_id,
           includeTransactions,
           false,
+          memberCorrections,
         )
       : undefined;
   const overviewComplex =
@@ -135,7 +139,7 @@ export async function fetchMemberAsset(
     overviewId && overviewId !== id
       ? sharedAsset?.buildings[0]?.id === overviewId
         ? sharedAsset
-        : await fetchMemberAsset(overviewId, false, false)
+        : await fetchMemberAsset(overviewId, false, false, memberCorrections)
       : undefined;
   return {
     ...emptyCatalog,

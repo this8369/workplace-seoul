@@ -7,7 +7,9 @@ import PhotoManager from "./components/PhotoManager";
 import AssetNotifications from "./components/AssetNotifications";
 import { assetNavigationUrl, sharedAssetId } from "./lib/asset-link";
 import { fetchMemberBuilding } from "./lib/member-details";
+import { assetDetailClient } from "./lib/asset-detail-client";
 import MemberAssetWorkspace from "./components/MemberAssetWorkspace";
+import { DataReviewProvider } from "./components/DataReview";
 import {
   buildingFloorText,
   complexMapBuildings,
@@ -221,10 +223,7 @@ export default function App() {
       history[replace ? "replaceState" : "pushState"](null, "", url);
     setSelection(id);
   }, []);
-  const [linkedBuilding, setLinkedBuilding] = useState<{
-    building: Building;
-    userId: string;
-  }>();
+  const [linkedBuilding, setLinkedBuilding] = useState<Building>();
   const [linkedError, setLinkedError] = useState(false);
   const [linkedAttempt, setLinkedAttempt] = useState(0);
   const [savedBuildings, setSavedBuildings] = useState<Building[]>([]);
@@ -250,16 +249,15 @@ export default function App() {
       !canReadDetails &&
       (access.status === "checking" || access.status === "unavailable"));
   const canManageImages = canReadDetails && can("images.manage");
-  const canReadTransactions = canReadDetails && can("transactions.read");
+  const canReadTransactions = true;
   const [adminImages, setAdminImages] = useState<Catalog["images"]>([]);
-  const pendingBuilding = useRef<string | null>(initialAsset);
   const accessUser = useRef(session?.user.id);
   const [comparisonDetails, setComparisonDetails] = useState<Building[]>([]);
   useEffect(() => {
     setComparisonDetails([]);
-    if (!showCompare || !canReadDetails || !supabase) return;
+    if (!showCompare || !assetDetailClient) return;
     let alive = true;
-    void supabase
+    void assetDetailClient
       .from("buildings")
       .select("*")
       .in("id", compare)
@@ -271,24 +269,17 @@ export default function App() {
     return () => {
       alive = false;
     };
-  }, [showCompare, canReadDetails, compare, session?.user.id]);
+  }, [showCompare, compare]);
   useEffect(() => {
     const changedAccount =
       !!accessUser.current && accessUser.current !== session?.user.id;
     accessUser.current = session?.user.id;
-    if (changedAccount) pendingBuilding.current = null;
     if (!canReadDetails) {
       clearPrivatePhotoUrls();
       // Keep the navigation intent while revalidating, but render private data
       // only after the server has issued a fresh attestation.
       if (accessPending && !changedAccount) return;
       setView((current) => (current === "my" ? "all" : current));
-      if (changedAccount) setSelected(null, true);
-      setShowCompare(false);
-      dialog.current?.close();
-    } else if (pendingBuilding.current) {
-      setSelected(pendingBuilding.current);
-      pendingBuilding.current = null;
     }
   }, [canReadDetails, accessPending, session?.user.id]);
   useEffect(() => {
@@ -584,13 +575,9 @@ export default function App() {
         )?.value || "미확인",
     };
   };
-  const active = canReadDetails
-      ? buildings.find((b) => b.id === selected) ||
-        (linkedBuilding?.userId === session?.user.id &&
-        linkedBuilding.building.id === selected
-          ? linkedBuilding.building
-          : undefined)
-      : undefined,
+  const active =
+      buildings.find((b) => b.id === selected) ||
+      (linkedBuilding?.id === selected ? linkedBuilding : undefined),
     regions = [
       ...new Set([
         ...districts.map((d) => d.key),
@@ -603,19 +590,18 @@ export default function App() {
   useEffect(() => {
     let alive = true;
     setLinkedError(false);
-    if (!canReadDetails || !selected) {
+    if (!selected) {
       setLinkedBuilding(undefined);
       return;
     }
     if (
       buildings.some((b) => b.id === selected) ||
-      (linkedBuilding?.building.id === selected &&
-        linkedBuilding.userId === session?.user.id)
+      linkedBuilding?.id === selected
     )
       return;
     void fetchMemberBuilding(selected)
       .then((building) => {
-        if (alive) setLinkedBuilding({ building, userId: session!.user.id });
+        if (alive) setLinkedBuilding(building);
       })
       .catch(() => {
         if (alive) setLinkedError(true);
@@ -623,56 +609,38 @@ export default function App() {
     return () => {
       alive = false;
     };
-  }, [selected, canReadDetails, session?.user.id, buildings, linkedAttempt]);
+  }, [selected, buildings, linkedAttempt]);
   const focusBuilding = useCallback(
     (building: Building, replace = false) => {
-      if (!canReadDetails || !session) return;
-      pendingBuilding.current = null;
-      setLinkedBuilding({ building, userId: session.user.id });
+      setLinkedBuilding(building);
       setSelected(building.id, replace);
     },
-    [canReadDetails, session?.user.id, setSelected],
+    [setSelected],
   );
   useEffect(() => {
     const restore = () => {
       const id = sharedAssetId(location.search);
       setSelection(id);
       setQuery(new URLSearchParams(location.search).get("q") || "");
-      pendingBuilding.current = canReadDetails ? null : id;
     };
     window.addEventListener("popstate", restore);
     return () => window.removeEventListener("popstate", restore);
-  }, [canReadDetails]);
+  }, []);
   const requireLogin = useCallback(() => {
     setLoginMode("email");
     setLogin(true);
     if (!accessPending)
-      setNotice("상세정보는 등록된 사용자만 확인할 수 있습니다.");
+      setNotice("로그인 후 이용할 수 있습니다.");
   }, [accessPending]);
   const select = useCallback(
     (id: string) => {
       if (mobileMap && !selected) returnToList.current = mobileListOpen;
-      if (!canReadDetails) {
-        pendingBuilding.current = id;
-        requireLogin();
-        return;
-      }
-      pendingBuilding.current = null;
       if (mobileMap) setMobileListOpen(false);
       setSelected(id);
     },
-    [canReadDetails, requireLogin, mobileMap, mobileListOpen, selected],
+    [mobileMap, mobileListOpen, selected, setSelected],
   );
-  useEffect(() => {
-    if (!selected || !authReady || accessPending || session) return;
-    pendingBuilding.current = selected;
-    requireLogin();
-  }, [selected, authReady, accessPending, session, requireLogin]);
   const openDialog = () => {
-    if (!canReadDetails) {
-      requireLogin();
-      return;
-    }
     if (compare.length < 2) return;
     setShowCompare(true);
     dialog.current?.showModal();
@@ -983,15 +951,20 @@ export default function App() {
           </Suspense>
         ) : view === "transactions" && !active ? (
           load === "ready" && archiveLoad === "ready" ? (
-            <Transactions
-              catalog={catalog}
-              query={query}
-              region={region}
-              onBuilding={select}
-              canReadDetails={canReadTransactions}
-              onRequireLogin={requireLogin}
-              accessKey={session?.user.id}
-            />
+            <DataReviewProvider
+              key={`${session?.user.id}:${canReadDetails}`}
+              enabled={canReadDetails && can("transactions.read")}
+            >
+              <Transactions
+                catalog={catalog}
+                query={query}
+                region={region}
+                onBuilding={select}
+                canReadDetails={canReadTransactions}
+                onRequireLogin={requireLogin}
+                accessKey={session?.user.id}
+              />
+            </DataReviewProvider>
           ) : (
             <div className="empty">
               <h2>
@@ -1013,7 +986,7 @@ export default function App() {
           )
         ) : (
           <div
-            className={`workspace mobile-map-browse${mobileListOpen ? " is-list-open" : ""}${(selected && canReadDetails) || (view === "images" && canManageImages) ? " is-detail-open" : ""}`}
+            className={`workspace mobile-map-browse${mobileListOpen ? " is-list-open" : ""}${selected || (view === "images" && canManageImages) ? " is-detail-open" : ""}`}
             onKeyDown={(event) => {
               if (
                 mobileMap &&
@@ -1388,7 +1361,7 @@ export default function App() {
                   previewed={previewedBuilding}
                   onSelect={select}
                 />
-                {selected && canReadDetails && !active && view !== "images" && (
+                {selected && !active && view !== "images" && (
                   <div
                     className="asset-popup"
                     role="dialog"
@@ -1423,7 +1396,7 @@ export default function App() {
                 )}
                 {active && view !== "images" && (
                   <MemberAssetWorkspace
-                    key={`${session?.user.id}:${active.complex_id || active.id}`}
+                    key={`${session?.user.id}:${canReadDetails}:${active.complex_id || active.id}`}
                     building={active}
                     complexes={catalog.complexes}
                     onActiveBuilding={focusBuilding}
@@ -1438,6 +1411,8 @@ export default function App() {
                         : undefined
                     }
                     canReadTransactions={canReadTransactions}
+                    canReadIgis={canReadDetails}
+                    onRequireLogin={requireLogin}
                     onClose={() => setSelected(null)}
                     onBuilding={select}
                     saved={saved.has(active.id)}
@@ -1493,7 +1468,7 @@ export default function App() {
               onClick={openMobileList}
               inert={
                 mobileListOpen ||
-                !!(selected && canReadDetails) ||
+                !!selected ||
                 (view === "images" && canManageImages)
               }
             >
@@ -1523,7 +1498,7 @@ export default function App() {
             <X />
           </button>
         </div>
-        {showCompare && canReadDetails && (
+        {showCompare && (
           <div className="table-scroll">
             <table>
               <thead>
@@ -1583,7 +1558,6 @@ export default function App() {
               loginMode === "change" ? access.display_name || "" : ""
             }
             onClose={() => {
-              pendingBuilding.current = null;
               setLogin(false);
               setLoginMode("email");
             }}
@@ -1596,12 +1570,7 @@ export default function App() {
       {canReadDetails && session && (
         <AssetNotifications key={session.user.id} onOpen={select} />
       )}
-      {accessPending &&
-      (login ||
-        selected ||
-        view === "my" ||
-        view === "images" ||
-        showCompare) ? (
+      {accessPending && (login || view === "my" || view === "images") ? (
         <div className="toast" role="status">
           {access.status === "unavailable"
             ? "인증 서버에 다시 연결하고 있습니다. 잠시 후 자동으로 다시 시도합니다."

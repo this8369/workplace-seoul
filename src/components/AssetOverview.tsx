@@ -10,7 +10,7 @@ import {
   ShieldCheck,
   ArrowUpRight,
 } from "lucide-react";
-import { supabase } from "../lib/supabase";
+import { assetDetailClient as supabase } from "../lib/asset-detail-client";
 import type { BuildingComplex } from "../lib/building-towers";
 import type { Building } from "../lib/domain";
 import { safeSourceUrl } from "../lib/domain";

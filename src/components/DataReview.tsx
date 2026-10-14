@@ -43,6 +43,7 @@ const ReviewContext = createContext<{
   open: (target: ReviewTarget) => void;
   assetId?: string;
   version: number;
+  readOnly: boolean;
 } | null>(null);
 export function useDataReviewVersion() {
   return useContext(ReviewContext)?.version ?? 0;
@@ -153,7 +154,7 @@ export function DataReviewBoundary({ children }: { children: ReactNode }) {
   return existing ? (
     children
   ) : (
-    <DataReviewProvider>{children}</DataReviewProvider>
+    <DataReviewProvider enabled={false}>{children}</DataReviewProvider>
   );
 }
 export function DataReviewProvider({
@@ -161,20 +162,27 @@ export function DataReviewProvider({
   assetId,
   onSaved,
   externalVersion = 0,
+  enabled = true,
 }: {
   children: ReactNode;
   assetId?: string;
   onSaved?: () => void;
   externalVersion?: number;
+  enabled?: boolean;
 }) {
   const [target, setTarget] = useState<ReviewTarget | null>(null);
   const [version, setVersion] = useState(0);
   return (
     <ReviewContext.Provider
-      value={{ open: setTarget, assetId, version: version + externalVersion }}
+      value={{
+        open: setTarget,
+        assetId,
+        version: version + externalVersion,
+        readOnly: !enabled,
+      }}
     >
       {children}
-      {target && (
+      {enabled && target && (
         <FieldDialog
           key={`${target.entity}:${target.id}:${target.field}`}
           target={{ ...target, assetId: target.assetId || assetId }}
@@ -204,7 +212,7 @@ export function ReviewValue({
   children: ReactNode;
 }) {
   const ctx = useContext(ReviewContext);
-  if (!ctx || !id || entity.startsWith("building_register_"))
+  if (!ctx || ctx.readOnly || !id || entity.startsWith("building_register_"))
     return <>{children}</>;
   return (
     <button
@@ -237,7 +245,7 @@ export function ReviewRecordButton({
   edit?: boolean;
 }) {
   const ctx = useContext(ReviewContext);
-  if (!ctx || !id) return null;
+  if (!ctx || ctx.readOnly || !id) return null;
   return (
     <button
       type="button"
@@ -254,7 +262,7 @@ export function ReviewRecordButton({
 }
 export function AssetHistoryButton({ compact = false }: { compact?: boolean }) {
   const ctx = useContext(ReviewContext);
-  if (!ctx?.assetId) return null;
+  if (!ctx?.assetId || ctx.readOnly) return null;
   return (
     <button
       type="button"

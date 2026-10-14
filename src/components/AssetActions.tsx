@@ -52,10 +52,14 @@ export default function AssetActions({
   building,
   saved,
   onSave,
+  canPersonalize = true,
+  onRequireLogin,
 }: {
   building: Building;
   saved: boolean;
   onSave: () => void;
+  canPersonalize?: boolean;
+  onRequireLogin?: () => void;
 }) {
   const [alert, setAlert] = useState(false);
   const [busy, setBusy] = useState(true);
@@ -63,6 +67,11 @@ export default function AssetActions({
   const [manualLink, setManualLink] = useState("");
   useEffect(() => {
     let alive = true;
+    if (!canPersonalize) {
+      setBusy(false);
+      setAlert(false);
+      return;
+    }
     setBusy(true);
     void supabase
       ?.rpc("asset_alert_state", { asset_key: building.id })
@@ -75,13 +84,17 @@ export default function AssetActions({
     return () => {
       alive = false;
     };
-  }, [building.id]);
+  }, [building.id, canPersonalize]);
   useEffect(() => {
     if (!message) return;
     const timer = setTimeout(() => setMessage(""), 5000);
     return () => clearTimeout(timer);
   }, [message]);
   async function toggleAlert() {
+    if (!canPersonalize) {
+      onRequireLogin?.();
+      return;
+    }
     if (!supabase || busy) return;
     setBusy(true);
     const { data, error } = await supabase.rpc("set_asset_alert", {

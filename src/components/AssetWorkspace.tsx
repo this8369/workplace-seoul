@@ -1,4 +1,5 @@
 import { scopedRows } from "../lib/shared-asset";
+import { assetDetailTabs, type AssetTab } from "../lib/asset-detail-access";
 import {
   ReviewValue as RV,
   ReviewRecordButton,
@@ -33,6 +34,7 @@ import {
   Check,
   ChevronRight,
   Clock3,
+  LockKeyhole,
   FileText,
   MapPin,
   Search,
@@ -509,18 +511,6 @@ export function Transactions({
     </section>
   );
 }
-const tabs = [
-  "개요",
-  "이지스",
-  "토지",
-  "건축물대장",
-  "시장 임대",
-  "임차기업",
-  "거래 이력",
-  "개발·변경 이력",
-  "주변",
-] as const;
-type AssetTab = (typeof tabs)[number];
 export function AssetWorkspace(
   props: Parameters<typeof AssetWorkspaceContent>[0],
 ) {
@@ -543,6 +533,8 @@ function AssetWorkspaceContent({
   onManageImages,
   embedded = false,
   sharedOverview,
+  canReadIgis = false,
+  onRequireLogin,
 }: {
   building: Building;
   catalog: Catalog;
@@ -555,6 +547,8 @@ function AssetWorkspaceContent({
   onManageImages?: () => void;
   embedded?: boolean;
   sharedOverview?: React.ReactNode;
+  canReadIgis?: boolean;
+  onRequireLogin?: () => void;
 }) {
   const { unit, setUnit, formatArea, perPyeong } = useAreaUnit();
   const transactionArea = formatArea;
@@ -575,6 +569,7 @@ function AssetWorkspaceContent({
   const popup = useRef<HTMLDivElement>(null);
   const page = useRef<HTMLElement>(null);
   const reviewVersion = useDataReviewVersion();
+  const tabs = assetDetailTabs(b);
   const {
     active: tab,
     loaded: loadedSections,
@@ -774,18 +769,27 @@ function AssetWorkspaceContent({
     as_of: b.source_as_of || b.verified_on,
   };
   const sectionContent: Record<AssetTab | "자료 출처", React.ReactNode> = {
-    이지스: (
+    이지스: canReadIgis ? (
       <Suspense
         fallback={
           <p className="context-note">이지스 정보를 불러오고 있습니다.</p>
         }
       >
         <IgisOperationsPanel
-          key={sharedBuilding?.id || b.id}
-          buildingId={sharedBuilding?.id || b.id}
+          key={b.igis_source_building_id || b.id}
+          buildingId={b.igis_source_building_id || b.id}
         />
-        <IgisAssetPanel buildingId={sharedBuilding?.id || b.id} />
+        <IgisAssetPanel buildingId={b.igis_source_building_id || b.id} />
       </Suspense>
+    ) : (
+      <section className="info-panel igis-detail-locked">
+        <LockKeyhole size={25} />
+        <h2>이지스 내부정보</h2>
+        <p>로그인 후 권한이 있는 정보만 확인할 수 있습니다.</p>
+        <button type="button" className="primary" onClick={onRequireLogin}>
+          로그인하고 보기
+        </button>
+      </section>
     ),
     건축물대장: (
       <>
@@ -1489,7 +1493,13 @@ function AssetWorkspaceContent({
       }}
     >
       <div className="asset-popup-toolbar">
-        <AssetActions building={b} saved={saved} onSave={onSave} />
+        <AssetActions
+          building={b}
+          saved={saved}
+          onSave={onSave}
+          canPersonalize={canReadIgis}
+          onRequireLogin={onRequireLogin}
+        />
         <div className="asset-toolbar-secondary">
           <AssetHistoryButton compact />
           <button
@@ -1681,9 +1691,9 @@ function AssetWorkspaceContent({
           {tabs.map((t, i) => (
             <button
               key={t}
-              id={`asset-tab-${i}`}
+              id={`asset-${b.id}-tab-${i}`}
               aria-current={tab === t ? "location" : undefined}
-              aria-controls={`asset-section-${i}`}
+              aria-controls={`asset-${b.id}-section-${i}`}
               tabIndex={tab === t ? 0 : -1}
               onKeyDown={(e) => {
                 if (
@@ -1700,12 +1710,17 @@ function AssetWorkspaceContent({
                             tabs.length) %
                           tabs.length;
                   goToSection(tabs[next]);
+                  if (tabs[next] === "이지스" && !canReadIgis)
+                    onRequireLogin?.();
                   document
-                    .getElementById(`asset-tab-${next}`)
+                    .getElementById(`asset-${b.id}-tab-${next}`)
                     ?.focus({ preventScroll: true });
                 }
               }}
-              onClick={() => goToSection(t)}
+              onClick={() => {
+                goToSection(t);
+                if (t === "이지스" && !canReadIgis) onRequireLogin?.();
+              }}
             >
               {t}
             </button>
@@ -1715,10 +1730,10 @@ function AssetWorkspaceContent({
           {tabs.map((name, index) => (
             <section
               key={name}
-              id={`asset-section-${index}`}
+              id={`asset-${b.id}-section-${index}`}
               data-asset-section={name}
               className="asset-scroll-section"
-              aria-labelledby={`asset-tab-${index}`}
+              aria-labelledby={`asset-${b.id}-tab-${index}`}
             >
               {loadedSections.includes(name) ? (
                 sectionContent[name]

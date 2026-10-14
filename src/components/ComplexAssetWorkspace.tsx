@@ -3,7 +3,7 @@ import { Building2, RotateCw, X } from "lucide-react";
 import type { Building } from "../lib/domain";
 import { safeSourceUrl } from "../lib/domain";
 import type { BuildingComplex, BuildingTower } from "../lib/building-towers";
-import { supabase } from "../lib/supabase";
+import { assetDetailClient as supabase } from "../lib/asset-detail-client";
 import MemberAssetWorkspace, {
   type MemberWorkspaceProps,
 } from "./MemberAssetWorkspace";
@@ -129,7 +129,6 @@ function ComplexContent(
     building: {
       ...b,
       region: b.region || props.building.region,
-      is_igis: b.is_igis ?? props.building.is_igis,
       asset_category: b.asset_category ?? props.building.asset_category,
     },
     informationRevision: revision,
@@ -140,6 +139,7 @@ function ComplexContent(
       <SharedComplexDetails
         data={data}
         assetId={b.id}
+        canReview={!!props.canReadIgis}
         onSaved={() => setRevision((n) => n + 1)}
       />
     ) : undefined,
@@ -316,6 +316,7 @@ function ComplexContent(
                   <SharedComplexDetails
                     data={data}
                     assetId={props.building.id}
+                    canReview={!!props.canReadIgis}
                     onSaved={() => setRevision((n) => n + 1)}
                   />
                 </div>
@@ -330,10 +331,12 @@ function ComplexContent(
 function SharedComplexDetails({
   data,
   assetId,
+  canReview,
   onSaved,
 }: {
   data: ComplexData;
   assetId: string;
+  canReview: boolean;
   onSaved: () => void;
 }) {
   const c = data.complex;
@@ -344,7 +347,11 @@ function SharedComplexDetails({
   const facilities = data.towers.filter((t) => t.component_kind === "facility");
   return (
     <div className="complex-shared-overview">
-      <DataReviewProvider assetId={assetId} onSaved={onSaved}>
+      <DataReviewProvider
+        assetId={assetId}
+        enabled={canReview}
+        onSaved={onSaved}
+      >
         <section className="complex-overview-card">
           <div className="complex-card-heading">
             <h2>단지 공용시설</h2>

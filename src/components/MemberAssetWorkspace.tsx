@@ -9,11 +9,13 @@ import { fetchMemberAsset } from "../lib/member-details";
 import type { BuildingComplex } from "../lib/building-towers";
 const ComplexAssetWorkspace = lazy(() => import("./ComplexAssetWorkspace"));
 
-// Mounted only while details.read is valid; keyed by account and selected asset.
+// General detail is public; IGIS content and editing retain account permissions.
 // No private result is merged into the public catalog or browser storage.
 export type MemberWorkspaceProps = {
   building: Building;
   canReadTransactions: boolean;
+  canReadIgis?: boolean;
+  onRequireLogin?: () => void;
   onClose: () => void;
   onBuilding: (id: string) => void;
   saved: boolean;
@@ -51,6 +53,8 @@ export default function MemberAssetWorkspace(props: MemberWorkspaceProps) {
 function SingleAssetWorkspace({
   building,
   canReadTransactions,
+  canReadIgis = false,
+  onRequireLogin,
   onClose,
   onBuilding,
   saved,
@@ -63,6 +67,8 @@ function SingleAssetWorkspace({
 }: {
   building: Building;
   canReadTransactions: boolean;
+  canReadIgis?: boolean;
+  onRequireLogin?: () => void;
   onClose: () => void;
   onBuilding: (id: string) => void;
   saved: boolean;
@@ -80,7 +86,7 @@ function SingleAssetWorkspace({
     let alive = true;
     setFailed(false);
 
-    void fetchMemberAsset(building.id, canReadTransactions)
+    void fetchMemberAsset(building.id, canReadTransactions, true, canReadIgis)
       .then((data) => {
         if (alive) setCatalog(data);
       })
@@ -90,7 +96,13 @@ function SingleAssetWorkspace({
     return () => {
       alive = false;
     };
-  }, [building.id, canReadTransactions, attempt, informationRevision]);
+  }, [
+    building.id,
+    canReadTransactions,
+    canReadIgis,
+    attempt,
+    informationRevision,
+  ]);
   if (!catalog)
     return (
       <div
@@ -111,7 +123,7 @@ function SingleAssetWorkspace({
         <div className="empty" role="status">
           <p>
             {failed
-              ? "상세정보를 불러오지 못했습니다. 로그인 상태와 접근 권한을 확인해 주세요."
+              ? "상세정보를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요."
               : "상세정보를 불러오고 있습니다."}
           </p>
           {failed && (
@@ -123,6 +135,7 @@ function SingleAssetWorkspace({
   return (
     <DataReviewProvider
       assetId={building.id}
+      enabled={canReadIgis}
       externalVersion={informationRevision}
       onSaved={() => {
         setAttempt((n) => n + 1);
@@ -130,14 +143,13 @@ function SingleAssetWorkspace({
       }}
     >
       <AssetWorkspace
+        canReadIgis={canReadIgis}
+        onRequireLogin={onRequireLogin}
         embedded={embedded}
         sharedOverview={sharedOverview}
         building={{
           ...catalog.buildings[0],
           region: building.region,
-          is_igis: building.is_igis,
-          asset_category: building.asset_category,
-          is_mixed_use: building.is_mixed_use,
         }}
         catalog={catalog}
         onClose={onClose}

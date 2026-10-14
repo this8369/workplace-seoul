@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { supabase } from "./supabase";
+import { assetDetailClient as supabase } from "./asset-detail-client";
 import { fetchBuildingRegister, type RegisterData } from "./building-register";
 
 export type ParcelGeometry =
@@ -141,7 +141,8 @@ export function useAssetContext(
   const facts = useDeferred<AssetFact[]>(
     `${key}:facts`,
     enabled("개요") || sources,
-    async () => (await rows<AssetFact>("building_facts")).filter(f => !f.complex_id),
+    async () =>
+      (await rows<AssetFact>("building_facts")).filter((f) => !f.complex_id),
   );
   const natureSources = useDeferred<
     { id: string; source_name: string; source_url: string; as_of: string }[]
