@@ -5,7 +5,8 @@ import {
 } from "./lib/map-marker-facts";
 import PhotoManager from "./components/PhotoManager";
 import AssetNotifications from "./components/AssetNotifications";
-import { sharedAssetId } from "./lib/asset-link";
+import { assetNavigationUrl, sharedAssetId } from "./lib/asset-link";
+import { fetchMemberBuilding } from "./lib/member-details";
 import MemberAssetWorkspace from "./components/MemberAssetWorkspace";
 import {
   buildingFloorText,
@@ -19,7 +20,7 @@ import FilterSelect from "./components/FilterSelect";
 import BuildingPhoto from "./components/BuildingPhoto";
 import CardScrollArea from "./components/CardScrollArea";
 import { fetchBuildingImages, primaryImage } from "./lib/building-images";
-import { districts } from "./lib/map-regions";
+import { regionForBuilding, districts } from "./lib/map-regions";
 import { hasLocation } from "./lib/map-clusters";
 import {
   lazy,
@@ -76,6 +77,7 @@ import {
 import { Transactions } from "./components/AssetWorkspace";
 import { emptyCatalog, type Catalog } from "./lib/catalog";
 const initialAsset = sharedAssetId(location.search);
+const initialTitle = document.title;
 const initialQuery = new URLSearchParams(location.search).get("q") || "";
 const MasterWorkspace = lazy(() => import("./components/MasterWorkspace"));
 const cardValue = (value: string | null | undefined) =>
@@ -170,9 +172,25 @@ export default function App() {
     [view, setView] = useState<
       "all" | "saved" | "transactions" | "images" | "my"
     >("all");
-  const [selected, setSelected] = useState<string | null>(null),
+  const [selected, setSelection] = useState<string | null>(initialAsset),
     [compare, setCompare] = useState<string[]>([]),
     [showCompare, setShowCompare] = useState(false);
+  const setSelected = useCallback((id: string | null, replace = false) => {
+    const url = assetNavigationUrl(location.href, id);
+    if (url !== location.href)
+      history[replace ? "replaceState" : "pushState"](null, "", url);
+    setSelection(id);
+  }, []);
+  const [linkedBuilding, setLinkedBuilding] = useState<{
+    building: Building;
+    userId: string;
+  }>();
+  const [linkedError, setLinkedError] = useState(false);
+  const [linkedAttempt, setLinkedAttempt] = useState(0);
+  const [savedBuildings, setSavedBuildings] = useState<Building[]>([]);
+  const [savedImages, setSavedImages] = useState<Catalog["images"]>([]);
+  const [savedLoading, setSavedLoading] = useState(false);
+  const [savedError, setSavedError] = useState(false);
   const [saved, setSaved] = useState<Set<string>>(new Set()),
     [session, setSession] = useState<Session | null>(null),
     [login, setLogin] = useState(
@@ -225,7 +243,7 @@ export default function App() {
       // only after the server has issued a fresh attestation.
       if (accessPending && !changedAccount) return;
       setView((current) => (current === "my" ? "all" : current));
-      setSelected(null);
+      if (changedAccount) setSelected(null, true);
       setShowCompare(false);
       dialog.current?.close();
     } else if (pendingBuilding.current) {
@@ -276,7 +294,6 @@ export default function App() {
     setLoad("loading");
     setCatalog(emptyCatalog);
     setBuildings([]);
-    setSelected(null);
     setCompare([]);
     setArchiveLoad("idle");
     let coreShown = false;
@@ -367,6 +384,57 @@ export default function App() {
     };
   }, [session?.user.id]);
   useEffect(() => {
+    let alive = true;
+    setSavedBuildings([]);
+    setSavedImages([]);
+    setSavedError(false);
+    if (!supabase || !canReadDetails || !saved.size) {
+      setSavedLoading(false);
+      return;
+    }
+    setSavedLoading(true);
+    const ids = [...saved];
+    void (async () => {
+      const records: Building[] = [],
+        images: Catalog["images"] = [];
+      for (let i = 0; i < ids.length; i += 100) {
+        const batch = ids.slice(i, i + 100);
+        const [b, p] = await Promise.all([
+          supabase!.from("buildings").select("*").in("id", batch),
+          supabase!
+            .from("building_images")
+            .select("*")
+            .in("building_id", batch)
+            .eq("review_status", "approved")
+            .eq("is_primary", true),
+        ]);
+        if (b.error || p.error) throw b.error || p.error;
+        records.push(
+          ...b.data.map((b) => ({
+            ...b,
+            source_address: b.address,
+            address: b.standard_address || b.address,
+            region: regionForBuilding(b),
+          })),
+        );
+        images.push(...p.data);
+      }
+      if (alive) {
+        setSavedBuildings(records);
+        setSavedImages(images);
+      }
+    })()
+      .catch(() => {
+        if (alive) setSavedError(true);
+      })
+      .finally(() => {
+        if (alive) setSavedLoading(false);
+      });
+    return () => {
+      alive = false;
+    };
+  }, [saved, canReadDetails, session?.user.id]);
+  useEffect(() => {
     const handler = (event: KeyboardEvent) => {
       if ((event.metaKey || event.ctrlKey) && event.key === "k") {
         event.preventDefault();
@@ -386,10 +454,31 @@ export default function App() {
     const timer = setTimeout(() => setNotice(""), 5000);
     return () => clearTimeout(timer);
   }, [notice]);
+  const savedList = useMemo(
+    () =>
+      savedBuildings.map((b) => {
+        const source = buildings.find(
+          (x) =>
+            x.id === b.component_source_building_id ||
+            (b.complex_id && x.complex_id === b.complex_id),
+        );
+        return {
+          ...b,
+          is_igis: b.is_igis ?? source?.is_igis,
+          asset_category: b.asset_category ?? source?.asset_category,
+          is_mixed_use: b.is_mixed_use ?? source?.is_mixed_use,
+        };
+      }),
+    [savedBuildings, buildings],
+  );
   const results = useMemo(
     () =>
       filterBuildings(
-        complexMapBuildings(buildings, catalog.complexes),
+        view === "saved"
+          ? canReadDetails
+            ? savedList
+            : []
+          : complexMapBuildings(buildings, catalog.complexes),
         query,
         region,
         status,
@@ -399,6 +488,8 @@ export default function App() {
       ).filter(hasLocation),
     [
       buildings,
+      savedList,
+      canReadDetails,
       catalog.complexes,
       query,
       region,
@@ -432,8 +523,31 @@ export default function App() {
   useEffect(() => {
     if (resultsScroll.current) resultsScroll.current.scrollTop = 0;
   }, [mapBounds, buildingSort, query, region, status, view]);
+  const displayMetrics = (b: Building) => {
+    if (view !== "saved") return cardMetrics.get(b.id);
+    const lease =
+      noc.get(b.id) ||
+      (b.component_source_building_id
+        ? noc.get(b.component_source_building_id)
+        : undefined);
+    const facts = mapMarkerFacts(b, lease, developmentSummary.get(b.id));
+    return {
+      floor: buildingFloorText(b, catalog.towers, savedBuildings),
+      noc: facts.find((f) => f.label === "NOC")?.value || "—",
+      period: lease?.period,
+      completion:
+        facts.find(
+          (f) =>
+            f.label === (b.status === "development" ? "준공 예정" : "준공년도"),
+        )?.value || "미확인",
+    };
+  };
   const active = canReadDetails
-      ? buildings.find((b) => b.id === selected)
+      ? buildings.find((b) => b.id === selected) ||
+        (linkedBuilding?.userId === session?.user.id &&
+        linkedBuilding.building.id === selected
+          ? linkedBuilding.building
+          : undefined)
       : undefined,
     regions = [
       ...new Set([
@@ -441,6 +555,52 @@ export default function App() {
         ...buildings.map((b) => b.region),
       ]),
     ];
+  useEffect(() => {
+    document.title = active ? `${active.name} | WORKPLACE SEOUL` : initialTitle;
+  }, [active?.id, active?.name]);
+  useEffect(() => {
+    let alive = true;
+    setLinkedError(false);
+    if (!canReadDetails || !selected) {
+      setLinkedBuilding(undefined);
+      return;
+    }
+    if (
+      buildings.some((b) => b.id === selected) ||
+      (linkedBuilding?.building.id === selected &&
+        linkedBuilding.userId === session?.user.id)
+    )
+      return;
+    void fetchMemberBuilding(selected)
+      .then((building) => {
+        if (alive) setLinkedBuilding({ building, userId: session!.user.id });
+      })
+      .catch(() => {
+        if (alive) setLinkedError(true);
+      });
+    return () => {
+      alive = false;
+    };
+  }, [selected, canReadDetails, session?.user.id, buildings, linkedAttempt]);
+  const focusBuilding = useCallback(
+    (building: Building, replace = false) => {
+      if (!canReadDetails || !session) return;
+      pendingBuilding.current = null;
+      setLinkedBuilding({ building, userId: session.user.id });
+      setSelected(building.id, replace);
+    },
+    [canReadDetails, session?.user.id, setSelected],
+  );
+  useEffect(() => {
+    const restore = () => {
+      const id = sharedAssetId(location.search);
+      setSelection(id);
+      setQuery(new URLSearchParams(location.search).get("q") || "");
+      pendingBuilding.current = canReadDetails ? null : id;
+    };
+    window.addEventListener("popstate", restore);
+    return () => window.removeEventListener("popstate", restore);
+  }, [canReadDetails]);
   const requireLogin = useCallback(() => {
     setLoginMode("email");
     setLogin(true);
@@ -454,23 +614,16 @@ export default function App() {
         requireLogin();
         return;
       }
+      pendingBuilding.current = null;
       setSelected(id);
     },
     [canReadDetails, requireLogin],
   );
-  const sharedAssetHandled = useRef(false);
   useEffect(() => {
-    if (
-      !initialAsset ||
-      sharedAssetHandled.current ||
-      !authReady ||
-      !buildings.some((b) => b.id === initialAsset)
-    )
-      return;
-    if (session && !canReadDetails) return;
-    sharedAssetHandled.current = true;
-    select(initialAsset);
-  }, [authReady, session, canReadDetails, buildings, select]);
+    if (!selected || !authReady || accessPending || session) return;
+    pendingBuilding.current = selected;
+    requireLogin();
+  }, [selected, authReady, accessPending, session, requireLogin]);
   const openDialog = () => {
     if (!canReadDetails) {
       requireLogin();
@@ -908,6 +1061,19 @@ export default function App() {
                       <button onClick={refresh}>다시 시도</button>
                     )}
                   </div>
+                ) : view === "saved" && (savedLoading || savedError) ? (
+                  <div className="empty" role={savedError ? "alert" : "status"}>
+                    <p>
+                      {savedError
+                        ? "관심 건물을 불러오지 못했습니다. 다시 시도해 주세요."
+                        : "관심 건물을 불러오고 있습니다."}
+                    </p>
+                    {savedError && (
+                      <button onClick={() => setSaved(new Set(saved))}>
+                        다시 시도
+                      </button>
+                    )}
+                  </div>
                 ) : cardResults.length === 0 ? (
                   <div className="empty">
                     <Search size={26} />
@@ -933,7 +1099,7 @@ export default function App() {
                     <article
                       key={b.id}
                       data-building-id={b.id}
-                      className={`building-card ${b.status === "development" ? "is-development" : ""} ${b.id === selected ? "selected" : ""}`}
+                      className={`building-card ${b.status === "development" ? "is-development" : ""} ${b.id === selected || b.member_ids?.includes(selected || "") || !!(active?.complex_id && active.complex_id === b.complex_id) ? "selected" : ""}`}
                     >
                       <button
                         className="card-main"
@@ -941,7 +1107,11 @@ export default function App() {
                       >
                         <span className="building-art" aria-hidden="true">
                           <BuildingPhoto
-                            image={primaryImage(catalog.images, b.id)}
+                            image={primaryImage(
+                              view === "saved" ? savedImages : catalog.images,
+                              b.id,
+                            )}
+                            memberOnly={view === "saved"}
                             priority={index < 8}
                           />
                           {b.status === "development" && (
@@ -979,9 +1149,9 @@ export default function App() {
                               </span>
                               <span
                                 className="card-metric-value"
-                                title={cardMetrics.get(b.id)?.floor}
+                                title={displayMetrics(b)?.floor}
                               >
-                                {cardValue(cardMetrics.get(b.id)?.floor)}
+                                {cardValue(displayMetrics(b)?.floor)}
                               </span>
                             </span>
                             <span
@@ -996,7 +1166,7 @@ export default function App() {
                                 {cardValue(
                                   b.status === "development"
                                     ? developmentSummary.get(b.id)?.developer
-                                    : cardMetrics.get(b.id)?.noc,
+                                    : displayMetrics(b)?.noc,
                                 )}
                               </span>
                             </span>
@@ -1033,7 +1203,7 @@ export default function App() {
                             {b.status === "development" ? "준공 예정" : "준공"}
                           </span>
                           <span className="card-metric-value">
-                            {cardValue(cardMetrics.get(b.id)?.completion)}
+                            {cardValue(displayMetrics(b)?.completion)}
                           </span>
                         </span>
                       </div>
@@ -1102,11 +1272,45 @@ export default function App() {
                   previewed={previewedBuilding}
                   onSelect={select}
                 />
+                {selected && canReadDetails && !active && view !== "images" && (
+                  <div
+                    className="asset-popup"
+                    role="dialog"
+                    aria-label="자산 상세"
+                  >
+                    <div className="asset-popup-toolbar">
+                      <span>자산 상세</span>
+                      <button
+                        className="asset-popup-close"
+                        onClick={() => setSelected(null)}
+                        aria-label="상세 닫기"
+                      >
+                        <X size={21} />
+                      </button>
+                    </div>
+                    <div
+                      className="empty"
+                      role={linkedError ? "alert" : "status"}
+                    >
+                      <p>
+                        {linkedError
+                          ? "이 자산을 열 수 없습니다. 주소 또는 접근 권한을 확인해 주세요."
+                          : "자산 정보를 불러오고 있습니다."}
+                      </p>
+                      {linkedError && (
+                        <button onClick={() => setLinkedAttempt((n) => n + 1)}>
+                          다시 시도
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )}
                 {active && view !== "images" && (
                   <MemberAssetWorkspace
-                    key={`${session?.user.id}:${active.id}`}
+                    key={`${session?.user.id}:${active.complex_id || active.id}`}
                     building={active}
                     complexes={catalog.complexes}
+                    onActiveBuilding={focusBuilding}
                     savedIds={saved}
                     onSaveBuilding={toggleSave}
                     onManageBuildingImages={

@@ -25,6 +25,7 @@ export type MemberWorkspaceProps = {
   sharedOverview?: React.ReactNode;
   informationRevision?: number;
   onInformationSaved?: () => void;
+  onActiveBuilding?: (building: Building, replace?: boolean) => void;
   onSaveBuilding?: (id: string) => void;
   savedIds?: Set<string>;
   onManageBuildingImages?: (id: string) => void;

@@ -98,22 +98,29 @@ function ComplexContent(
     if (!data) return;
     const i = components.findIndex((t) => t.building_id === props.building.id);
     setSelected(Math.max(0, i));
-  }, [data?.complex.id]);
+  }, [data?.complex.id, props.building.id]);
   useEffect(() => {
     if (mobile && track.current)
       track.current.scrollTo({
-        left: selected * track.current.clientWidth,
+        left:
+          Math.max(
+            0,
+            components.findIndex((t) => t.building_id === props.building.id),
+          ) * track.current.clientWidth,
         behavior: "instant",
       });
-  }, [mobile, data?.complex.id]);
+  }, [mobile, data?.complex.id, props.building.id]);
   function choose(i: number) {
     const next = Math.max(0, Math.min(components.length - 1, i));
     setSelected(next);
+    const id = components[next]?.building_id;
+    const building = data?.members.find((b) => b.id === id);
+    if (building) props.onActiveBuilding?.(building);
     if (mobile)
       requestAnimationFrame(() =>
         track.current?.scrollTo({
           left: next * (track.current?.clientWidth || 0),
-          behavior: "smooth",
+          behavior: "instant",
         }),
       );
   }
@@ -260,7 +267,13 @@ function ComplexContent(
                   const i = Math.round(
                     track.current.scrollLeft / track.current.clientWidth,
                   );
-                  if (i >= 0 && i < components.length) setSelected(i);
+                  if (i >= 0 && i < components.length && i !== selected) {
+                    setSelected(i);
+                    const building = data?.members.find(
+                      (b) => b.id === components[i]?.building_id,
+                    );
+                    if (building) props.onActiveBuilding?.(building, true);
+                  }
                 }
               }}
             >
@@ -275,6 +288,12 @@ function ComplexContent(
                     role="tabpanel"
                     aria-labelledby={`tower-tab-${t.id}`}
                     className="complex-component"
+                    onPointerDownCapture={() => {
+                      if (!mobile && b) props.onActiveBuilding?.(b);
+                    }}
+                    onFocusCapture={() => {
+                      if (!mobile && b) props.onActiveBuilding?.(b);
+                    }}
                   >
                     {b ? (
                       <MemberAssetWorkspace {...childProps(b)} />

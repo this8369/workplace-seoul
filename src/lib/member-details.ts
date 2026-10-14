@@ -1,3 +1,4 @@
+import { regionForBuilding } from "./map-regions";
 import { supabase } from "./supabase";
 import { emptyCatalog, type Catalog, type Transaction } from "./catalog";
 import type { Building } from "./domain";
@@ -14,6 +15,23 @@ export async function fetchTransactionDetail(id: string): Promise<Transaction> {
   if (error) throw error;
   return data as Transaction;
 }
+// A direct link can identify a member-only component absent from catalog_buildings.
+export async function fetchMemberBuilding(id: string): Promise<Building> {
+  if (!supabase) throw new Error("not-configured");
+  const { data, error } = await supabase
+    .from("buildings")
+    .select("*")
+    .eq("id", id)
+    .single();
+  if (error || !data) throw error || new Error("asset-unavailable");
+  return {
+    ...data,
+    source_address: data.address,
+    address: data.standard_address || data.address,
+    region: regionForBuilding(data),
+  };
+}
+
 export async function fetchMemberAsset(
   id: string,
   includeTransactions: boolean,

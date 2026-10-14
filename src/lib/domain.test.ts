@@ -84,17 +84,69 @@ test("IGIS discovery is public, size-exempt and office-only outside IGIS mode", 
 });
 
 test("mixed-use assets remain in their primary category and appear once in the mixed filter", () => {
-  const base = { id: "office", name: "복합오피스", address: "서울", region: "GBD", status: "operating", gross_area_m2: 1000, is_igis: true, asset_category: "office", is_mixed_use: true } as Building;
+  const base = {
+    id: "office",
+    name: "복합오피스",
+    address: "서울",
+    region: "GBD",
+    status: "operating",
+    gross_area_m2: 1000,
+    is_igis: true,
+    asset_category: "office",
+    is_mixed_use: true,
+  } as Building;
   const hotel = { ...base, id: "hotel", asset_category: "hotel" as const };
   const ordinary = { ...base, id: "ordinary", is_mixed_use: false };
-  const standaloneMixed = { ...base, id: "mixed", asset_category: "mixed" as const, is_mixed_use: undefined };
+  const standaloneMixed = {
+    ...base,
+    id: "mixed",
+    asset_category: "mixed" as const,
+    is_mixed_use: undefined,
+  };
   const rows = [base, hotel, ordinary, standaloneMixed];
-  const ids = (category: string) => filterBuildings(rows, "", "", "", undefined, true, category).map(b => b.id);
+  const ids = (category: string) =>
+    filterBuildings(rows, "", "", "", undefined, true, category).map(
+      (b) => b.id,
+    );
   assert.deepEqual(ids("mixed"), ["office", "hotel", "mixed"]);
   assert.deepEqual(ids("office"), ["office", "ordinary"]);
   assert.deepEqual(ids("hotel"), ["hotel"]);
   assert.deepEqual(ids(""), ["office", "hotel", "ordinary", "mixed"]);
-  assert.deepEqual(filterBuildings(rows, "", "", "").map(b => b.id), ["office", "ordinary"]);
-  assert.equal(filterBuildings(rows, "", "CBD", "", undefined, true, "mixed").length, 0);
-  assert.equal(filterBuildings(rows, "", "", "development", undefined, true, "mixed").length, 0);
+  assert.deepEqual(
+    filterBuildings(rows, "", "", "").map((b) => b.id),
+    ["office", "ordinary"],
+  );
+  assert.equal(
+    filterBuildings(rows, "", "CBD", "", undefined, true, "mixed").length,
+    0,
+  );
+  assert.equal(
+    filterBuildings(rows, "", "", "development", undefined, true, "mixed")
+      .length,
+    0,
+  );
+});
+
+test("a saved component remains available before its individual GFA is confirmed", () => {
+  const child = {
+    id: "child",
+    name: "센터필드 West",
+    address: "서울",
+    region: "GBD",
+    status: "operating",
+    asset_category: "office",
+    is_igis: false,
+    gross_area_m2: null,
+  } as Building;
+  assert.equal(filterBuildings([child], "", "", "").length, 0);
+  assert.deepEqual(
+    filterBuildings([child], "West", "", "", new Set(["child"])).map(
+      (b) => b.id,
+    ),
+    ["child"],
+  );
+  assert.equal(
+    filterBuildings([child], "West", "", "", new Set(["other"])).length,
+    0,
+  );
 });

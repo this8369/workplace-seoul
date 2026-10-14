@@ -79,7 +79,7 @@ export function filterBuildings(
   const q = query.trim().toLocaleLowerCase("ko-KR");
   return buildings.filter(
     (b) =>
-      (b.is_igis === true || isEligible(b.gross_area_m2)) &&
+      (!!saved || b.is_igis === true || isEligible(b.gross_area_m2)) &&
       (igisMode
         ? b.is_igis === true &&
           (!assetCategory ||
