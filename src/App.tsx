@@ -47,6 +47,8 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   Search,
+  List,
+  Map as MapIcon,
   X,
 } from "lucide-react";
 import type { Session } from "@supabase/supabase-js";
@@ -175,6 +177,44 @@ export default function App() {
   const [selected, setSelection] = useState<string | null>(initialAsset),
     [compare, setCompare] = useState<string[]>([]),
     [showCompare, setShowCompare] = useState(false);
+  const [mobileMap, setMobileMap] = useState(
+    () => window.matchMedia("(max-width: 760px)").matches,
+  );
+  const [mobileListOpen, setMobileListOpen] = useState(false);
+  const listToggle = useRef<HTMLButtonElement>(null);
+  const listHandle = useRef<HTMLButtonElement>(null);
+  const listDragStart = useRef<number | null>(null);
+  const returnToList = useRef(false);
+  const previousDetail = useRef(selected);
+  useEffect(() => {
+    const media = window.matchMedia("(max-width: 760px)");
+    const update = () => {
+      setMobileMap(media.matches);
+      setMobileListOpen(false);
+    };
+    media.addEventListener("change", update);
+    return () => media.removeEventListener("change", update);
+  }, []);
+  useEffect(() => {
+    if (mobileMap && selected) setMobileListOpen(false);
+    else if (mobileMap && previousDetail.current && returnToList.current) {
+      setMobileListOpen(true);
+      returnToList.current = false;
+    }
+    previousDetail.current = selected;
+  }, [selected, mobileMap]);
+  function openMobileList() {
+    setMobileListOpen(true);
+    requestAnimationFrame(() =>
+      listHandle.current?.focus({ preventScroll: true }),
+    );
+  }
+  function closeMobileList() {
+    setMobileListOpen(false);
+    requestAnimationFrame(() =>
+      listToggle.current?.focus({ preventScroll: true }),
+    );
+  }
   const setSelected = useCallback((id: string | null, replace = false) => {
     const url = assetNavigationUrl(location.href, id);
     if (url !== location.href)
@@ -277,6 +317,8 @@ export default function App() {
   }, []);
   const [homeRequest, setHomeRequest] = useState(0);
   function goHome() {
+    returnToList.current = false;
+    setMobileListOpen(false);
     setIgisMode(false);
     setAssetCategory("");
     setView("all");
@@ -609,15 +651,17 @@ export default function App() {
   }, [accessPending]);
   const select = useCallback(
     (id: string) => {
+      if (mobileMap && !selected) returnToList.current = mobileListOpen;
       if (!canReadDetails) {
         pendingBuilding.current = id;
         requireLogin();
         return;
       }
       pendingBuilding.current = null;
+      if (mobileMap) setMobileListOpen(false);
       setSelected(id);
     },
-    [canReadDetails, requireLogin],
+    [canReadDetails, requireLogin, mobileMap, mobileListOpen, selected],
   );
   useEffect(() => {
     if (!selected || !authReady || accessPending || session) return;
@@ -679,11 +723,11 @@ export default function App() {
   const alignToolbar = useCallback((node: HTMLElement | null) => {
     const workspace = node?.closest<HTMLElement>(".workspace");
     if (!node || !workspace) return;
-    const align = () =>
-      workspace.style.setProperty(
-        "--results-heading-height",
-        `${node.getBoundingClientRect().height}px`,
-      );
+    const align = () => {
+      const height = node.getBoundingClientRect().height;
+      if (height > 0)
+        workspace.style.setProperty("--results-heading-height", `${height}px`);
+    };
     const observer = new ResizeObserver(align);
     observer.observe(node);
     align();
@@ -702,6 +746,18 @@ export default function App() {
           ref={search}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
+          onKeyDown={(event) => {
+            if (
+              mobileMap &&
+              (view === "all" || view === "saved") &&
+              event.key === "Enter" &&
+              !event.nativeEvent.isComposing
+            ) {
+              event.preventDefault();
+              event.currentTarget.blur();
+              openMobileList();
+            }
+          }}
           placeholder={
             view === "transactions"
               ? "건물명, 매수인 또는 매도인 검색"
@@ -844,6 +900,7 @@ export default function App() {
                 setLogin(true);
                 return;
               }
+              setMobileListOpen(true);
               setView("saved");
               setSelected(null);
             }}
@@ -955,12 +1012,71 @@ export default function App() {
             </div>
           )
         ) : (
-          <div className="workspace">
+          <div
+            className={`workspace mobile-map-browse${mobileListOpen ? " is-list-open" : ""}${(selected && canReadDetails) || (view === "images" && canManageImages) ? " is-detail-open" : ""}`}
+            onKeyDown={(event) => {
+              if (
+                mobileMap &&
+                mobileListOpen &&
+                event.key === "Escape" &&
+                !event.defaultPrevented
+              ) {
+                event.preventDefault();
+                event.stopPropagation();
+                closeMobileList();
+              }
+            }}
+          >
+            <button
+              type="button"
+              className="mobile-list-scrim"
+              onClick={closeMobileList}
+              aria-label="목록 접고 지도 보기"
+              tabIndex={-1}
+              aria-hidden={!mobileMap || !mobileListOpen}
+            />
             <section
               className="results"
+              id="mobile-building-list"
               aria-label="건물 목록"
-              inert={view === "images" && canManageImages}
+              aria-hidden={mobileMap && !mobileListOpen ? true : undefined}
+              inert={
+                (view === "images" && canManageImages) ||
+                (mobileMap && !mobileListOpen)
+              }
             >
+              <button
+                type="button"
+                className="mobile-list-handle"
+                ref={listHandle}
+                aria-label="목록 접고 지도 보기"
+                aria-controls="mobile-building-list"
+                aria-expanded={mobileListOpen}
+                onClick={closeMobileList}
+                onPointerDown={(event) => {
+                  if (!event.isPrimary || event.button !== 0) return;
+                  listDragStart.current = event.clientY;
+                  event.currentTarget.setPointerCapture(event.pointerId);
+                }}
+                onPointerUp={(event) => {
+                  if (
+                    listDragStart.current != null &&
+                    event.clientY - listDragStart.current > 40
+                  )
+                    closeMobileList();
+                  listDragStart.current = null;
+                }}
+                onPointerCancel={() => {
+                  listDragStart.current = null;
+                }}
+              >
+                <span className="mobile-list-grip" aria-hidden="true" />
+                <span>
+                  <MapIcon size={14} />
+                  지도 보기
+                  <ChevronDown size={15} />
+                </span>
+              </button>
               <div className="results-heading">
                 {view === "all" || view === "images" ? (
                   igisMode ? (
@@ -1365,6 +1481,31 @@ export default function App() {
                 )}
               </section>
             </div>
+            <button
+              type="button"
+              className="mobile-list-toggle"
+              ref={listToggle}
+              aria-controls="mobile-building-list"
+              aria-expanded={mobileListOpen}
+              aria-label={
+                view === "saved" ? "관심 건물 목록 보기" : "목록 보기"
+              }
+              onClick={openMobileList}
+              inert={
+                mobileListOpen ||
+                !!(selected && canReadDetails) ||
+                (view === "images" && canManageImages)
+              }
+            >
+              <List size={18} />
+              <span>{view === "saved" ? "관심 목록 보기" : "목록 보기"}</span>
+              <span className="mobile-list-count" aria-live="polite">
+                {load === "ready"
+                  ? cardResults.length.toLocaleString("ko-KR")
+                  : "…"}
+              </span>
+              <ChevronUp size={17} />
+            </button>
           </div>
         )}
       </main>
