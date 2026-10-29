@@ -2,6 +2,7 @@
   inset: 1.25%;
   width: auto;
   max-width: 920px;
+  outline: none;
 }
 .complex-heading {
   height: auto;
@@ -359,10 +360,13 @@
   margin-bottom: 0;
 }
 @media (min-width: 901px) {
-  .complex-workspace:not(.is-loading) > .complex-heading,
+  .complex-workspace > .complex-heading,
   .complex-workspace > .complex-navigation,
   .complex-workspace .complex-comparison-note {
     display: none;
+  }
+  .complex-workspace[aria-busy="true"] {
+    pointer-events: none;
   }
 }
 @media (min-width: 901px) {

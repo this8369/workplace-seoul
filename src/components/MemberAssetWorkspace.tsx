@@ -40,13 +40,7 @@ export default function MemberAssetWorkspace(props: MemberWorkspaceProps) {
     props.complexes?.find((c) => c.id === props.building.complex_id);
   if (complex)
     return (
-      <Suspense
-        fallback={
-          <div className="asset-popup">
-            <div className="empty">단지 정보를 불러오고 있습니다.</div>
-          </div>
-        }
-      >
+      <Suspense fallback={null}>
         <ComplexAssetWorkspace {...props} complex={complex} />
       </Suspense>
     );

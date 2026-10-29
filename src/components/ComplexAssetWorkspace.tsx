@@ -42,7 +42,7 @@ function ComplexContent(
     () => window.matchMedia("(max-width: 900px)").matches,
   );
   const track = useRef<HTMLDivElement>(null),
-    heading = useRef<HTMLHeadingElement>(null);
+    workspace = useRef<HTMLDivElement>(null);
   const { unit, setUnit, formatArea } = useAreaUnit();
   const c = data?.complex || props.complex;
   const loadScope = useMemo(
@@ -61,7 +61,7 @@ function ComplexContent(
   }, []);
   useEffect(() => {
     const prior = document.activeElement as HTMLElement;
-    heading.current?.focus({ preventScroll: true });
+    workspace.current?.focus({ preventScroll: true });
     return () => {
       if (prior?.isConnected) prior.focus({ preventScroll: true });
     };
@@ -168,8 +168,12 @@ function ComplexContent(
         } as CSSProperties
       }
       role="dialog"
+      ref={workspace}
+      tabIndex={-1}
       aria-modal="false"
-      aria-labelledby="complex-title"
+      aria-busy={!data && !failed}
+      aria-label={mobile ? undefined : `${c.name} 상세`}
+      aria-labelledby={mobile ? "complex-title" : undefined}
       onKeyDown={(e) => {
         if (
           e.key === "Escape" &&
@@ -181,78 +185,90 @@ function ComplexContent(
         }
       }}
     >
-      <header className="complex-heading">
-        <div>
-          <span className="complex-kicker">자산 단지</span>
-          <h1 id="complex-title" ref={heading} tabIndex={-1}>
-            {c.name}
-          </h1>
+      {mobile && (
+        <header className="complex-heading">
+          <div>
+            <span className="complex-kicker">자산 단지</span>
+            <h1 id="complex-title">{c.name}</h1>
+          </div>
+          <button
+            className="asset-popup-close"
+            aria-label="단지 상세 닫기"
+            onClick={props.onClose}
+          >
+            <X size={21} />
+          </button>
+        </header>
+      )}
+      {mobile && (
+        <div className="complex-navigation">
+          <div className="complex-tabs" role="tablist" aria-label="동 선택">
+            {components.map((t, i) => (
+              <button
+                key={t.id}
+                id={`tower-tab-${t.id}`}
+                role="tab"
+                aria-selected={selected === i}
+                aria-controls={`tower-panel-${t.id}`}
+                tabIndex={selected === i ? 0 : -1}
+                onClick={() => choose(i)}
+                onKeyDown={(e) => {
+                  const next =
+                    e.key === "ArrowRight"
+                      ? i + 1
+                      : e.key === "ArrowLeft"
+                        ? i - 1
+                        : e.key === "Home"
+                          ? 0
+                          : e.key === "End"
+                            ? components.length - 1
+                            : null;
+                  if (next !== null) {
+                    e.preventDefault();
+                    choose(next);
+                    document
+                      .getElementById(
+                        `tower-tab-${components[Math.max(0, Math.min(components.length - 1, next))].id}`,
+                      )
+                      ?.focus();
+                  }
+                }}
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
+          <button
+            className="complex-unit"
+            onClick={() => setUnit(unit === "평" ? "m²" : "평")}
+            aria-label="면적 단위 전환"
+          >
+            <RotateCw size={14} />
+            {unit === "평" ? "m²" : "평"}
+          </button>
         </div>
-        <button
-          className="asset-popup-close"
-          aria-label="단지 상세 닫기"
-          onClick={props.onClose}
-        >
-          <X size={21} />
-        </button>
-      </header>
-      <div className="complex-navigation">
-        <div className="complex-tabs" role="tablist" aria-label="동 선택">
-          {components.map((t, i) => (
-            <button
-              key={t.id}
-              id={`tower-tab-${t.id}`}
-              role="tab"
-              aria-selected={selected === i}
-              aria-controls={`tower-panel-${t.id}`}
-              tabIndex={selected === i ? 0 : -1}
-              onClick={() => choose(i)}
-              onKeyDown={(e) => {
-                const next =
-                  e.key === "ArrowRight"
-                    ? i + 1
-                    : e.key === "ArrowLeft"
-                      ? i - 1
-                      : e.key === "Home"
-                        ? 0
-                        : e.key === "End"
-                          ? components.length - 1
-                          : null;
-                if (next !== null) {
-                  e.preventDefault();
-                  choose(next);
-                  document
-                    .getElementById(
-                      `tower-tab-${components[Math.max(0, Math.min(components.length - 1, next))].id}`,
-                    )
-                    ?.focus();
-                }
-              }}
-            >
-              {t.label}
-            </button>
-          ))}
-        </div>
-        <button
-          className="complex-unit"
-          onClick={() => setUnit(unit === "평" ? "m²" : "평")}
-          aria-label="면적 단위 전환"
-        >
-          <RotateCw size={14} />
-          {unit === "평" ? "m²" : "평"}
-        </button>
-      </div>
+      )}
       {!data ? (
-        <div className="empty" role="status">
-          <p>
-            {failed
-              ? "단지 정보를 불러오지 못했습니다."
-              : "동별 정보를 불러오고 있습니다."}
-          </p>
-          {failed && (
-            <button onClick={() => setRevision((n) => n + 1)}>다시 시도</button>
-          )}
-        </div>
+        (mobile || failed) && (
+          <div
+            className={`empty${failed && !mobile ? " info-panel" : ""}`}
+            role={failed ? "alert" : "status"}
+          >
+            <p>
+              {failed
+                ? "단지 정보를 불러오지 못했습니다."
+                : "동별 정보를 불러오고 있습니다."}
+            </p>
+            {failed && (
+              <>
+                <button onClick={() => setRevision((n) => n + 1)}>
+                  다시 시도
+                </button>
+                {!mobile && <button onClick={props.onClose}>닫기</button>}
+              </>
+            )}
+          </div>
+        )
       ) : (
         <>
           <>
@@ -290,7 +306,8 @@ function ComplexContent(
                     key={t.id}
                     id={`tower-panel-${t.id}`}
                     role="tabpanel"
-                    aria-labelledby={`tower-tab-${t.id}`}
+                    aria-label={mobile ? undefined : t.label}
+                    aria-labelledby={mobile ? `tower-tab-${t.id}` : undefined}
                     className="complex-component"
                     onPointerDownCapture={() => {
                       if (!mobile && b) props.onActiveBuilding?.(b);
