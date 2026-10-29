@@ -528,30 +528,29 @@ export default function AssetOverview({
               )}
             </strong>
           </div>
+          <div>
+            <span>이중변전소</span>
+            <strong>
+              {edit(
+                "dual_substation",
+                power?.dual_substation == null ? (
+                  "미확인"
+                ) : (
+                  <span
+                    aria-label={
+                      power.dual_substation
+                        ? "이중변전소 있음"
+                        : "이중변전소 없음"
+                    }
+                  >
+                    {power.dual_substation ? "O" : "X"}
+                  </span>
+                ),
+                "building_power_specs",
+              )}
+            </strong>
+          </div>
         </div>
-        <dl className="overview-facts">
-          {row(
-            "이중변전소",
-            edit(
-              "dual_substation",
-              power?.dual_substation == null ? (
-                "미확인"
-              ) : (
-                <span
-                  className="overview-dual-substation"
-                  aria-label={
-                    power.dual_substation
-                      ? "이중변전소 있음"
-                      : "이중변전소 없음"
-                  }
-                >
-                  {power.dual_substation ? "O" : "X"}
-                </span>
-              ),
-              "building_power_specs",
-            ),
-          )}
-        </dl>
       </section>
       <section className="info-panel asset-certification-card">
         <div className="section-heading">
