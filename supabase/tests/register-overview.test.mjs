@@ -46,6 +46,15 @@ test("register overview stays live, preserves manual facts, separates common/com
         "utf8",
       ),
     );
+    await db.exec(
+      await readFile(
+        new URL(
+          "../migrations/202610290002_detail_lookup_performance.sql",
+          import.meta.url,
+        ),
+        "utf8",
+      ),
+    );
     const asset = async (scope = null, status = "operating") => {
       const id = (
         await db.query(

@@ -5,6 +5,7 @@ import { AssetWorkspace } from "./AssetWorkspace";
 import type { Building } from "../lib/domain";
 import type { Catalog } from "../lib/catalog";
 import { fetchMemberAsset } from "../lib/member-details";
+import type { MemberAssetScope } from "../lib/member-asset-scope";
 
 import type { BuildingComplex } from "../lib/building-towers";
 const ComplexAssetWorkspace = lazy(() => import("./ComplexAssetWorkspace"));
@@ -25,6 +26,7 @@ export type MemberWorkspaceProps = {
   single?: boolean;
   embedded?: boolean;
   sharedOverview?: React.ReactNode;
+  loadScope?: MemberAssetScope;
   informationRevision?: number;
   onInformationSaved?: () => void;
   onActiveBuilding?: (building: Building, replace?: boolean) => void;
@@ -62,6 +64,7 @@ function SingleAssetWorkspace({
   onManageImages,
   embedded,
   sharedOverview,
+  loadScope,
   informationRevision = 0,
   onInformationSaved,
 }: {
@@ -76,6 +79,7 @@ function SingleAssetWorkspace({
   onManageImages?: () => void;
   embedded?: boolean;
   sharedOverview?: React.ReactNode;
+  loadScope?: MemberAssetScope;
   informationRevision?: number;
   onInformationSaved?: () => void;
 }) {
@@ -86,7 +90,13 @@ function SingleAssetWorkspace({
     let alive = true;
     setFailed(false);
 
-    void fetchMemberAsset(building.id, canReadTransactions, true, canReadIgis)
+    void fetchMemberAsset(
+      building.id,
+      canReadTransactions,
+      true,
+      canReadIgis,
+      loadScope,
+    )
       .then((data) => {
         if (alive) setCatalog(data);
       })
@@ -102,6 +112,7 @@ function SingleAssetWorkspace({
     canReadIgis,
     attempt,
     informationRevision,
+    loadScope,
   ]);
   if (!catalog)
     return (

@@ -1,4 +1,11 @@
-import { useEffect, useRef, useState, type CSSProperties } from "react";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+} from "react";
+import { createMemberAssetScope } from "../lib/member-asset-scope";
 import { RotateCw, X } from "lucide-react";
 import type { Building } from "../lib/domain";
 import { safeSourceUrl } from "../lib/domain";
@@ -38,6 +45,10 @@ function ComplexContent(
     heading = useRef<HTMLHeadingElement>(null);
   const { unit, setUnit, formatArea } = useAreaUnit();
   const c = data?.complex || props.complex;
+  const loadScope = useMemo(
+    () => (data ? createMemberAssetScope(data) : undefined),
+    [data, revision],
+  );
   const components =
     data?.towers.filter(
       (t) => t.component_kind !== "facility" && !t.parent_tower_id,
@@ -131,6 +142,7 @@ function ComplexContent(
       asset_category: b.asset_category ?? props.building.asset_category,
     },
     informationRevision: revision,
+    loadScope,
     onInformationSaved: () => setRevision((n) => n + 1),
     single: true,
     embedded: true,
