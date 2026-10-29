@@ -26,6 +26,9 @@ export function latestMarketLease(rows: readonly Leasing[]): Leasing | null {
         row.vat_basis,
         row.currency_code,
         row.rate_area_unit,
+        row.efficiency_pct,
+        row.efficiency_source_period,
+        row.efficiency_source_scope,
       ]),
     ),
   );
@@ -38,6 +41,21 @@ export function rentRateBasis(lease: Leasing): RentRateBasis {
   if (/전용|exclusive/i.test(lease.area_basis)) return "exclusive";
   if (/임대|계약|rentable/i.test(lease.area_basis)) return "rentable";
   return "unconfirmed";
+}
+
+export function marketLeaseEfficiency(
+  lease: Leasing,
+  buildingId: string,
+  profileEfficiency: number | null,
+): number | null {
+  // Historical/source-floor rates keep their own denominator. A representative
+  // complex profile is not a substitute for a different tower's observation.
+  const value =
+    lease.efficiency_pct ??
+    (lease.building_id === buildingId ? profileEfficiency : null);
+  return value != null && Number.isFinite(value) && value > 0 && value <= 100
+    ? value
+    : null;
 }
 
 const nonnegative = (value: number | null | undefined) =>

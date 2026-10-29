@@ -183,7 +183,6 @@ export default function AssetOverview({
       "owner_name",
       "site_area_m2",
       "floor_area_ratio",
-      "efficiency_pct",
       "retail_area_m2",
       "retail_area_basis",
       "contractor_name",

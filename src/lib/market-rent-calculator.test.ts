@@ -6,6 +6,7 @@ import {
   estimateMarketRent,
   latestMarketLease,
   rentRateBasis,
+  marketLeaseEfficiency,
 } from "./market-rent-calculator.ts";
 
 const lease: Leasing = {
@@ -141,4 +142,39 @@ test("latest quarter is chronological, keeps partial data and rejects conflictin
     null,
   );
   assert.equal(latestMarketLease([]), null);
+});
+
+test("source observation efficiency wins; tower profiles cannot change another asset's denominator", () => {
+  const source = { ...lease, efficiency_pct: 55.4 };
+  assert.equal(marketLeaseEfficiency(source, "tower-a", 52.5), 55.4);
+  assert.equal(marketLeaseEfficiency(source, "tower-b", 52.5), 55.4);
+  assert.equal(marketLeaseEfficiency(lease, "tower-a", 52.5), 52.5);
+  assert.equal(marketLeaseEfficiency(lease, "tower-b", 52.5), null);
+  for (const invalid of [0, -1, 101, NaN, Infinity])
+    assert.equal(
+      marketLeaseEfficiency(
+        { ...lease, efficiency_pct: invalid },
+        "tower-a",
+        52.5,
+      ),
+      null,
+    );
+  assert.equal(
+    latestMarketLease([source, { ...source, id: "other", efficiency_pct: 50 }]),
+    null,
+  );
+  assert.equal(
+    latestMarketLease([
+      source,
+      { ...source, id: "other", efficiency_source_scope: "Other floor" },
+    ]),
+    null,
+  );
+  const totals = estimateMarketRent(
+    source,
+    100,
+    marketLeaseEfficiency(source, "tower-a", 52.5),
+    "rentable",
+  );
+  assert.ok(Math.abs(totals.monthlyRent! - (100_000 * 100) / 0.554) < 0.000001);
 });

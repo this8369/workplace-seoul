@@ -3,6 +3,7 @@ import type { Leasing } from "../lib/catalog";
 import { convertArea } from "../lib/area-unit";
 import {
   estimateMarketRent,
+  marketLeaseEfficiency,
   rentRateBasis,
   type RentRateBasis,
 } from "../lib/market-rent-calculator";
@@ -16,10 +17,12 @@ const amount = (value: number | null) =>
 
 export default function MarketRentCalculator({
   lease,
+  buildingId,
   typicalExclusivePyeong,
   efficiencyPct,
 }: {
   lease: Leasing;
+  buildingId: string;
   typicalExclusivePyeong?: number | null;
   efficiencyPct: number | null;
 }) {
@@ -40,7 +43,9 @@ export default function MarketRentCalculator({
   const sourceBasis = rentRateBasis(lease);
   const basis = sourceBasis === "unconfirmed" ? basisOverride : sourceBasis;
   const efficiency =
-    efficiencyOverride === undefined ? efficiencyPct : efficiencyOverride;
+    efficiencyOverride === undefined
+      ? marketLeaseEfficiency(lease, buildingId, efficiencyPct)
+      : efficiencyOverride;
   const maximum = Math.max(floor ?? 1000, area ?? 0);
   const shownArea =
     area == null ? "" : Number(convertArea(area, "평", unit).toFixed(2));

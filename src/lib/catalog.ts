@@ -58,6 +58,9 @@ export type Leasing = Evidence & {
   observation_basis?: "market_survey";
   currency_code?: string;
   rate_area_unit?: string;
+  efficiency_pct?: number | null;
+  efficiency_source_period?: string | null;
+  efficiency_source_scope?: string | null;
   id: string;
   building_id: string;
   period: string;

@@ -2,6 +2,7 @@
 import pg from "pg";
 import { readFile } from "node:fs/promises";
 import { createHash } from "node:crypto";
+import { sourceEfficiencies } from "../import/market-efficiency.mjs";
 const config = JSON.parse(
   await readFile("data/private/db-config.json", "utf8"),
 );
@@ -91,6 +92,11 @@ const movements = table("05").map((r) => ({
   link_status: "candidate",
   published: false,
 }));
+const efficiencies = new Map(
+  sourceEfficiencies(normalized, raw).flatMap((r) =>
+    r.leases.filter((q) => q.matchesRaw).map((q) => [q.id, r]),
+  ),
+);
 const leasing = table("02").map((r) => ({
   ...evidence(r),
   data_domain: "market_leasing",
@@ -108,6 +114,9 @@ const leasing = table("02").map((r) => ({
   rent_free: n(r["렌트프리_개월년"]),
   area_basis: r["면적기준"],
   vat_basis: r["부가세기준"],
+  efficiency_pct: efficiencies.get(r["임대기록ID"])?.pct ?? null,
+  efficiency_source_period: efficiencies.get(r["임대기록ID"])?.sourcePeriod ?? null,
+  efficiency_source_scope: efficiencies.get(r["임대기록ID"])?.name ?? null,
   published: false,
 }));
 const development = table("03").map((r) => ({

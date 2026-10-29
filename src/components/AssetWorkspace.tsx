@@ -1087,6 +1087,7 @@ function AssetWorkspaceContent({
             <MarketRentCalculator
               key={b.id}
               lease={latestLease}
+              buildingId={b.id}
               efficiencyPct={marketEfficiency}
               typicalExclusivePyeong={
                 b.typical_floor_exclusive_pyeong ??
