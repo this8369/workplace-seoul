@@ -10,6 +10,8 @@ import {
 } from "./DataReview";
 import BuildingRegister from "./BuildingRegister";
 import AssetOverview from "./AssetOverview";
+import MarketRentCalculator from "./MarketRentCalculator";
+import { latestMarketLease } from "../lib/market-rent-calculator";
 import { useScrollSections } from "./useScrollSections";
 import { AreaUnitProvider, useAreaUnit } from "./AreaUnit";
 import { fetchTransactionDetail } from "../lib/member-details";
@@ -559,6 +561,7 @@ function AssetWorkspaceContent({
     [tenantView, setTenantView] = useState("list"),
     [companyId, setCompanyId] = useState<string | null>(null);
   const [sourcesOpen, setSourcesOpen] = useState(false);
+  const [marketEfficiency, setMarketEfficiency] = useState<number | null>(null);
   const [addressMode, setAddressMode] = useState<"parcel" | "road">("parcel");
   const addresses = [b.standard_address, b.address, b.source_address].filter(
     Boolean,
@@ -710,6 +713,7 @@ function AssetWorkspaceContent({
   }, []);
   useEffect(() => {
     setSourcesOpen(false);
+    setMarketEfficiency(null);
     setCompanyId(null);
     setTenantQuery("");
     setTenantView("list");
@@ -726,6 +730,7 @@ function AssetWorkspaceContent({
   const leases = leasesSource.rows.sort((a, b) =>
     b.period.localeCompare(a.period),
   );
+  const latestLease = latestMarketLease(leases);
   const developments = developmentsSource.rows;
   const developmentSummary = markerDevelopmentIndex(developments).get(
     developmentsSource.inherited ? sharedBuilding!.id : b.id,
@@ -932,6 +937,7 @@ function AssetWorkspaceContent({
         <div className="overview-grid">
           <AssetOverview
             building={b}
+            onEfficiencyChange={setMarketEfficiency}
             floorValues={floorValues}
             places={
               (overviewBuilding
@@ -1077,6 +1083,19 @@ function AssetWorkspaceContent({
           </div>
         </div>
         <div className="asset-content-card">
+          {latestLease && (
+            <MarketRentCalculator
+              key={b.id}
+              lease={latestLease}
+              efficiencyPct={marketEfficiency}
+              typicalExclusivePyeong={
+                b.typical_floor_exclusive_pyeong ??
+                (towerRows.length === 1
+                  ? towerRows[0].typical_floor_exclusive_pyeong
+                  : null)
+              }
+            />
+          )}
           {leases.length ? (
             <>
               <div className="table-scroll">
