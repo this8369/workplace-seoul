@@ -76,19 +76,16 @@ export async function fetchBuildingRegister(
       if (data.length < 500) return rows;
     }
   }
-  const [records, floors, areas, sections] = await Promise.all([
+  const [records, floors, sections] = await Promise.all([
     all("building_register_records", "id"),
     details
       ? all("building_register_floors", "record_id")
       : Promise.resolve([]),
     details
-      ? all("building_register_area_parts", "record_id")
-      : Promise.resolve([]),
-    details
       ? all("building_register_sections", "record_id")
       : Promise.resolve([]),
   ]);
-  return { records, floors, areas, sections } as RegisterData;
+  return { records, floors, areas: [], sections } as RegisterData;
 }
 export type RegisterField = [key: string, label: string, unit?: string];
 export const registerGroups: { title: string; fields: RegisterField[] }[] = [
