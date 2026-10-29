@@ -504,7 +504,7 @@
 }
 .asset-popup .asset-overview-stack .section-heading h2 {
   letter-spacing: normal;
-  font-size: 19px;
+  font-size: var(--asset-section-title-size);
 }
 .asset-popup .asset-overview-stack .overview-facts > div {
   gap: 12px;

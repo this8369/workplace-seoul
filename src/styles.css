@@ -3598,6 +3598,7 @@ button:disabled {
   z-index: 0;
 }
 .asset-popup {
+  --asset-section-title-size: 19px;
   position: absolute;
   inset: 1.25% auto 1.25% 1.25%;
   width: 97.5%;
@@ -4042,9 +4043,16 @@ button:disabled {
   color: var(--text-secondary);
   font-size: 14px;
 }
+.asset-popup .section-heading h1,
+.asset-popup .section-heading h2,
+.asset-popup .register-heading h2,
+.asset-popup .info-panel h3,
+.asset-popup .igis-detail-locked h2,
+.asset-popup .complex-overview-card h2 {
+  font-size: var(--asset-section-title-size);
+}
 .asset-popup .section-heading h2,
 .asset-popup .info-panel h3 {
-  font-size: 17px;
   font-weight: 650;
   letter-spacing: -0.3px;
 }
