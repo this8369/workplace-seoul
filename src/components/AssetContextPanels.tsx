@@ -373,11 +373,9 @@ export function SurroundingsPanel({
                     {p.address || "—"}
                   </RV>
                 </p>
-                <p className="context-note">
-                  {p.walking_minutes != null && p.walking_source
-                    ? `도보 ${p.walking_minutes}분`
-                    : "직선거리 기준 · 도보 경로 미연결"}
-                </p>
+                {p.walking_minutes != null && p.walking_source && (
+                  <p className="context-note">도보 {p.walking_minutes}분</p>
+                )}
               </article>
             ))}
           </div>
