@@ -18,7 +18,7 @@ try {
       "select table_name from information_schema.views where table_schema='public' and table_name like 'detail_%' order by table_name",
     )
   ).rows.map((r) => r.table_name);
-  assert.equal(views.length, 23);
+  assert.equal(views.length, 24);
   const columns = (
     await db.query(
       "select column_name from information_schema.columns where table_schema='public' and table_name like 'detail_%'",

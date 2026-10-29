@@ -1,4 +1,4 @@
-import { hasAssetValue, overviewFields } from "../lib/shared-asset";
+import { overviewFields } from "../lib/shared-asset";
 import { useEffect, useId, useState, type ReactNode } from "react";
 import {
   ChevronDown,
@@ -218,48 +218,14 @@ export default function AssetOverview({
       : entity === "buildings"
         ? buildingFields.sourceId(field as keyof Building)
         : profileFields.sourceId(field as keyof AssetProfile);
-  const ownOfficial = (field: string) =>
+  // Numeric overview facts already come from the DB's live register connection.
+  const certificateFact = (field: "green_grade" | "energy_grade") =>
     overviewRegisterFact(
-      b.area_basis === "planned" ? [] : register?.records || [],
-      field,
-    );
-  const official = (field: string) => {
-    if (field === "floors_above" || field === "floors_below")
-      return b[field] == null ? ownOfficial(field) : null;
-    // A tower's GFA must never fall back to the complex or its total register.
-    if (field === "gross_area_m2") return complex ? null : ownOfficial(field);
-    if (complex && field === "parking_total") return null;
-    const profileValue = (
-      p as unknown as Record<string, unknown> | undefined
-    )?.[field];
-    if (hasAssetValue(profileValue)) return null;
-    return overviewRegisterFact(
       b.area_basis === "planned"
         ? []
         : (sharedBuilding ? sharedRegister : register)?.records || [],
       field,
     );
-  };
-  const officialValue = (
-    field: string,
-    fallback: ReactNode,
-    format: (value: number) => ReactNode,
-  ) => {
-    const fact = official(field);
-    if (!fact) return fallback;
-    const key = field === "parking_total" ? "parking_spaces" : field;
-    const entity = [
-      "floors_above",
-      "floors_below",
-      "gross_area_m2",
-      "parking_spaces",
-    ].includes(key)
-      ? "buildings"
-      : "building_asset_profiles";
-    // Registry remains immutable evidence. A user correction is an editable
-    // overview override at the same common/component scope as other values.
-    return edit(key, format(Number(fact.value)), entity);
-  };
 
   const edit = (
     field: string,
@@ -329,11 +295,7 @@ export default function AssetOverview({
   const stations = nearbyStations(places),
     density = loadDensity(
       power?.contracted_capacity_mw,
-      Number(
-        complex
-          ? complex.gross_area_m2
-          : official("gross_area_m2")?.value || b.gross_area_m2,
-      ),
+      Number(complex ? complex.gross_area_m2 : b.gross_area_m2),
     );
   const greenCandidates = current?.green || [];
   return (
@@ -383,11 +345,7 @@ export default function AssetOverview({
           {overviewRow("소유주", edit("owner_name", p?.owner_name || "미확인"))}
           {overviewRow(
             "대지면적",
-            officialValue(
-              "site_area_m2",
-              edit("site_area_m2", formatArea(p?.site_area_m2)),
-              (v) => formatArea(v),
-            ),
+            edit("site_area_m2", formatArea(p?.site_area_m2)),
           )}
           {overviewRow(
             "연면적",
@@ -395,11 +353,7 @@ export default function AssetOverview({
           )}
           {overviewRow(
             "용적률",
-            officialValue(
-              "floor_area_ratio",
-              edit("floor_area_ratio", scalar(p?.floor_area_ratio, "%")),
-              (v) => scalar(v, "%"),
-            ),
+            edit("floor_area_ratio", scalar(p?.floor_area_ratio, "%")),
           )}
           {overviewRow(
             "전용률",
@@ -408,28 +362,20 @@ export default function AssetOverview({
           {overviewRow(
             "규모",
             <span>
-              {officialValue(
+              {edit(
                 "floors_below",
-                edit(
-                  "floors_below",
-                  displayedBuilding.floors_below == null
-                    ? "지하 미확인"
-                    : `B${displayedBuilding.floors_below}`,
-                  "buildings",
-                ),
-                (v) => `B${v}`,
+                displayedBuilding.floors_below == null
+                  ? "지하 미확인"
+                  : `B${displayedBuilding.floors_below}`,
+                "buildings",
               )}{" "}
               /{" "}
-              {officialValue(
+              {edit(
                 "floors_above",
-                edit(
-                  "floors_above",
-                  displayedBuilding.floors_above == null
-                    ? "지상 미확인"
-                    : `${displayedBuilding.floors_above}F`,
-                  "buildings",
-                ),
-                (v) => `${v}F`,
+                displayedBuilding.floors_above == null
+                  ? "지상 미확인"
+                  : `${displayedBuilding.floors_above}F`,
+                "buildings",
               )}
             </span>,
           )}
@@ -443,25 +389,21 @@ export default function AssetOverview({
           )}
           {overviewRow(
             "주차대수",
-            officialValue(
-              "parking_total",
-              complex ? (
-                <RV
-                  entity="building_complexes"
-                  id={complex.id}
-                  field="parking_spaces"
-                  allowedFields={["parking_spaces"]}
-                >
-                  {scalar(complex.parking_spaces, "대")}
-                </RV>
-              ) : (
-                edit(
-                  "parking_spaces",
-                  scalar(b.parking_spaces, "대"),
-                  "buildings",
-                )
-              ),
-              (v) => scalar(v, "대"),
+            complex ? (
+              <RV
+                entity="building_complexes"
+                id={complex.id}
+                field="parking_spaces"
+                allowedFields={["parking_spaces"]}
+              >
+                {scalar(complex.parking_spaces, "대")}
+              </RV>
+            ) : (
+              edit(
+                "parking_spaces",
+                scalar(b.parking_spaces, "대"),
+                "buildings",
+              )
             ),
           )}
           {overviewRow(
@@ -616,7 +558,8 @@ export default function AssetOverview({
           <h2>친환경 인증</h2>
           <Leaf size={19} />
         </div>
-        {(official("green_grade") || official("energy_grade")) && (
+        {(certificateFact("green_grade") ||
+          certificateFact("energy_grade")) && (
           <dl className="overview-facts">
             {(
               [
@@ -624,7 +567,7 @@ export default function AssetOverview({
                 ["energy_grade", "에너지효율등급"],
               ] as const
             ).map(([field, label]) => {
-              const fact = official(field);
+              const fact = certificateFact(field);
               return fact
                 ? row(
                     label,
