@@ -11,7 +11,10 @@ import {
 import BuildingRegister from "./BuildingRegister";
 import AssetOverview from "./AssetOverview";
 import MarketRentCalculator from "./MarketRentCalculator";
-import { latestMarketLease } from "../lib/market-rent-calculator";
+import {
+  latestMarketLease,
+  rentRateBasis,
+} from "../lib/market-rent-calculator";
 import { useScrollSections } from "./useScrollSections";
 import { AreaUnitProvider, useAreaUnit } from "./AreaUnit";
 import { fetchTransactionDetail } from "../lib/member-details";
@@ -731,6 +734,13 @@ function AssetWorkspaceContent({
     b.period.localeCompare(a.period),
   );
   const latestLease = latestMarketLease(leases);
+  const leaseBases = new Set(leases.map(rentRateBasis));
+  const leaseRateUnit =
+    leaseBases.size === 1 && leaseBases.has("rentable")
+      ? `임대${unit}`
+      : leaseBases.size === 1 && leaseBases.has("exclusive")
+        ? `전용${unit}`
+        : unit;
   const developments = developmentsSource.rows;
   const developmentSummary = markerDevelopmentIndex(developments).get(
     developmentsSource.inherited ? sharedBuilding!.id : b.id,
@@ -1105,10 +1115,10 @@ function AssetWorkspaceContent({
                     <tr>
                       {[
                         "기준분기",
-                        `보증금 (원/${unit})`,
-                        `시장 월임대료 (원/${unit})`,
-                        `관리비 (원/${unit})`,
-                        `시장 NOC (원/${unit})`,
+                        `보증금 (원/${leaseRateUnit})`,
+                        `시장 월임대료 (원/${leaseRateUnit})`,
+                        `관리비 (원/${leaseRateUnit})`,
+                        `시장 NOC (원/전용${unit})`,
                         "공실률",
                         "렌트프리 (개월/년)",
                       ].map((x) => (
@@ -1172,10 +1182,6 @@ function AssetWorkspaceContent({
                   </tbody>
                 </table>
               </div>
-              <p className="context-note">
-                {leases[0].area_basis} · {leases[0].vat_basis}. 원문 금액을
-                선택한 면적 단위로 환산해 표시합니다.
-              </p>
             </>
           ) : (
             <Blank title="임대 조건을 수집하고 있습니다">

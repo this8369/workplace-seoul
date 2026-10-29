@@ -22,6 +22,7 @@ export function latestMarketLease(rows: readonly Leasing[]): Leasing | null {
         row.deposit,
         row.rent,
         row.fee,
+        row.noc,
         row.area_basis,
         row.vat_basis,
         row.currency_code,
@@ -55,6 +56,18 @@ export function marketLeaseEfficiency(
     (lease.building_id === buildingId ? profileEfficiency : null);
   return value != null && Number.isFinite(value) && value > 0 && value <= 100
     ? value
+    : null;
+}
+
+// Reported NOC includes the provider's deposit opportunity-cost convention.
+// Keep it identical to the market table, separate from monthly cash payments.
+export function marketNocPerExclusive(lease: Leasing): number | null {
+  return (!lease.currency_code || lease.currency_code === "KRW") &&
+    (!lease.rate_area_unit || lease.rate_area_unit === "pyeong") &&
+    lease.noc != null &&
+    Number.isFinite(lease.noc) &&
+    lease.noc >= 0
+    ? lease.noc
     : null;
 }
 

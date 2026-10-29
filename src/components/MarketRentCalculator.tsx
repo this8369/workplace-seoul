@@ -5,7 +5,7 @@ import {
   estimateMarketRent,
   marketLeaseEfficiency,
   rentRateBasis,
-  type RentRateBasis,
+  marketNocPerExclusive,
 } from "../lib/market-rent-calculator";
 import { useAreaUnit } from "./AreaUnit";
 import "./MarketRentCalculator.css";
@@ -13,7 +13,7 @@ import "./MarketRentCalculator.css";
 const amount = (value: number | null) =>
   value == null
     ? "—"
-    : (value / 10_000).toLocaleString("ko-KR", { maximumFractionDigits: 2 });
+    : (value / 10_000).toLocaleString("ko-KR", { maximumFractionDigits: 1 });
 
 export default function MarketRentCalculator({
   lease,
@@ -35,25 +35,14 @@ export default function MarketRentCalculator({
       ? typicalExclusivePyeong
       : null;
   const [area, setArea] = useState<number | null>(floor ?? 100);
-  const [efficiencyOverride, setEfficiencyOverride] = useState<
-    number | null | undefined
-  >();
-  const [basisOverride, setBasisOverride] =
-    useState<RentRateBasis>("unconfirmed");
-  const sourceBasis = rentRateBasis(lease);
-  const basis = sourceBasis === "unconfirmed" ? basisOverride : sourceBasis;
-  const efficiency =
-    efficiencyOverride === undefined
-      ? marketLeaseEfficiency(lease, buildingId, efficiencyPct)
-      : efficiencyOverride;
+  const basis = rentRateBasis(lease);
+  const efficiency = marketLeaseEfficiency(lease, buildingId, efficiencyPct);
   const maximum = Math.max(floor ?? 1000, area ?? 0);
   const shownArea =
-    area == null ? "" : Number(convertArea(area, "평", unit).toFixed(2));
+    area == null ? "" : Number(convertArea(area, "평", unit).toFixed(1));
   const estimate = estimateMarketRent(lease, area, efficiency, basis);
-  const perArea =
-    estimate.monthlyCostPerExclusive == null
-      ? null
-      : estimate.monthlyCostPerExclusive / convertArea(1, "평", unit);
+  const sourceNoc = marketNocPerExclusive(lease);
+  const noc = sourceNoc == null ? null : sourceNoc / convertArea(1, "평", unit);
   const vat = /미확인|unknown|unconfirmed/i.test(lease.vat_basis)
     ? ""
     : /별도|exclusive|excluded/i.test(lease.vat_basis)
@@ -72,7 +61,7 @@ export default function MarketRentCalculator({
     ["월임대료", estimate.monthlyRent, "만원"],
     ["월관리비", estimate.monthlyFee, "만원"],
     ["보증금", estimate.deposit, "만원"],
-    ["전용면적당 월비용", perArea, `만원/${unit}`],
+    ["시장 NOC", noc, `만원/${unit}`],
   ] as const;
   return (
     <section className="market-rent-calculator" aria-label="예상 임대비용">
@@ -101,35 +90,6 @@ export default function MarketRentCalculator({
             <span id={`${id}-unit`}>{unit}</span>
           </span>
         </label>
-        {basis !== "exclusive" && (
-          <label
-            className="rent-calculator-efficiency"
-            htmlFor={`${id}-efficiency`}
-          >
-            <span>전용률</span>
-            <span>
-              <input
-                id={`${id}-efficiency`}
-                type="number"
-                min="0.01"
-                max="100"
-                step="0.1"
-                inputMode="decimal"
-                aria-label="전용률"
-                aria-invalid={
-                  efficiency != null && !(efficiency > 0 && efficiency <= 100)
-                }
-                placeholder="입력"
-                value={efficiency ?? ""}
-                onChange={(event) => {
-                  const value = event.target.valueAsNumber;
-                  setEfficiencyOverride(Number.isFinite(value) ? value : null);
-                }}
-              />
-              <span>%</span>
-            </span>
-          </label>
-        )}
       </div>
       <input
         className="rent-calculator-slider"
@@ -159,23 +119,6 @@ export default function MarketRentCalculator({
           {unit}
         </span>
       </div>
-      {sourceBasis === "unconfirmed" && (
-        <label className="rent-calculator-basis" htmlFor={`${id}-basis`}>
-          <span>단가 기준</span>
-          <select
-            id={`${id}-basis`}
-            aria-label="단가 기준"
-            value={basisOverride}
-            onChange={(event) =>
-              setBasisOverride(event.target.value as RentRateBasis)
-            }
-          >
-            <option value="unconfirmed">선택</option>
-            <option value="rentable">임대면적당</option>
-            <option value="exclusive">전용면적당</option>
-          </select>
-        </label>
-      )}
       <dl className="rent-calculator-results">
         {metrics.map(([label, value, suffix]) => (
           <div key={label}>

@@ -112,10 +112,13 @@ const leasing = table("02").map((r) => ({
   noc: n(r["NOC_원평"]),
   vacancy: n(r["공실률"]),
   rent_free: n(r["렌트프리_개월년"]),
-  area_basis: r["면적기준"],
+  area_basis: efficiencies.has(r["임대기록ID"])
+    ? "임대면적 기준"
+    : r["면적기준"],
   vat_basis: r["부가세기준"],
   efficiency_pct: efficiencies.get(r["임대기록ID"])?.pct ?? null,
-  efficiency_source_period: efficiencies.get(r["임대기록ID"])?.sourcePeriod ?? null,
+  efficiency_source_period:
+    efficiencies.get(r["임대기록ID"])?.sourcePeriod ?? null,
   efficiency_source_scope: efficiencies.get(r["임대기록ID"])?.name ?? null,
   published: false,
 }));

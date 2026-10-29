@@ -7,6 +7,7 @@ import {
   latestMarketLease,
   rentRateBasis,
   marketLeaseEfficiency,
+  marketNocPerExclusive,
 } from "./market-rent-calculator.ts";
 
 const lease: Leasing = {
@@ -56,6 +57,35 @@ test("exclusive area converts through explicit efficiency; deposit and NOC never
     estimateMarketRent(lease, convertArea(sqm, "m²", "평"), 50, "rentable")
       .monthlyFixedCost,
     28_000_000,
+  );
+});
+
+test("One Grove converts rentable rates automatically while reported NOC stays separate from cash cost", () => {
+  const grove = {
+    ...lease,
+    rent: 98000,
+    fee: 37000,
+    deposit: 980000,
+    noc: 294755,
+    efficiency_pct: 46.6,
+  };
+  const estimate = estimateMarketRent(
+    grove,
+    1236.39,
+    marketLeaseEfficiency(grove, "tower-a", null),
+    rentRateBasis(grove),
+  );
+  assert.ok(
+    Math.abs(estimate.monthlyCostPerExclusive! - 289699.5708154506) < 0.000001,
+  );
+  assert.equal(marketNocPerExclusive(grove), 294755);
+  assert.equal((marketNocPerExclusive(grove)! / 10000).toFixed(1), "29.5");
+  assert.equal((estimate.monthlyCostPerExclusive! / 10000).toFixed(1), "29.0");
+  assert.equal(marketNocPerExclusive({ ...grove, noc: null }), null);
+  assert.equal(marketNocPerExclusive({ ...grove, currency_code: "USD" }), null);
+  assert.equal(
+    latestMarketLease([grove, { ...grove, id: "conflict", noc: 1 }]),
+    null,
   );
 });
 

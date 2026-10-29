@@ -68,12 +68,6 @@
   font-size: 28px;
   font-weight: 650;
 }
-.rent-calculator-efficiency {
-  flex: 0 1 80px;
-}
-.rent-calculator-efficiency input {
-  font-size: 20px;
-}
 .rent-calculator-inputs input:focus-visible {
   outline: 2px solid #9aa9dc;
   outline-offset: 3px;
@@ -131,24 +125,6 @@
   justify-content: space-between;
   color: var(--text-secondary);
   font-size: 11px;
-}
-.rent-calculator-basis {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  margin-top: 18px;
-  font-size: 12px;
-  color: var(--text-secondary);
-}
-.rent-calculator-basis select {
-  max-width: 150px;
-  border: 1px solid #d5dce8;
-  border-radius: 9px;
-  padding: 7px 28px 7px 10px;
-  background-color: #fff;
-  color: var(--text-primary);
-  font: inherit;
 }
 .rent-calculator-results {
   display: grid;
