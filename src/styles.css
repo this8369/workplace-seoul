@@ -3779,11 +3779,12 @@ button:disabled {
   background: #dce0e9;
 }
 .asset-popup .asset-page {
+  --asset-page-gutter: 28px;
   position: relative;
   flex: 1;
   min-height: 0;
   width: 100%;
-  padding: 26px 28px 36px;
+  padding: 26px var(--asset-page-gutter) 36px;
   overscroll-behavior: contain;
   background: transparent;
   scrollbar-width: thin;
@@ -4029,13 +4030,24 @@ button:disabled {
   font-size: 14px;
 }
 .asset-scroll-section {
+  position: relative;
   min-width: 0;
   scroll-margin-top: 64px;
 }
 .asset-scroll-section + .asset-scroll-section {
-  margin-top: 32px;
-  padding-top: 24px;
-  border-top: 1px solid #dce1e9;
+  margin-top: 36px;
+  padding-top: 28px;
+}
+.asset-scroll-section + .asset-scroll-section::before,
+.asset-popup .land-section::before,
+.asset-popup .land-section dl > div::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  inset-inline: calc(-1 * var(--asset-page-gutter));
+  height: 1px;
+  background: #dce1e9;
+  pointer-events: none;
 }
 .asset-section-placeholder {
   min-height: 200px;
@@ -4056,10 +4068,58 @@ button:disabled {
   font-weight: 650;
   letter-spacing: -0.3px;
 }
-.asset-popup .info-panel {
+.asset-popup .info-panel,
+.asset-popup .asset-content-card {
   border: 1px solid rgb(26 38 62 / 7%);
   border-radius: 18px;
   padding: 22px;
+}
+.asset-popup .asset-content-card {
+  min-width: 0;
+  background: var(--surface);
+}
+.asset-popup .asset-section > .asset-content-card + .asset-content-card {
+  margin-top: 18px;
+}
+.asset-popup .asset-content-card > .section-empty {
+  border: 0;
+  border-radius: 0;
+  padding: 24px 0;
+  background: transparent;
+}
+.asset-popup .asset-content-card .history-heading {
+  margin-top: 0;
+}
+.asset-popup .asset-content-card .movement-list {
+  grid-template-columns: minmax(0, 1fr);
+}
+.asset-popup .asset-content-card .movement-list article {
+  border: 0;
+  border-top: 1px solid #e6e9f0;
+  border-radius: 0;
+  padding: 16px 0 0;
+  background: transparent;
+}
+.asset-popup .development-timeline .development-record {
+  position: relative;
+  border: 0;
+  border-left: 2px solid #dce1e9;
+  border-radius: 0;
+  padding: 0 0 0 16px;
+  background: transparent;
+}
+.asset-popup .development-record + .development-record {
+  margin-top: 24px;
+}
+.development-record::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -5px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #6b7ca5;
 }
 .asset-popup .overview-grid {
   grid-template-columns: 1.15fr 1fr;
@@ -4115,6 +4175,65 @@ button:disabled {
 }
 .context-panel > .section-heading {
   margin-bottom: 0;
+}
+.asset-popup .land-facts {
+  display: contents;
+}
+.asset-popup .land-panel .land-section {
+  position: relative;
+  border: 0;
+  border-radius: 0;
+  padding: 24px 0 0;
+  background: transparent;
+  box-shadow: none;
+}
+.asset-popup .land-section > h3 {
+  margin: 0 0 16px;
+}
+.asset-popup .land-section dl > div {
+  position: relative;
+  border-top: 0;
+}
+.asset-popup .land-section dl > div::before {
+  background: #e6e9f0;
+}
+.asset-popup .nearby-content {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.asset-popup .nearby-content .nearby-list {
+  display: block;
+}
+.nearby-place-row {
+  padding: 16px 0;
+  border-bottom: 1px solid #e6e9f0;
+}
+.nearby-place-row:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+.nearby-place-row .section-heading {
+  gap: 12px;
+  align-items: baseline;
+  margin-bottom: 8px;
+}
+.asset-popup .nearby-place-row h3 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 650;
+}
+.nearby-place-row .section-heading > strong {
+  flex-shrink: 0;
+  font-size: 13px;
+}
+.asset-popup .nearby-preview-section > h3 {
+  font-size: var(--asset-section-title-size);
+  margin: 0;
+}
+.nearby-preview-section {
+  padding-top: 18px;
+  border-top: 1px solid #e6e9f0;
 }
 .context-status {
   display: flex;
@@ -4541,7 +4660,8 @@ button:disabled {
 }
 @container (max-width: 580px) {
   .asset-popup .asset-page {
-    padding: 18px 18px 28px;
+    --asset-page-gutter: 18px;
+    padding: 18px var(--asset-page-gutter) 28px;
   }
   .asset-summary {
     grid-template-columns: 1fr;
@@ -4579,7 +4699,8 @@ button:disabled {
     margin-left: auto;
     gap: 6px;
   }
-  .asset-popup .info-panel {
+  .asset-popup .info-panel,
+  .asset-popup .asset-content-card {
     padding: 18px;
   }
   .nearby-categories {

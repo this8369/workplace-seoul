@@ -72,7 +72,7 @@ export default function OfficialLandPrices({
         .year,
     );
   return (
-    <section className="info-panel official-prices">
+    <section className="info-panel official-prices land-section">
       <div className="section-heading">
         <div>
           <h3>개별공시지가</h3>

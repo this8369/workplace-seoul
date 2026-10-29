@@ -57,7 +57,7 @@ export default function IgisAssetPanel({ buildingId }: { buildingId: string }) {
       </div>
     );
   return (
-    <section>
+    <section className="info-panel igis-investment-panel">
       <div className="section-heading">
         <h2>이지스 투자 정보</h2>
       </div>

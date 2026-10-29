@@ -317,188 +317,190 @@ export function Transactions({
         </div>
         <span className="record-count">{rows.length.toLocaleString()}건</span>
       </div>
-      <div className="record-filters">
-        <label>
-          거래연도
-          <select
-            aria-label="거래연도"
-            value={year}
-            onChange={(e) => setYear(e.target.value)}
-          >
-            <option value="">전체 연도</option>
-            {[...new Set(base.map((t) => t.year).filter((t) => t != null))]
-              .sort((a, b) => b - a)
-              .map((y) => (
-                <option key={y}>{y}</option>
-              ))}
-          </select>
-        </label>
-        <label>
-          매입범위
-          <select
-            aria-label="매입범위"
-            value={scope}
-            onChange={(e) => setScope(e.target.value)}
-          >
-            <option value="">전체 범위</option>
-            {[...new Set(base.map((t) => t.scope).filter(Boolean))]
-              .sort()
-              .map((s) => (
-                <option key={s}>{s}</option>
-              ))}
-          </select>
-        </label>
-        <label className="sort-control">
-          정렬
-          <select
-            aria-label="거래 정렬"
-            value={sort}
-            onChange={(e) => setSort(e.target.value)}
-          >
-            <option value="recent">최근 거래순</option>
-            <option value="amount">거래금액 높은순</option>
-          </select>
-        </label>
-        {(year || scope) && (
-          <button
-            onClick={() => {
-              setYear("");
-              setScope("");
-            }}
-          >
-            필터 초기화
-          </button>
-        )}
-      </div>
-      {rows.length ? (
-        <>
-          <div className="table-scroll transaction-table">
-            <table>
-              <thead>
-                <tr>
-                  <th>거래시점</th>
-                  <th>건물 / 권역</th>
-                  <th>거래금액</th>
-                  <th>실제 거래면적</th>
-                  <th>원문 평당가</th>
-                  <th>매입범위</th>
-                  <th>매수인 / 매도인</th>
-                  <th>
-                    <span className="sr-only">상세</span>
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {rows.slice(current * 20, current * 20 + 20).map((t) => (
-                  <tr key={t.id}>
-                    <td>
-                      <RV entity="transactions" id={t.id} field="year">
-                        {t.year ? `${t.year}년` : "미확인"}
-                      </RV>
-                    </td>
-                    <td>
-                      <button
-                        className="text-button building-link"
-                        onClick={() => openDetail(t)}
-                      >
-                        {t.building_name}
-                      </button>
-                      <small>
-                        {t.region}
-                        {t.link_status === "candidate"
-                          ? " · 자산 연결 검수 전"
-                          : ""}
-                      </small>
-                    </td>
-                    <td className="strong-number">
-                      <RV entity="transactions" id={t.id} field="amount_won">
-                        {money(t.amount_won)}
-                      </RV>
-                    </td>
-                    <td>
-                      <RV
-                        entity="transactions"
-                        id={t.id}
-                        field="traded_area_m2"
-                      >
-                        {transactionArea(t.traded_area_m2)}
-                      </RV>
-                    </td>
-                    <td>
-                      <RV
-                        entity="transactions"
-                        id={t.id}
-                        field="unit_price_won"
-                      >
-                        {unitPrice(t)}
-                      </RV>
-                    </td>
-                    <td>
-                      <span className="pill">
-                        <RV entity="transactions" id={t.id} field="scope">
-                          {t.scope || "미확인"}
-                        </RV>
-                      </span>
-                    </td>
-                    <td className="parties">
-                      <RV entity="transactions" id={t.id} field="buyer">
-                        {t.buyer || "미확인"}
-                      </RV>
-                      <small>
-                        <RV entity="transactions" id={t.id} field="seller">
-                          {t.seller || "미확인"}
-                        </RV>
-                      </small>
-                    </td>
-                    <td>
-                      <button
-                        aria-label={`${t.building_name} ${t.year}년 거래 상세`}
-                        onClick={() => openDetail(t)}
-                      >
-                        <ChevronRight size={17} />
-                      </button>
-                    </td>
-                  </tr>
+      <div className={buildingId ? "asset-content-card" : undefined}>
+        <div className="record-filters">
+          <label>
+            거래연도
+            <select
+              aria-label="거래연도"
+              value={year}
+              onChange={(e) => setYear(e.target.value)}
+            >
+              <option value="">전체 연도</option>
+              {[...new Set(base.map((t) => t.year).filter((t) => t != null))]
+                .sort((a, b) => b - a)
+                .map((y) => (
+                  <option key={y}>{y}</option>
                 ))}
-              </tbody>
-            </table>
-          </div>
-          <div className="pagination">
-            <span>
-              총 {rows.length}건 · {current + 1} / {pages}
-            </span>
-            <button
-              disabled={current === 0}
-              onClick={() => setPage(current - 1)}
+            </select>
+          </label>
+          <label>
+            매입범위
+            <select
+              aria-label="매입범위"
+              value={scope}
+              onChange={(e) => setScope(e.target.value)}
             >
-              이전
-            </button>
-            <button
-              disabled={current >= pages - 1}
-              onClick={() => setPage(current + 1)}
+              <option value="">전체 범위</option>
+              {[...new Set(base.map((t) => t.scope).filter(Boolean))]
+                .sort()
+                .map((s) => (
+                  <option key={s}>{s}</option>
+                ))}
+            </select>
+          </label>
+          <label className="sort-control">
+            정렬
+            <select
+              aria-label="거래 정렬"
+              value={sort}
+              onChange={(e) => setSort(e.target.value)}
             >
-              다음
+              <option value="recent">최근 거래순</option>
+              <option value="amount">거래금액 높은순</option>
+            </select>
+          </label>
+          {(year || scope) && (
+            <button
+              onClick={() => {
+                setYear("");
+                setScope("");
+              }}
+            >
+              필터 초기화
             </button>
-          </div>
-        </>
-      ) : (
-        <Blank
-          title={
-            base.length
-              ? "조건에 맞는 거래가 없습니다"
-              : "등록된 거래 정보가 없습니다"
-          }
-        >
-          {base.length
-            ? "검색어나 필터를 변경해 보세요."
-            : "거래 정보가 등록되면 이곳에서 확인할 수 있습니다."}
-        </Blank>
-      )}
-      <p className="context-note">
-        건물 연면적과 거래면적은 다를 수 있습니다. 일부 층·지분 거래는 전체 건물
-        매매와 구분해서 확인하세요.
-      </p>
-      {detailError && <p role="alert">{detailError}</p>}
+          )}
+        </div>
+        {rows.length ? (
+          <>
+            <div className="table-scroll transaction-table">
+              <table>
+                <thead>
+                  <tr>
+                    <th>거래시점</th>
+                    <th>건물 / 권역</th>
+                    <th>거래금액</th>
+                    <th>실제 거래면적</th>
+                    <th>원문 평당가</th>
+                    <th>매입범위</th>
+                    <th>매수인 / 매도인</th>
+                    <th>
+                      <span className="sr-only">상세</span>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.slice(current * 20, current * 20 + 20).map((t) => (
+                    <tr key={t.id}>
+                      <td>
+                        <RV entity="transactions" id={t.id} field="year">
+                          {t.year ? `${t.year}년` : "미확인"}
+                        </RV>
+                      </td>
+                      <td>
+                        <button
+                          className="text-button building-link"
+                          onClick={() => openDetail(t)}
+                        >
+                          {t.building_name}
+                        </button>
+                        <small>
+                          {t.region}
+                          {t.link_status === "candidate"
+                            ? " · 자산 연결 검수 전"
+                            : ""}
+                        </small>
+                      </td>
+                      <td className="strong-number">
+                        <RV entity="transactions" id={t.id} field="amount_won">
+                          {money(t.amount_won)}
+                        </RV>
+                      </td>
+                      <td>
+                        <RV
+                          entity="transactions"
+                          id={t.id}
+                          field="traded_area_m2"
+                        >
+                          {transactionArea(t.traded_area_m2)}
+                        </RV>
+                      </td>
+                      <td>
+                        <RV
+                          entity="transactions"
+                          id={t.id}
+                          field="unit_price_won"
+                        >
+                          {unitPrice(t)}
+                        </RV>
+                      </td>
+                      <td>
+                        <span className="pill">
+                          <RV entity="transactions" id={t.id} field="scope">
+                            {t.scope || "미확인"}
+                          </RV>
+                        </span>
+                      </td>
+                      <td className="parties">
+                        <RV entity="transactions" id={t.id} field="buyer">
+                          {t.buyer || "미확인"}
+                        </RV>
+                        <small>
+                          <RV entity="transactions" id={t.id} field="seller">
+                            {t.seller || "미확인"}
+                          </RV>
+                        </small>
+                      </td>
+                      <td>
+                        <button
+                          aria-label={`${t.building_name} ${t.year}년 거래 상세`}
+                          onClick={() => openDetail(t)}
+                        >
+                          <ChevronRight size={17} />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div className="pagination">
+              <span>
+                총 {rows.length}건 · {current + 1} / {pages}
+              </span>
+              <button
+                disabled={current === 0}
+                onClick={() => setPage(current - 1)}
+              >
+                이전
+              </button>
+              <button
+                disabled={current >= pages - 1}
+                onClick={() => setPage(current + 1)}
+              >
+                다음
+              </button>
+            </div>
+          </>
+        ) : (
+          <Blank
+            title={
+              base.length
+                ? "조건에 맞는 거래가 없습니다"
+                : "등록된 거래 정보가 없습니다"
+            }
+          >
+            {base.length
+              ? "검색어나 필터를 변경해 보세요."
+              : "거래 정보가 등록되면 이곳에서 확인할 수 있습니다."}
+          </Blank>
+        )}
+        <p className="context-note">
+          건물 연면적과 거래면적은 다를 수 있습니다. 일부 층·지분 거래는 전체
+          건물 매매와 구분해서 확인하세요.
+        </p>
+        {detailError && <p role="alert">{detailError}</p>}
+      </div>
       {detail && canReadDetails && (
         <TransactionDialog
           transaction={detail}
@@ -774,26 +776,33 @@ function AssetWorkspaceContent({
     as_of: b.source_as_of || b.verified_on,
   };
   const sectionContent: Record<AssetTab | "자료 출처", React.ReactNode> = {
-    이지스: canReadIgis ? (
-      <Suspense
-        fallback={
-          <p className="context-note">이지스 정보를 불러오고 있습니다.</p>
-        }
-      >
-        <IgisOperationsPanel
-          key={b.igis_source_building_id || b.id}
-          buildingId={b.igis_source_building_id || b.id}
-        />
-        <IgisAssetPanel buildingId={b.igis_source_building_id || b.id} />
-      </Suspense>
-    ) : (
-      <section className="info-panel igis-detail-locked">
-        <LockKeyhole size={25} />
-        <h2>이지스 내부정보</h2>
-        <p>로그인 후 권한이 있는 정보만 확인할 수 있습니다.</p>
-        <button type="button" className="primary" onClick={onRequireLogin}>
-          로그인하고 보기
-        </button>
+    이지스: (
+      <section className="asset-section">
+        <div className="section-heading">
+          <h2>이지스</h2>
+        </div>
+        {canReadIgis ? (
+          <Suspense
+            fallback={
+              <p className="context-note">이지스 정보를 불러오고 있습니다.</p>
+            }
+          >
+            <IgisOperationsPanel
+              key={b.igis_source_building_id || b.id}
+              buildingId={b.igis_source_building_id || b.id}
+            />
+            <IgisAssetPanel buildingId={b.igis_source_building_id || b.id} />
+          </Suspense>
+        ) : (
+          <section className="info-panel igis-detail-locked">
+            <LockKeyhole size={25} />
+            <h2>이지스 내부정보</h2>
+            <p>로그인 후 권한이 있는 정보만 확인할 수 있습니다.</p>
+            <button type="button" className="primary" onClick={onRequireLogin}>
+              로그인하고 보기
+            </button>
+          </section>
+        )}
       </section>
     ),
     건축물대장: (
@@ -917,6 +926,9 @@ function AssetWorkspaceContent({
     ),
     개요: (
       <>
+        <div className="section-heading">
+          <h2>개요</h2>
+        </div>
         <div className="overview-grid">
           <AssetOverview
             building={b}
@@ -1057,90 +1069,100 @@ function AssetWorkspaceContent({
       <section className="asset-section">
         <div className="section-heading">
           <div>
-            <h2>시장 임대조건 · 알스퀘어</h2>
+            <h2>시장 임대</h2>
             <p>
               알스퀘어가 집계한 시장 조사 데이터입니다. 이지스의 실제 계약
               임대료·수납액·운영실적은 별도 권한으로 관리합니다.
             </p>
           </div>
         </div>
-        {leases.length ? (
-          <>
-            <div className="table-scroll">
-              <table>
-                <thead>
-                  <tr>
-                    {[
-                      "기준분기",
-                      `보증금 (원/${unit})`,
-                      `시장 월임대료 (원/${unit})`,
-                      `관리비 (원/${unit})`,
-                      `시장 NOC (원/${unit})`,
-                      "공실률",
-                      "렌트프리 (개월/년)",
-                    ].map((x) => (
-                      <th key={x}>{x}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {leases.map((l) => (
-                    <tr key={l.id}>
-                      <th>
-                        <RV entity="leasing_quarters" id={l.id} field="period">
-                          {l.period}
-                        </RV>
-                      </th>
-                      <td>
-                        <RV entity="leasing_quarters" id={l.id} field="deposit">
-                          {numeric(perPyeong(l.deposit))}
-                        </RV>
-                      </td>
-                      <td>
-                        <RV entity="leasing_quarters" id={l.id} field="rent">
-                          {numeric(perPyeong(l.rent))}
-                        </RV>
-                      </td>
-                      <td>
-                        <RV entity="leasing_quarters" id={l.id} field="fee">
-                          {numeric(perPyeong(l.fee))}
-                        </RV>
-                      </td>
-                      <td>
-                        <RV entity="leasing_quarters" id={l.id} field="noc">
-                          {numeric(perPyeong(l.noc))}
-                        </RV>
-                      </td>
-                      <td>
-                        {numeric(
-                          l.vacancy == null ? null : l.vacancy * 100,
-                          "%",
-                        )}
-                      </td>
-                      <td>
-                        <RV
-                          entity="leasing_quarters"
-                          id={l.id}
-                          field="rent_free"
-                        >
-                          {numeric(l.rent_free)}
-                        </RV>
-                      </td>
+        <div className="asset-content-card">
+          {leases.length ? (
+            <>
+              <div className="table-scroll">
+                <table>
+                  <thead>
+                    <tr>
+                      {[
+                        "기준분기",
+                        `보증금 (원/${unit})`,
+                        `시장 월임대료 (원/${unit})`,
+                        `관리비 (원/${unit})`,
+                        `시장 NOC (원/${unit})`,
+                        "공실률",
+                        "렌트프리 (개월/년)",
+                      ].map((x) => (
+                        <th key={x}>{x}</th>
+                      ))}
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            <p className="context-note">
-              {leases[0].area_basis} · {leases[0].vat_basis}. 원문 금액을 선택한
-              면적 단위로 환산해 표시합니다.
-            </p>
-          </>
-        ) : (
-          <Blank title="임대 조건을 수집하고 있습니다">
-            확인된 기준분기와 면적·금액 단위를 함께 기록합니다.
-          </Blank>
-        )}
+                  </thead>
+                  <tbody>
+                    {leases.map((l) => (
+                      <tr key={l.id}>
+                        <th>
+                          <RV
+                            entity="leasing_quarters"
+                            id={l.id}
+                            field="period"
+                          >
+                            {l.period}
+                          </RV>
+                        </th>
+                        <td>
+                          <RV
+                            entity="leasing_quarters"
+                            id={l.id}
+                            field="deposit"
+                          >
+                            {numeric(perPyeong(l.deposit))}
+                          </RV>
+                        </td>
+                        <td>
+                          <RV entity="leasing_quarters" id={l.id} field="rent">
+                            {numeric(perPyeong(l.rent))}
+                          </RV>
+                        </td>
+                        <td>
+                          <RV entity="leasing_quarters" id={l.id} field="fee">
+                            {numeric(perPyeong(l.fee))}
+                          </RV>
+                        </td>
+                        <td>
+                          <RV entity="leasing_quarters" id={l.id} field="noc">
+                            {numeric(perPyeong(l.noc))}
+                          </RV>
+                        </td>
+                        <td>
+                          {numeric(
+                            l.vacancy == null ? null : l.vacancy * 100,
+                            "%",
+                          )}
+                        </td>
+                        <td>
+                          <RV
+                            entity="leasing_quarters"
+                            id={l.id}
+                            field="rent_free"
+                          >
+                            {numeric(l.rent_free)}
+                          </RV>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <p className="context-note">
+                {leases[0].area_basis} · {leases[0].vat_basis}. 원문 금액을
+                선택한 면적 단위로 환산해 표시합니다.
+              </p>
+            </>
+          ) : (
+            <Blank title="임대 조건을 수집하고 있습니다">
+              확인된 기준분기와 면적·금액 단위를 함께 기록합니다.
+            </Blank>
+          )}
+        </div>
       </section>
     ),
     임차기업:
@@ -1148,252 +1170,264 @@ function AssetWorkspaceContent({
         <section className="asset-section">
           <div className="section-heading">
             <div>
-              <h2>입주기업</h2>
+              <h2>임차기업</h2>
               <p>현재 입주가 확인된 기업과 과거 기록을 구분합니다.</p>
             </div>
             <Users size={20} />
           </div>
-          <div className="tenant-controls">
-            <div className="search">
-              <Search size={16} />
-              <input
-                aria-label="입주기업 검색"
-                placeholder="기업명 또는 업종 검색"
-                value={tenantQuery}
-                onChange={(e) => setTenantQuery(e.target.value)}
-              />
-            </div>
-            <div className="segmented">
-              <button
-                aria-pressed={tenantView === "list"}
-                onClick={() => setTenantView("list")}
-              >
-                기업 목록
-              </button>
-              <button
-                aria-pressed={tenantView === "floor"}
-                onClick={() => setTenantView("floor")}
-              >
-                층별 보기
-              </button>
-            </div>
-          </div>
-          {filteredTenants.length ? (
-            tenantView === "list" ? (
-              <div className="table-scroll">
-                <table>
-                  <thead>
-                    <tr>
-                      {[
-                        "기업명",
-                        "업종",
-                        "입주 층",
-                        "사용면적",
-                        "입주 시점",
-                        "정보 기준일",
-                      ].map((t) => (
-                        <th key={t}>{t}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredTenants.map((o) => {
-                      const c = companies.find((c) => c.id === o.company_id);
-                      return (
-                        <tr key={o.id}>
-                          <td>
-                            <button
-                              className="text-button"
-                              onClick={() => setCompanyId(o.company_id)}
-                            >
-                              {c?.name || "기업 정보 미확인"}
-                              <ArrowUpRight size={13} />
-                            </button>
-                          </td>
-                          <td>
-                            <RV entity="companies" id={c?.id} field="industry">
-                              {c?.industry || "미확인"}
-                            </RV>
-                          </td>
-                          <td>
-                            <RV entity="occupancies" id={o.id} field="floors">
-                              {o.floors || "미확인"}
-                            </RV>
-                          </td>
-                          <td>
-                            <RV entity="occupancies" id={o.id} field="area_m2">
-                              {formatArea(o.area_m2)}
-                            </RV>
-                          </td>
-                          <td>
-                            <RV
-                              entity="occupancies"
-                              id={o.id}
-                              field="started_on"
-                            >
-                              {o.started_on || "미확인"}
-                            </RV>
-                          </td>
-                          <td>
-                            <RV entity="occupancies" id={o.id} field="as_of">
-                              {o.as_of || "미확인"}
-                            </RV>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
+          <div className="asset-content-card">
+            <div className="tenant-controls">
+              <div className="search">
+                <Search size={16} />
+                <input
+                  aria-label="입주기업 검색"
+                  placeholder="기업명 또는 업종 검색"
+                  value={tenantQuery}
+                  onChange={(e) => setTenantQuery(e.target.value)}
+                />
               </div>
+              <div className="segmented">
+                <button
+                  aria-pressed={tenantView === "list"}
+                  onClick={() => setTenantView("list")}
+                >
+                  기업 목록
+                </button>
+                <button
+                  aria-pressed={tenantView === "floor"}
+                  onClick={() => setTenantView("floor")}
+                >
+                  층별 보기
+                </button>
+              </div>
+            </div>
+            {filteredTenants.length ? (
+              tenantView === "list" ? (
+                <div className="table-scroll">
+                  <table>
+                    <thead>
+                      <tr>
+                        {[
+                          "기업명",
+                          "업종",
+                          "입주 층",
+                          "사용면적",
+                          "입주 시점",
+                          "정보 기준일",
+                        ].map((t) => (
+                          <th key={t}>{t}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredTenants.map((o) => {
+                        const c = companies.find((c) => c.id === o.company_id);
+                        return (
+                          <tr key={o.id}>
+                            <td>
+                              <button
+                                className="text-button"
+                                onClick={() => setCompanyId(o.company_id)}
+                              >
+                                {c?.name || "기업 정보 미확인"}
+                                <ArrowUpRight size={13} />
+                              </button>
+                            </td>
+                            <td>
+                              <RV
+                                entity="companies"
+                                id={c?.id}
+                                field="industry"
+                              >
+                                {c?.industry || "미확인"}
+                              </RV>
+                            </td>
+                            <td>
+                              <RV entity="occupancies" id={o.id} field="floors">
+                                {o.floors || "미확인"}
+                              </RV>
+                            </td>
+                            <td>
+                              <RV
+                                entity="occupancies"
+                                id={o.id}
+                                field="area_m2"
+                              >
+                                {formatArea(o.area_m2)}
+                              </RV>
+                            </td>
+                            <td>
+                              <RV
+                                entity="occupancies"
+                                id={o.id}
+                                field="started_on"
+                              >
+                                {o.started_on || "미확인"}
+                              </RV>
+                            </td>
+                            <td>
+                              <RV entity="occupancies" id={o.id} field="as_of">
+                                {o.as_of || "미확인"}
+                              </RV>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div className="floor-list">
+                  {[...filteredTenants]
+                    .sort((a, b) =>
+                      (b.floors || "").localeCompare(a.floors || "", "ko", {
+                        numeric: true,
+                      }),
+                    )
+                    .map((o) => (
+                      <div key={o.id}>
+                        <strong>
+                          <RV entity="occupancies" id={o.id} field="floors">
+                            {o.floors || "층 미확인"}
+                          </RV>
+                        </strong>
+                        <button onClick={() => setCompanyId(o.company_id)}>
+                          {companies.find((c) => c.id === o.company_id)?.name ||
+                            "기업 정보 미확인"}
+                        </button>
+                        <span>
+                          <RV entity="occupancies" id={o.id} field="area_m2">
+                            {formatArea(o.area_m2)}
+                          </RV>{" "}
+                          · 기준{" "}
+                          <RV entity="occupancies" id={o.id} field="as_of">
+                            {o.as_of || "미확인"}
+                          </RV>
+                        </span>
+                      </div>
+                    ))}
+                </div>
+              )
             ) : (
-              <div className="floor-list">
-                {[...filteredTenants]
-                  .sort((a, b) =>
-                    (b.floors || "").localeCompare(a.floors || "", "ko", {
-                      numeric: true,
-                    }),
-                  )
+              <Blank
+                title={
+                  confirmed.length
+                    ? "검색 결과가 없습니다"
+                    : "현재 입주기업 정보를 수집하고 있습니다"
+                }
+              >
+                {confirmed.length
+                  ? "다른 기업명이나 업종으로 검색해 보세요."
+                  : "기업명 · 업종 · 입주 층 · 사용면적 · 입주 시점 · 정보 기준일을 확인해 채워갑니다. 아래의 과거 이전 기록은 현재 입주를 의미하지 않습니다."}
+              </Blank>
+            )}
+            {company && (
+              <div className="company-panel">
+                <div className="section-heading">
+                  <h2>
+                    <RV entity="companies" id={company.id} field="name">
+                      {company.name}
+                    </RV>
+                  </h2>
+                  <button
+                    aria-label="기업 정보 닫기"
+                    onClick={() => setCompanyId(null)}
+                  >
+                    <X size={17} />
+                  </button>
+                </div>
+                <p>
+                  <RV entity="companies" id={company.id} field="industry">
+                    {company.industry || "업종 미확인"}
+                  </RV>
+                </p>
+                <p className="context-note">
+                  <RV entity="companies" id={company.id} field="overview">
+                    {company.overview || "기업 소개를 준비하고 있습니다."}
+                  </RV>
+                </p>
+
+                {catalog.occupancies
+                  .filter((o) => o.company_id === company.id)
                   .map((o) => (
-                    <div key={o.id}>
-                      <strong>
-                        <RV entity="occupancies" id={o.id} field="floors">
-                          {o.floors || "층 미확인"}
-                        </RV>
-                      </strong>
-                      <button onClick={() => setCompanyId(o.company_id)}>
-                        {companies.find((c) => c.id === o.company_id)?.name ||
-                          "기업 정보 미확인"}
+                    <div className="company-location" key={o.id}>
+                      <button onClick={() => onBuilding(o.building_id)}>
+                        {catalog.buildings.find((b) => b.id === o.building_id)
+                          ?.name || "건물 미확인"}
+                        <ArrowUpRight size={13} />
                       </button>
                       <span>
-                        <RV entity="occupancies" id={o.id} field="area_m2">
-                          {formatArea(o.area_m2)}
-                        </RV>{" "}
-                        · 기준{" "}
-                        <RV entity="occupancies" id={o.id} field="as_of">
-                          {o.as_of || "미확인"}
-                        </RV>
+                        {o.status === "confirmed" && !o.ended_on
+                          ? "입주 확인"
+                          : "과거·미확인"}{" "}
+                        · {o.as_of || "기준일 미확인"}
                       </span>
                     </div>
                   ))}
               </div>
-            )
-          ) : (
-            <Blank
-              title={
-                confirmed.length
-                  ? "검색 결과가 없습니다"
-                  : "현재 입주기업 정보를 수집하고 있습니다"
-              }
-            >
-              {confirmed.length
-                ? "다른 기업명이나 업종으로 검색해 보세요."
-                : "기업명 · 업종 · 입주 층 · 사용면적 · 입주 시점 · 정보 기준일을 확인해 채워갑니다. 아래의 과거 이전 기록은 현재 입주를 의미하지 않습니다."}
-            </Blank>
-          )}
-          {company && (
-            <div className="info-panel company-panel">
-              <div className="section-heading">
-                <h2>
-                  <RV entity="companies" id={company.id} field="name">
-                    {company.name}
-                  </RV>
-                </h2>
-                <button
-                  aria-label="기업 정보 닫기"
-                  onClick={() => setCompanyId(null)}
-                >
-                  <X size={17} />
-                </button>
-              </div>
-              <p>
-                <RV entity="companies" id={company.id} field="industry">
-                  {company.industry || "업종 미확인"}
-                </RV>
-              </p>
+            )}
+            {other.length > 0 && (
               <p className="context-note">
-                <RV entity="companies" id={company.id} field="overview">
-                  {company.overview || "기업 소개를 준비하고 있습니다."}
-                </RV>
+                현재 입주로 확정되지 않은 입주 기록 {other.length}건이 있습니다.
               </p>
-
-              {catalog.occupancies
-                .filter((o) => o.company_id === company.id)
-                .map((o) => (
-                  <div className="company-location" key={o.id}>
-                    <button onClick={() => onBuilding(o.building_id)}>
-                      {catalog.buildings.find((b) => b.id === o.building_id)
-                        ?.name || "건물 미확인"}
-                      <ArrowUpRight size={13} />
-                    </button>
-                    <span>
-                      {o.status === "confirmed" && !o.ended_on
-                        ? "입주 확인"
-                        : "과거·미확인"}{" "}
-                      · {o.as_of || "기준일 미확인"}
-                    </span>
-                  </div>
-                ))}
-            </div>
-          )}
-          {other.length > 0 && (
-            <p className="context-note">
-              현재 입주로 확정되지 않은 입주 기록 {other.length}건이 있습니다.
-            </p>
-          )}
-          <div className="section-heading history-heading">
-            <div>
-              <h2>과거 임차이전 기록</h2>
-              <p>
-                이전·확장 시점의 기록입니다.
-                {catalog.review
-                  ? " 건물 연결은 명칭·권역 기준 검수 후보입니다."
-                  : ""}
-              </p>
-            </div>
-            <span className="record-count">{moves.length}건</span>
+            )}
           </div>
-          {moves.length ? (
-            <div className="movement-list">
-              {moves.map((m) => (
-                <article key={m.id}>
-                  <div>
-                    <span className="pill">
-                      <RV entity="tenant_movements" id={m.id} field="period">
-                        {m.period}
-                      </RV>
-                    </span>
-                    <span className="subtle-label">
-                      <RV entity="tenant_movements" id={m.id} field="kind">
-                        {m.kind}
-                      </RV>
-                    </span>
-                  </div>
-                  <h3>
-                    <RV
-                      entity="tenant_movements"
-                      id={m.id}
-                      field="company_name"
-                    >
-                      {m.company_name}
-                    </RV>
-                  </h3>
-                  <p>
-                    <RV entity="tenant_movements" id={m.id} field="from_name">
-                      {m.from_name || "출발 미확인"}
-                    </RV>
-                    <ArrowRight size={13} />
-                    <RV entity="tenant_movements" id={m.id} field="to_name">
-                      {m.to_name || "도착 미확인"}
-                    </RV>
-                  </p>
-                </article>
-              ))}
+          <div className="asset-content-card">
+            <div className="section-heading history-heading">
+              <div>
+                <h2>과거 임차이전 기록</h2>
+                <p>
+                  이전·확장 시점의 기록입니다.
+                  {catalog.review
+                    ? " 건물 연결은 명칭·권역 기준 검수 후보입니다."
+                    : ""}
+                </p>
+              </div>
+              <span className="record-count">{moves.length}건</span>
             </div>
-          ) : (
-            <p className="context-note">
-              연결된 과거 임차이전 기록이 없습니다.
-            </p>
-          )}
+            {moves.length ? (
+              <div className="movement-list">
+                {moves.map((m) => (
+                  <article key={m.id}>
+                    <div>
+                      <span className="pill">
+                        <RV entity="tenant_movements" id={m.id} field="period">
+                          {m.period}
+                        </RV>
+                      </span>
+                      <span className="subtle-label">
+                        <RV entity="tenant_movements" id={m.id} field="kind">
+                          {m.kind}
+                        </RV>
+                      </span>
+                    </div>
+                    <h3>
+                      <RV
+                        entity="tenant_movements"
+                        id={m.id}
+                        field="company_name"
+                      >
+                        {m.company_name}
+                      </RV>
+                    </h3>
+                    <p>
+                      <RV entity="tenant_movements" id={m.id} field="from_name">
+                        {m.from_name || "출발 미확인"}
+                      </RV>
+                      <ArrowRight size={13} />
+                      <RV entity="tenant_movements" id={m.id} field="to_name">
+                        {m.to_name || "도착 미확인"}
+                      </RV>
+                    </p>
+                  </article>
+                ))}
+              </div>
+            ) : (
+              <p className="context-note">
+                연결된 과거 임차이전 기록이 없습니다.
+              </p>
+            )}
+          </div>
         </section>
       ) : (
         <div className="context-status" role="status">
@@ -1435,47 +1469,49 @@ function AssetWorkspaceContent({
             <p>계획과 실제 진행상황을 구분해 기록합니다.</p>
           </div>
         </div>
-        {developments.length ? (
-          developments.map((d) => (
-            <div className="info-panel" key={d.id}>
-              <p className="eyebrow">계획 기준 · 현행 진행상황 별도 확인</p>
-              <h2 className="development-year">
-                {/^\d{4}$/.test(d.year?.trim() || "")
-                  ? `${d.year.trim()}년`
-                  : d.year || "미확인"}{" "}
-                준공 예정
-              </h2>
-              <dl>
-                {[
-                  ["건축허가", d.permit, "permit"],
-                  ["실제 착공", d.started, "started"],
-                  ["소유주·시행주체", d.developer, "developer"],
-                  ["시공사", d.contractor, "contractor"],
-                  ["원문 진행상황", d.progress, "progress"],
-                ].map(([label, value, key]) => (
-                  <div key={label}>
-                    <dt>{label}</dt>
-                    <dd>
-                      <RV
-                        entity="development_records"
-                        id={d.id}
-                        field={key!}
-                        label={label}
-                      >
-                        {value || "미확인"}
-                      </RV>
-                    </dd>
-                  </div>
-                ))}
-              </dl>
-            </div>
-          ))
-        ) : (
-          <Blank title="확인된 개발·변경 기록이 없습니다">
-            인허가, 착공, 준공과 리모델링 등 주요 변경을 출처·시점과 함께
-            기록합니다.
-          </Blank>
-        )}
+        <div className="asset-content-card development-timeline">
+          {developments.length ? (
+            developments.map((d) => (
+              <div className="info-panel development-record" key={d.id}>
+                <p className="eyebrow">계획 기준 · 현행 진행상황 별도 확인</p>
+                <h2 className="development-year">
+                  {/^\d{4}$/.test(d.year?.trim() || "")
+                    ? `${d.year.trim()}년`
+                    : d.year || "미확인"}{" "}
+                  준공 예정
+                </h2>
+                <dl>
+                  {[
+                    ["건축허가", d.permit, "permit"],
+                    ["실제 착공", d.started, "started"],
+                    ["소유주·시행주체", d.developer, "developer"],
+                    ["시공사", d.contractor, "contractor"],
+                    ["원문 진행상황", d.progress, "progress"],
+                  ].map(([label, value, key]) => (
+                    <div key={label}>
+                      <dt>{label}</dt>
+                      <dd>
+                        <RV
+                          entity="development_records"
+                          id={d.id}
+                          field={key!}
+                          label={label}
+                        >
+                          {value || "미확인"}
+                        </RV>
+                      </dd>
+                    </div>
+                  ))}
+                </dl>
+              </div>
+            ))
+          ) : (
+            <Blank title="확인된 개발·변경 기록이 없습니다">
+              인허가, 착공, 준공과 리모델링 등 주요 변경을 출처·시점과 함께
+              기록합니다.
+            </Blank>
+          )}
+        </div>
       </section>
     ),
   };

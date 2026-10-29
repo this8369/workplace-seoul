@@ -137,7 +137,7 @@ export function LandPanel({
         }
       : { entity: "buildings", id: building.id, field: "address" };
   return (
-    <div className="context-panel">
+    <div className="context-panel land-panel">
       <div className="section-heading">
         <div>
           <h2>토지와 입지</h2>
@@ -169,8 +169,8 @@ export function LandPanel({
           ))}
         </div>
       )}
-      <div className="overview-grid">
-        <section className="info-panel">
+      <div className="land-facts">
+        <section className="info-panel land-section">
           <h3>토지 기본정보</h3>
           <Rows
             targets={targets}
@@ -209,7 +209,7 @@ export function LandPanel({
             </p>
           )}
         </section>
-        <section className="info-panel">
+        <section className="info-panel land-section">
           <h3>소유 구분</h3>
           <Rows
             targets={targets}
@@ -235,7 +235,7 @@ export function LandPanel({
           </div>
         </section>
       </div>
-      <section className="info-panel">
+      <section className="info-panel land-section">
         <div className="section-heading">
           <h3>토지이용계획 · 지역·지구</h3>
           <span className="connection-tag">
@@ -307,7 +307,7 @@ export function SurroundingsPanel({
     )
     .sort((a, b) => a.distance_m! - b.distance_m!);
   return (
-    <div className="context-panel">
+    <div className="context-panel surroundings-panel">
       <div className="section-heading">
         <div>
           <h2>주변 환경</h2>
@@ -325,89 +325,91 @@ export function SurroundingsPanel({
           ))}
         </div>
       </div>
-      <div className="nearby-categories">
-        {(
-          [
-            ["transit", "대중교통", TrainFront],
-            ["education", "교육시설", School],
-            ["amenity", "편의시설", Store],
-          ] as const
-        ).map(([key, label, Icon]) => (
-          <button
-            key={key}
-            aria-pressed={category === key}
-            onClick={() => setCategory(key)}
-          >
-            <Icon size={22} />
-            <strong>{label}</strong>
-            <span>
-              {places.data?.length
-                ? `${places.data.filter((p) => p.category === key && p.distance_m != null && p.distance_m <= radius).length}곳`
-                : "연결 전"}
-            </span>
-          </button>
-        ))}
-      </div>
-      <DataStatus resource={places} onRetry={onRetry}>
-        교통·교육·생활편의시설의 위치와 거리 정보를 준비하고 있습니다.
-      </DataStatus>
-      {filtered.length ? (
-        <div className="nearby-list">
-          {filtered.map((p) => (
-            <article className="info-panel" key={p.id}>
-              <div className="section-heading">
-                <h3>
-                  <RV entity="building_places" id={p.id} field="name">
-                    {p.name}
-                  </RV>
-                </h3>
-                <strong>
-                  <RV entity="building_places" id={p.id} field="distance_m">
-                    {p.distance_m?.toLocaleString("ko-KR")}m
-                  </RV>
-                </strong>
-              </div>
-              <p>
-                <RV entity="building_places" id={p.id} field="address">
-                  {p.address || "—"}
-                </RV>
-              </p>
-              <p className="context-note">
-                {p.walking_minutes != null && p.walking_source
-                  ? `도보 ${p.walking_minutes}분`
-                  : "직선거리 기준 · 도보 경로 미연결"}
-              </p>
-            </article>
+      <div className="asset-content-card nearby-content">
+        <div className="nearby-categories">
+          {(
+            [
+              ["transit", "대중교통", TrainFront],
+              ["education", "교육시설", School],
+              ["amenity", "편의시설", Store],
+            ] as const
+          ).map(([key, label, Icon]) => (
+            <button
+              key={key}
+              aria-pressed={category === key}
+              onClick={() => setCategory(key)}
+            >
+              <Icon size={22} />
+              <strong>{label}</strong>
+              <span>
+                {places.data?.length
+                  ? `${places.data.filter((p) => p.category === key && p.distance_m != null && p.distance_m <= radius).length}곳`
+                  : "연결 전"}
+              </span>
+            </button>
           ))}
         </div>
-      ) : places.data?.length ? (
-        <div className="context-status">
-          선택한 반경 내에 확인된 시설이 없습니다.
-        </div>
-      ) : null}
-      <section className="info-panel">
-        <h3>이곳에서 확인할 정보</h3>
-        <div className="nearby-preview">
-          <div>
-            <TrainFront size={20} />
-            <strong>대중교통</strong>
-            <p>지하철역 · 버스정류장</p>
+        <DataStatus resource={places} onRetry={onRetry}>
+          교통·교육·생활편의시설의 위치와 거리 정보를 준비하고 있습니다.
+        </DataStatus>
+        {filtered.length ? (
+          <div className="nearby-list">
+            {filtered.map((p) => (
+              <article className="nearby-place-row" key={p.id}>
+                <div className="section-heading">
+                  <h3>
+                    <RV entity="building_places" id={p.id} field="name">
+                      {p.name}
+                    </RV>
+                  </h3>
+                  <strong>
+                    <RV entity="building_places" id={p.id} field="distance_m">
+                      {p.distance_m?.toLocaleString("ko-KR")}m
+                    </RV>
+                  </strong>
+                </div>
+                <p>
+                  <RV entity="building_places" id={p.id} field="address">
+                    {p.address || "—"}
+                  </RV>
+                </p>
+                <p className="context-note">
+                  {p.walking_minutes != null && p.walking_source
+                    ? `도보 ${p.walking_minutes}분`
+                    : "직선거리 기준 · 도보 경로 미연결"}
+                </p>
+              </article>
+            ))}
           </div>
-          <div>
-            <School size={20} />
-            <strong>교육시설</strong>
-            <p>어린이집 · 학교</p>
+        ) : places.data?.length ? (
+          <div className="context-status">
+            선택한 반경 내에 확인된 시설이 없습니다.
           </div>
-          <div>
-            <Store size={20} />
-            <strong>생활편의</strong>
-            <p>병원 · 은행 · 공공기관 · 상업시설</p>
+        ) : null}
+        <section className="nearby-preview-section">
+          <h3>이곳에서 확인할 정보</h3>
+          <div className="nearby-preview">
+            <div>
+              <TrainFront size={20} />
+              <strong>대중교통</strong>
+              <p>지하철역 · 버스정류장</p>
+            </div>
+            <div>
+              <School size={20} />
+              <strong>교육시설</strong>
+              <p>어린이집 · 학교</p>
+            </div>
+            <div>
+              <Store size={20} />
+              <strong>생활편의</strong>
+              <p>병원 · 은행 · 공공기관 · 상업시설</p>
+            </div>
           </div>
-        </div>
-        <p className="context-note">
-          도보 시간은 실제 보행 경로 데이터가 있는 경우에 표시합니다.
-        </p>
-      </section>
+          <p className="context-note">
+            도보 시간은 실제 보행 경로 데이터가 있는 경우에 표시합니다.
+          </p>
+        </section>
+      </div>
     </div>
   );
 }
