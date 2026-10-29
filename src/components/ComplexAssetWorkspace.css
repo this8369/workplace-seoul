@@ -141,11 +141,6 @@
   font-size: 17px;
   margin: 0 0 15px;
 }
-.complex-card-heading {
-  display: flex;
-  justify-content: space-between;
-  color: #263044;
-}
 .complex-overview-card dl {
   margin: 0;
 }

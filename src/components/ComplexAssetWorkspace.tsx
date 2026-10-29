@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type CSSProperties } from "react";
-import { Building2, RotateCw, X } from "lucide-react";
+import { RotateCw, X } from "lucide-react";
 import type { Building } from "../lib/domain";
 import { safeSourceUrl } from "../lib/domain";
 import type { BuildingComplex, BuildingTower } from "../lib/building-towers";
@@ -8,7 +8,6 @@ import MemberAssetWorkspace, {
   type MemberWorkspaceProps,
 } from "./MemberAssetWorkspace";
 import { AreaUnitProvider, useAreaUnit } from "./AreaUnit";
-import { DataReviewProvider, ReviewValue as RV } from "./DataReview";
 import "./ComplexAssetWorkspace.css";
 
 type ComplexData = {
@@ -135,15 +134,7 @@ function ComplexContent(
     onInformationSaved: () => setRevision((n) => n + 1),
     single: true,
     embedded: true,
-    sharedOverview: data ? (
-      <SharedComplexDetails
-        data={data}
-        assetId={b.id}
-        canReview={!!props.canReadIgis}
-        onRequireLogin={props.onRequireLogin}
-        onSaved={() => setRevision((n) => n + 1)}
-      />
-    ) : undefined,
+    sharedOverview: data ? <SharedComplexDetails data={data} /> : undefined,
     complexes: undefined,
     saved:
       props.savedIds?.has(b.id) ?? (b.id === props.building.id && props.saved),
@@ -314,13 +305,7 @@ function ComplexContent(
               {!components.length && (
                 <div className="empty">
                   <p>비교할 동 정보가 없습니다.</p>
-                  <SharedComplexDetails
-                    data={data}
-                    assetId={props.building.id}
-                    canReview={!!props.canReadIgis}
-                    onRequireLogin={props.onRequireLogin}
-                    onSaved={() => setRevision((n) => n + 1)}
-                  />
+                  <SharedComplexDetails data={data} />
                 </div>
               )}
             </div>
@@ -330,109 +315,46 @@ function ComplexContent(
     </div>
   );
 }
-function SharedComplexDetails({
-  data,
-  assetId,
-  canReview,
-  onRequireLogin,
-  onSaved,
-}: {
-  data: ComplexData;
-  assetId: string;
-  canReview: boolean;
-  onRequireLogin?: () => void;
-  onSaved: () => void;
-}) {
+function SharedComplexDetails({ data }: { data: ComplexData }) {
   const c = data.complex;
   const { formatArea } = useAreaUnit();
-  const components = data.towers.filter(
-    (t) => t.component_kind !== "facility" && !t.parent_tower_id,
-  );
   const facilities = data.towers.filter((t) => t.component_kind === "facility");
+  const facts =
+    c.common_facts?.filter(
+      (f) => !/연면적|기준층|기존 계획|참고자료/.test(f.label),
+    ) || [];
+  if (!facilities.length && !facts.length) return null;
   return (
     <div className="complex-shared-overview">
-      <DataReviewProvider
-        assetId={assetId}
-        enabled={canReview}
-        onRequireLogin={onRequireLogin}
-        onSaved={onSaved}
-      >
+      {!!facilities.length && (
         <section className="complex-overview-card">
-          <div className="complex-card-heading">
-            <h2>단지 공용시설</h2>
-            <Building2 size={20} />
+          <h2>공용·부대시설</h2>
+          <div className="complex-facilities">
+            {facilities.map((t) => (
+              <div key={t.id}>
+                <div>
+                  <strong>{t.label}</strong>
+                  <span>{t.main_use || "공용 시설"}</span>
+                </div>
+                <b>{formatArea(t.gross_area_m2)}</b>
+              </div>
+            ))}
           </div>
+        </section>
+      )}
+      {!!facts.length && (
+        <section className="complex-overview-card">
+          <h2>공통 자산 정보</h2>
           <dl>
-            <div>
-              <dt>구성</dt>
-              <dd>{components.map((t) => t.label).join(" · ")}</dd>
-            </div>
-            <div>
-              <dt>공용 주차대수</dt>
-              <dd>
-                <RV
-                  entity="building_complexes"
-                  id={c.id}
-                  field="parking_spaces"
-                >
-                  {c.parking_spaces == null
-                    ? "미확인"
-                    : `${c.parking_spaces.toLocaleString()}대`}
-                </RV>
-              </dd>
-            </div>
-            <div>
-              <dt>단지 계약수전량</dt>
-              <dd>
-                <RV
-                  entity="building_complexes"
-                  id={c.id}
-                  field="contracted_capacity_mw"
-                >
-                  {c.contracted_capacity_mw == null
-                    ? "미확인"
-                    : `${c.contracted_capacity_mw} MW`}
-                </RV>
-              </dd>
-            </div>
+            {facts.map((f, i) => (
+              <div key={i}>
+                <dt>{f.label}</dt>
+                <dd>{f.value}</dd>
+              </div>
+            ))}
           </dl>
         </section>
-        {!!facilities.length && (
-          <section className="complex-overview-card">
-            <h2>공용·부대시설</h2>
-            <div className="complex-facilities">
-              {facilities.map((t) => (
-                <div key={t.id}>
-                  <div>
-                    <strong>{t.label}</strong>
-                    <span>{t.main_use || "공용 시설"}</span>
-                  </div>
-                  <b>{formatArea(t.gross_area_m2)}</b>
-                </div>
-              ))}
-            </div>
-          </section>
-        )}
-        {!!c.common_facts?.filter(
-          (f) => !/연면적|기준층|기존 계획|참고자료/.test(f.label),
-        ).length && (
-          <section className="complex-overview-card">
-            <h2>공통 자산 정보</h2>
-            <dl>
-              {c.common_facts
-                .filter(
-                  (f) => !/연면적|기준층|기존 계획|참고자료/.test(f.label),
-                )
-                .map((f, i) => (
-                  <div key={i}>
-                    <dt>{f.label}</dt>
-                    <dd>{f.value}</dd>
-                  </div>
-                ))}
-            </dl>
-          </section>
-        )}
-      </DataReviewProvider>
+      )}
     </div>
   );
 }
