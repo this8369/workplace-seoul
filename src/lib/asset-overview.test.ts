@@ -5,7 +5,9 @@ import {
   nearbyStations,
   certificateState,
   overviewRegisterFact,
+  prepareSubwayConnections,
 } from "./asset-overview.ts";
+import { stationLines, stationNameOptions } from "./subway-stations.ts";
 import type { Place } from "./asset-context.ts";
 import type { RegisterRecord } from "./building-register.ts";
 test("overview prefers official total register without mixing individual building totals or unrelated parcels", () => {
@@ -81,5 +83,101 @@ test("expired certificates no longer display as currently certified", () => {
       "2026-10-13",
     ),
     "planned",
+  );
+});
+
+test("connection edits omit untouched extra rows and preserve explicit O/X and manual line choices", () => {
+  assert.deepEqual(
+    prepareSubwayConnections([
+      {
+        station_name: " 여의도 ",
+        lines: ["5호선", "9호선", "5호선"],
+        direct_connection: true,
+      },
+      { station_name: " ", lines: [], direct_connection: null },
+      { station_name: "역삼역", lines: ["2호선"], direct_connection: false },
+    ]),
+    [
+      {
+        station_name: "여의도",
+        lines: ["5호선", "9호선"],
+        direct_connection: true,
+      },
+      { station_name: "역삼역", lines: ["2호선"], direct_connection: false },
+    ],
+  );
+  assert.deepEqual(
+    prepareSubwayConnections([
+      { station_name: "", lines: [], direct_connection: null },
+    ]),
+    [],
+  );
+  for (const partial of [
+    { station_name: "", lines: ["5호선"], direct_connection: null },
+    { station_name: "", lines: [], direct_connection: false },
+  ])
+    assert.throws(
+      () => prepareSubwayConnections([partial]),
+      /연결역 1의 역 이름/,
+    );
+});
+
+test("station names resolve all transfer lines without confusing distant namesakes or unopened stops", () => {
+  assert.deepEqual(stationLines(" 여의도역 "), ["5호선", "9호선"]);
+  assert.deepEqual(stationLines("여의나루"), ["5호선"]);
+  assert.deepEqual(stationLines("샛강역"), ["9호선", "신림선"]);
+  assert.deepEqual(stationLines("경복궁(정부서울청사)역"), ["3호선"]);
+  assert.deepEqual(stationLines("삼성역"), ["2호선"]);
+  assert.deepEqual(
+    stationLines("양평"),
+    [],
+    "ambiguous names require location",
+  );
+  assert.deepEqual(
+    stationLines("양평역", { latitude: 37.5255, longitude: 126.8861 }),
+    ["5호선"],
+  );
+  assert.deepEqual(
+    stationLines("시청역", { latitude: 36.351, longitude: 127.386 }),
+    [],
+  );
+  assert.deepEqual(stationLines("등록되지않은역"), []);
+  assert(
+    stationNameOptions({ latitude: 37.5217, longitude: 126.9243 }).includes(
+      "여의도역",
+    ),
+  );
+});
+
+test("plain nearby station names show line badges and duplicate station sources merge their routes", () => {
+  const place = (
+    id: string,
+    name: string,
+    latitude: number,
+    longitude: number,
+  ) =>
+    ({
+      id,
+      name,
+      latitude,
+      longitude,
+      distance_m: 454,
+      category: "transit",
+    }) as Place;
+  const result = nearbyStations([
+    place("1", "여의나루역", 37.5271, 126.9329),
+    place("2", "여의도역(5호선)", 37.5217, 126.9243),
+    place("3", "여의도역(9호선)", 37.5217, 126.9243),
+    place("4", "시청역", 36.351, 127.386),
+  ]);
+  assert.equal(result.length, 3);
+  assert.deepEqual(result[0].lines, ["5호선"]);
+  assert.deepEqual(result[1].lines, ["5호선", "9호선"]);
+  assert.deepEqual(result[2].lines, []);
+  assert(result.every((s) => !("direct_connection" in s)));
+  assert.deepEqual(
+    nearbyStations([place("incheon", "미등록역(인천1호선)", 37.45, 126.7)])[0]
+      .lines,
+    ["인천1호선"],
   );
 });

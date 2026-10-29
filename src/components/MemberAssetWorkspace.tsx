@@ -135,6 +135,7 @@ function SingleAssetWorkspace({
   return (
     <DataReviewProvider
       assetId={building.id}
+      location={building}
       enabled={canReadIgis}
       onRequireLogin={onRequireLogin}
       externalVersion={informationRevision}

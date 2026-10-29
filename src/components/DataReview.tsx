@@ -13,7 +13,12 @@ import { masterFields } from "../lib/master-fields";
 import { registerGroups } from "../lib/building-register";
 import "./DataReview.css";
 import OverviewFieldEditor, { hasOverviewEditor } from "./OverviewFieldEditor";
-import { overviewLabels, overviewValueText } from "../lib/asset-overview";
+import {
+  overviewLabels,
+  overviewValueText,
+  prepareSubwayConnections,
+} from "../lib/asset-overview";
+import type { StationLocation } from "../lib/subway-stations";
 export type ReviewTarget = {
   entity: string;
   id: string;
@@ -21,6 +26,7 @@ export type ReviewTarget = {
   label?: string;
   assetId?: string;
   allowedFields?: string[];
+  location?: StationLocation;
 };
 type Field = { key: string; type: string; value: unknown };
 type Context = {
@@ -160,6 +166,7 @@ export function DataReviewBoundary({ children }: { children: ReactNode }) {
 export function DataReviewProvider({
   children,
   assetId,
+  location,
   onSaved,
   externalVersion = 0,
   enabled = true,
@@ -167,6 +174,7 @@ export function DataReviewProvider({
 }: {
   children: ReactNode;
   assetId?: string;
+  location?: StationLocation;
   onSaved?: () => void;
   externalVersion?: number;
   enabled?: boolean;
@@ -195,7 +203,11 @@ export function DataReviewProvider({
       {enabled && target && (
         <FieldDialog
           key={`${target.entity}:${target.id}:${target.field}`}
-          target={{ ...target, assetId: target.assetId || assetId }}
+          target={{
+            ...target,
+            assetId: target.assetId || assetId,
+            location: target.location || location,
+          }}
           onClose={() => setTarget(null)}
           onSaved={() => {
             setVersion((n) => n + 1);
@@ -465,7 +477,7 @@ export function FieldDialog({
     try {
       if (floorValueError) throw Error(floorValueError);
       if (!reason.trim()) throw Error("수정 사유를 입력해 주세요.");
-      const proposed =
+      let proposed =
         value.trim() === ""
           ? null
           : selected.type === "boolean"
@@ -473,6 +485,11 @@ export function FieldDialog({
             : selected.type === "jsonb" || selected.type === "json"
               ? JSON.parse(value)
               : value;
+      if (
+        target.entity === "building_asset_profiles" &&
+        field === "subway_connections"
+      )
+        proposed = prepareSubwayConnections(proposed);
       if (context.can_edit) {
         await masterRpc("data_save_field", {
           entity: target.entity,
@@ -584,6 +601,7 @@ export function FieldDialog({
                     field={field}
                     value={value}
                     onChange={editValue}
+                    location={target.location}
                   />
                 ) : isFloorArea ? (
                   <>

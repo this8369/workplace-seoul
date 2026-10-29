@@ -1,5 +1,6 @@
 import type { Place } from "./asset-context";
 import type { RegisterRecord } from "./building-register";
+import { stationLines, stationName } from "./subway-stations.ts";
 export const overviewLabels: Record<string, string> = {
   owner_name: "소유주",
   site_area_m2: "대지면적(㎡)",
@@ -35,6 +36,44 @@ export type Connection = {
   lines: string[];
   direct_connection: boolean | null;
 };
+export function prepareSubwayConnections(value: unknown): Connection[] {
+  if (!Array.isArray(value)) throw Error("연결역 정보를 확인해 주세요.");
+  const connections: Connection[] = [];
+  value.forEach((row, index) => {
+    const station =
+      typeof row?.station_name === "string" ? row.station_name.trim() : "";
+    const lines = Array.isArray(row?.lines)
+      ? [
+          ...new Set<string>(
+            row.lines
+              .map((line: unknown) =>
+                typeof line === "string" ? line.trim() : "",
+              )
+              .filter(Boolean),
+          ),
+        ]
+      : [];
+    const direct = row?.direct_connection ?? null;
+    // Adding a new form row must not make an otherwise complete edit fail.
+    if (!station && !lines.length && direct == null) return;
+    if (!station) throw Error(`연결역 ${index + 1}의 역 이름을 입력해 주세요.`);
+    if (
+      station.length > 100 ||
+      lines.length > 10 ||
+      lines.some((line) => line.length > 40) ||
+      (direct != null && typeof direct !== "boolean")
+    )
+      throw Error(`연결역 ${index + 1}의 입력값을 확인해 주세요.`);
+    connections.push({
+      station_name: station,
+      lines,
+      direct_connection: direct,
+    });
+  });
+  if (connections.length > 30)
+    throw Error("연결역은 최대 30개까지 등록할 수 있습니다.");
+  return connections;
+}
 export type Certification = {
   option_code: string;
   status: string;
@@ -148,6 +187,9 @@ export const subwayLines = [
   "인천2호선",
   "우이신설선",
   "신림선",
+  "김포골드라인",
+  "의정부경전철",
+  "용인에버라인",
 ];
 export const lineColors: Record<string, string> = {
   "1호선": "#0052a4",
@@ -167,6 +209,13 @@ export const lineColors: Record<string, string> = {
   경강선: "#255db1",
   서해선: "#568c27",
   "GTX-A": "#834061",
+  인천1호선: "#6e98bb",
+  인천2호선: "#ed8b00",
+  우이신설선: "#8b9c18",
+  신림선: "#6789ca",
+  김포골드라인: "#9b842f",
+  의정부경전철: "#c87900",
+  용인에버라인: "#509f22",
 };
 export function loadDensity(
   mw: number | null | undefined,
@@ -192,8 +241,8 @@ export function certificateState(
     : c.status;
 }
 export function nearbyStations(places: Place[]) {
-  const seen = new Set<string>();
-  return places
+  const result: (Place & { lines: string[] })[] = [];
+  places
     .filter(
       (p) =>
         p.category === "transit" &&
@@ -203,20 +252,25 @@ export function nearbyStations(places: Place[]) {
         !/버스|정류장|출구|주차/.test(p.name),
     )
     .sort((a, b) => Number(a.distance_m) - Number(b.distance_m))
-    .flatMap((p) => {
-      const lines = subwayLines.filter((l) => p.name.includes(l));
-      const name = p.name
-        .replace(/\([^)]*\)/g, "")
-        .replace(/지하철역/g, "역")
-        .replace(
-          /\s*(?:[1-9]호선|공항철도|경의중앙선|수인분당선|신분당선|경춘선|경강선|서해선|GTX-A)\s*/g,
-          "",
-        )
-        .trim();
-      if (!name || seen.has(name)) return [];
-      seen.add(name);
-      return [{ ...p, name, lines }];
+    .forEach((p) => {
+      const explicit: string[] = [];
+      let text = p.name;
+      // Consume longer labels first: Incheon Line 1 must not become Seoul Line 1.
+      for (const line of [...subwayLines].sort((a, b) => b.length - a.length)) {
+        if (text.includes(line)) {
+          explicit.push(line);
+          text = text.replaceAll(line, "");
+        }
+      }
+      const name = stationName(text);
+      if (!name) return;
+      const lines = [...new Set([...explicit, ...stationLines(name, p)])];
+      const existing = result.find((s) => s.name === `${name}역`);
+      if (existing)
+        existing.lines = [...new Set([...existing.lines, ...lines])];
+      else result.push({ ...p, name: `${name}역`, lines });
     });
+  return result;
 }
 const certificationGrades: Record<string, string[]> = {
   leed: ["Certified", "Silver", "Gold", "Platinum"],

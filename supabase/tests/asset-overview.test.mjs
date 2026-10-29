@@ -2,6 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { PGlite } from "@electric-sql/pglite";
+import { prepareSubwayConnections } from "../../src/lib/asset-overview.ts";
 test("asset overview: typed facts, canonical names, certification constraints, scoped edits and immutable history", async () => {
   const db = new PGlite();
   const user = "30000000-0000-0000-0000-000000000001",
@@ -106,6 +107,16 @@ test("asset overview: typed facts, canonical names, certification constraints, s
       "시티뷰",
     ]);
     await save("building_asset_profiles", "amenity_operators", [], ["해비치"]);
+    const subwayRows = [
+      { station_name: "여의도", lines: ["5호선", "9호선"], direct_connection: true },
+      { station_name: "", lines: [], direct_connection: null },
+    ];
+    await assert.rejects(
+      () => save("building_asset_profiles", "subway_connections", [], subwayRows),
+      /invalid_subway_connection/,
+    );
+    await save("building_asset_profiles", "subway_connections", [], prepareSubwayConnections(subwayRows));
+    assert.deepEqual((await context("building_asset_profiles")).record.subway_connections, subwayRows.slice(0, 1));
     await save("building_asset_profiles", "retail_operators", [], ["해 비 치"]);
     assert.deepEqual(
       (await context("building_asset_profiles")).record.retail_operators,

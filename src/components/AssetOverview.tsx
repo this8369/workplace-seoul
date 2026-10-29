@@ -44,6 +44,7 @@ export function LineBadges({ lines }: { lines: string[] }) {
           style={{ background: lineColors[l] || "#617187" }}
           key={l}
           title={l}
+          aria-label={l}
         >
           {l.replace("호선", "")}
         </span>

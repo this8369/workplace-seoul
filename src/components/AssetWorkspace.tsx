@@ -1,4 +1,5 @@
 import { scopedRows } from "../lib/shared-asset";
+import { stationSource } from "../lib/subway-stations";
 import { assetDetailTabs, type AssetTab } from "../lib/asset-detail-access";
 import {
   ReviewValue as RV,
@@ -872,6 +873,7 @@ function AssetWorkspaceContent({
               ...g,
               source_name: `${g.source_name} · 자연환경 (공원 기준점 반경 500m)`,
             })),
+            stationSource,
             ...leases,
             ...developments,
             ...trades,

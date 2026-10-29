@@ -3,6 +3,11 @@ import { Plus, X, Search, Leaf, TrainFront } from "lucide-react";
 import { masterRpc } from "../lib/master-data";
 import { supabase } from "../lib/supabase";
 import {
+  stationLines,
+  stationNameOptions,
+  type StationLocation,
+} from "../lib/subway-stations";
+import {
   areaBases,
   overviewLabels,
   certificateStates,
@@ -174,11 +179,14 @@ export default function OverviewFieldEditor({
   field,
   value,
   onChange,
+  location,
 }: {
   field: string;
   value: string;
   onChange: (s: string) => void;
+  location?: StationLocation;
 }) {
+  const stationListId = useId();
   const [options, setOptions] = useState<CertificationOption[]>([]),
     [catalogError, setCatalogError] = useState(false);
   useEffect(() => {
@@ -222,6 +230,11 @@ export default function OverviewFieldEditor({
       );
     return (
       <div className="overview-structured-editor">
+        <datalist id={stationListId}>
+          {stationNameOptions(location).map((name) => (
+            <option key={name} value={name} />
+          ))}
+        </datalist>
         {rows.map((r, i) => (
           <div className="overview-editor-item" key={i}>
             <header>
@@ -240,15 +253,24 @@ export default function OverviewFieldEditor({
             <label>
               역 이름
               <input
+                aria-label="역 이름"
                 value={r.station_name}
                 maxLength={100}
                 placeholder="예: 역삼역"
-                onChange={(e) => update(i, { station_name: e.target.value })}
+                list={stationListId}
+                autoComplete="off"
+                onChange={(e) =>
+                  update(i, {
+                    station_name: e.target.value,
+                    lines: stationLines(e.target.value, location, 10000),
+                  })
+                }
               />
             </label>
             <label>
               직연결 여부
               <select
+                aria-label="직연결 여부"
                 value={
                   r.direct_connection == null ? "" : String(r.direct_connection)
                 }
@@ -267,8 +289,10 @@ export default function OverviewFieldEditor({
             <label>
               호선 추가
               <select
+                aria-label="호선 추가"
                 value=""
                 onChange={(e) =>
+                  e.target.value &&
                   update(i, {
                     lines: [...new Set([...r.lines, e.target.value])],
                   })
