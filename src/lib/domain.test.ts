@@ -4,6 +4,8 @@ import {
   isEligible,
   toPyeong,
   filterBuildings,
+  assetCategoryOptions,
+  discoveryAssetCategoryOptions,
   safeSourceUrl,
   type Building,
 } from "./domain.ts";
@@ -148,5 +150,63 @@ test("a saved component remains available before its individual GFA is confirmed
   assert.equal(
     filterBuildings([child], "West", "", "", new Set(["other"])).length,
     0,
+  );
+});
+
+test("logistics stay out of nationwide IGIS discovery, including mixed and saved views", () => {
+  const office = {
+    id: "office",
+    name: "이지스 오피스",
+    address: "서울",
+    region: "Others",
+    status: "operating",
+    gross_area_m2: 1000,
+    is_igis: true,
+    asset_category: "office",
+    is_mixed_use: true,
+  } as Building;
+  const logistics = {
+    ...office,
+    id: "logistics",
+    name: "물류센터",
+    address: "경기도",
+    asset_category: "logistics" as const,
+    gross_area_m2: 100000,
+  };
+  const planned = {
+    ...logistics,
+    id: "planned-logistics",
+    status: "development" as const,
+    gross_area_m2: null,
+  };
+  const rows = [office, logistics, planned];
+  const saved = new Set(rows.map((b) => b.id));
+  for (const favorites of [undefined, saved]) {
+    for (const category of ["", "mixed", "office", "logistics"]) {
+      assert.deepEqual(
+        filterBuildings(rows, "", "", "", favorites, true, category).map(
+          (b) => b.id,
+        ),
+        category === "logistics" ? [] : ["office"],
+      );
+    }
+  }
+  assert.deepEqual(filterBuildings(rows, "물류", "", "", undefined, true), []);
+  assert.deepEqual(
+    filterBuildings(rows, "", "", "", saved).map((b) => b.id),
+    ["office"],
+  );
+  assert.equal(logistics.asset_category, "logistics");
+});
+
+test("logistics classification is retained without a current discovery option", () => {
+  assert(assetCategoryOptions.some((option) => option.value === "logistics"));
+  assert(
+    !discoveryAssetCategoryOptions.some(
+      (option) => option.value === "logistics",
+    ),
+  );
+  assert(
+    discoveryAssetCategoryOptions.some((option) => option.value === "office"),
   );
 });

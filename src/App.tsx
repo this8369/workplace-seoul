@@ -75,6 +75,7 @@ import { recoveryRoute, signOutIgis } from "./lib/igis-auth";
 import { useWorkplaceAccess } from "./lib/use-workplace-access";
 import {
   assetCategoryOptions,
+  discoveryAssetCategoryOptions,
   filterBuildings,
   formatArea,
   type Building,
@@ -843,7 +844,7 @@ export default function App() {
                 icon={<Building2 size={14} />}
                 value={assetCategory}
                 onChange={setAssetCategory}
-                options={assetCategoryOptions}
+                options={discoveryAssetCategoryOptions}
               />
             </div>
           </div>

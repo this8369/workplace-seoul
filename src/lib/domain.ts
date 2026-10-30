@@ -18,6 +18,11 @@ export const assetCategoryOptions = [
   { value: "mixed", label: "복합시설" },
   { value: "other", label: "기타" },
 ];
+// Keep logistics records classified for a future sector without offering them
+// in the current discovery experience.
+export const discoveryAssetCategoryOptions = assetCategoryOptions.filter(
+  (option) => option.value !== "logistics",
+);
 export type Building = {
   is_igis?: boolean;
   igis_source_building_id?: string | null;
@@ -80,6 +85,7 @@ export function filterBuildings(
   const q = query.trim().toLocaleLowerCase("ko-KR");
   return buildings.filter(
     (b) =>
+      b.asset_category !== "logistics" &&
       (!!saved || b.is_igis === true || isEligible(b.gross_area_m2)) &&
       (igisMode
         ? b.is_igis === true &&
