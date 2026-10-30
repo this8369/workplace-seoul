@@ -14,6 +14,9 @@ export const overviewLabels: Record<string, string> = {
   retail_area_basis: "리테일면적 기준",
   contractor_name: "시공사",
   architect_name: "설계사",
+  heating_cooling: "냉난방",
+  other_facilities: "기타시설",
+  usage_approved_on: "사용승인일",
   views: "VIEW",
   green_spaces: "자연환경",
   hotels: "호텔",
@@ -104,6 +107,8 @@ export type AssetProfile = {
   retail_area_basis: string;
   contractor_name: string | null;
   architect_name: string | null;
+  heating_cooling?: string | null;
+  other_facilities?: string | null;
   views: string[];
   green_spaces: string[];
   hotels: string[];
@@ -145,7 +150,13 @@ export function overviewRegisterFact(records: RegisterRecord[], field: string) {
       typeof value === "number" &&
       (!Number.isFinite(value) ||
         value < 0 ||
-        (value === 0 && !["floors_below", "parking_total"].includes(field)))
+        (value === 0 &&
+          ![
+            "floors_below",
+            "parking_total",
+            "passenger_elevators",
+            "emergency_elevators",
+          ].includes(field)))
     )
       continue;
     return { record: r, value };

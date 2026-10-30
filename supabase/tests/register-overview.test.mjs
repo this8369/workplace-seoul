@@ -57,6 +57,15 @@ test("register overview stays live, preserves manual facts, separates common/com
         "utf8",
       ),
     );
+    await db.exec(
+      await readFile(
+        new URL(
+          "../migrations/202610300002_overview_facility_fields.sql",
+          import.meta.url,
+        ),
+        "utf8",
+      ),
+    );
     const asset = async (scope = null, status = "operating") => {
       const id = (
         await db.query(
@@ -95,6 +104,21 @@ test("register overview stays live, preserves manual facts, separates common/com
       (await db.query(`select * from ${table} where id=$1`, [id])).rows[0];
     const a = await asset(),
       r = await record(a);
+    await db.query(
+      "update building_asset_profiles set heating_cooling='중앙 냉난방',other_facilities='아케이드' where id=$1",
+      [a],
+    );
+    const facilities = await shown("detail_building_asset_profiles", a);
+    assert.equal(facilities.heating_cooling, "중앙 냉난방");
+    assert.equal(facilities.other_facilities, "아케이드");
+    await assert.rejects(
+      () =>
+        db.query(
+          "update building_asset_profiles set heating_cooling=$1 where id=$2",
+          ["x".repeat(2001), a],
+        ),
+      /check constraint/,
+    );
     assert.equal(
       Number((await shown("detail_buildings", a)).gross_area_m2),
       1000,

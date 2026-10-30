@@ -57,12 +57,12 @@ const scalar = (n: number | null | undefined, unit = "") =>
     ? "미확인"
     : `${Number(n).toLocaleString("ko-KR", { maximumFractionDigits: 2 })}${unit}`;
 const previewLabels = new Set([
-  "소유주",
-  "대지면적",
-  "연면적",
-  "용적률",
-  "전용률",
   "규모",
+  "연면적",
+  "건축면적",
+  "건물용도",
+  "사용승인",
+  "승강기",
 ]);
 export default function AssetOverview({
   building: b,
@@ -185,6 +185,8 @@ export default function AssetOverview({
       "retail_area_basis",
       "contractor_name",
       "architect_name",
+      "heating_cooling",
+      "other_facilities",
       "views",
       "green_spaces",
       "hotels",
@@ -297,6 +299,33 @@ export default function AssetOverview({
       Number(complex ? complex.gross_area_m2 : b.gross_area_m2),
     );
   const greenCandidates = current?.green || [];
+  const ownRecords = (register?.records || []).filter(
+    (record) =>
+      b.complex_scope !== "component" || record.record_kind === "building",
+  );
+  const registerFact = (field: string) =>
+    b.area_basis === "planned" ? null : overviewRegisterFact(ownRecords, field);
+  const registerValue = (field: string, area = false, unit = "") => {
+    const fact = registerFact(field);
+    return (
+      <RV
+        entity="building_register_records"
+        id={fact?.record.id}
+        field={field}
+        allowedFields={[field]}
+      >
+        {fact
+          ? area
+            ? formatArea(Number(fact.value))
+            : typeof fact.value === "number"
+              ? scalar(fact.value, unit)
+              : String(fact.value)
+          : "미확인"}
+      </RV>
+    );
+  };
+  const passengerElevators = registerFact("passenger_elevators");
+  const emergencyElevators = registerFact("emergency_elevators");
   return (
     <div className="asset-overview-stack">
       <section className="info-panel asset-overview-card">
@@ -341,23 +370,6 @@ export default function AssetOverview({
           </p>
         )}
         <dl className="overview-facts" id={factsId}>
-          {overviewRow("소유주", edit("owner_name", p?.owner_name || "미확인"))}
-          {overviewRow(
-            "대지면적",
-            edit("site_area_m2", formatArea(p?.site_area_m2)),
-          )}
-          {overviewRow(
-            "연면적",
-            edit("gross_area_m2", formatArea(b.gross_area_m2), "buildings"),
-          )}
-          {overviewRow(
-            "용적률",
-            edit("floor_area_ratio", scalar(p?.floor_area_ratio, "%")),
-          )}
-          {overviewRow(
-            "전용률",
-            edit("efficiency_pct", scalar(p?.efficiency_pct, "%")),
-          )}
           {overviewRow(
             "규모",
             <span>
@@ -379,12 +391,35 @@ export default function AssetOverview({
             </span>,
           )}
           {overviewRow(
-            "천정고",
-            edit("ceiling_height_m", scalar(p?.ceiling_height_m, "m")),
+            "연면적",
+            edit("gross_area_m2", formatArea(b.gross_area_m2), "buildings"),
+          )}
+          {overviewRow("건축면적", registerValue("building_area_m2", true))}
+          {overviewRow(
+            "건물용도",
+            registerValue(registerFact("main_use") ? "main_use" : "other_use"),
           )}
           {overviewRow(
-            "Lease Span",
-            edit("lease_span_m", scalar(p?.lease_span_m, "m")),
+            "사용승인",
+            b.usage_approved_on
+              ? edit("usage_approved_on", b.usage_approved_on, "buildings")
+              : registerValue("approval_date"),
+          )}
+          {overviewRow(
+            "승강기",
+            passengerElevators || emergencyElevators ? (
+              <span>
+                {passengerElevators && (
+                  <>승용 {registerValue("passenger_elevators", false, "대")}</>
+                )}
+                {passengerElevators && emergencyElevators && " / "}
+                {emergencyElevators && (
+                  <>비상 {registerValue("emergency_elevators", false, "대")}</>
+                )}
+              </span>
+            ) : (
+              "미확인"
+            ),
           )}
           {overviewRow(
             "주차대수",
@@ -406,25 +441,12 @@ export default function AssetOverview({
             ),
           )}
           {overviewRow(
-            "오피스면적",
-            edit("office_area_m2", formatArea(p?.office_area_m2)),
+            "냉난방",
+            edit("heating_cooling", p?.heating_cooling || "미확인"),
           )}
           {overviewRow(
-            "리테일면적",
-            edit("retail_area_m2", formatArea(p?.retail_area_m2)),
-          )}
-          {overviewRow("기준층면적(전용)", floorValues("exclusive"))}
-          {overviewRow("기준층면적(임대)", floorValues("rentable"))}
-          {overviewRow(
-            "시공사",
-            edit(
-              "contractor_name",
-              p?.contractor_name || contractor || "미확인",
-            ),
-          )}
-          {overviewRow(
-            "설계사",
-            edit("architect_name", p?.architect_name || "미확인"),
+            "기타시설",
+            edit("other_facilities", p?.other_facilities || "미확인"),
           )}
           {overviewRow(
             "지하철 직연결",
@@ -467,6 +489,48 @@ export default function AssetOverview({
                 ))}
               </span>,
             )}
+          {overviewRow("소유주", edit("owner_name", p?.owner_name || "미확인"))}
+          {overviewRow(
+            "대지면적",
+            edit("site_area_m2", formatArea(p?.site_area_m2)),
+          )}
+          {overviewRow(
+            "용적률",
+            edit("floor_area_ratio", scalar(p?.floor_area_ratio, "%")),
+          )}
+          {overviewRow(
+            "전용률",
+            edit("efficiency_pct", scalar(p?.efficiency_pct, "%")),
+          )}
+          {overviewRow(
+            "천정고",
+            edit("ceiling_height_m", scalar(p?.ceiling_height_m, "m")),
+          )}
+          {overviewRow(
+            "Lease Span",
+            edit("lease_span_m", scalar(p?.lease_span_m, "m")),
+          )}
+          {overviewRow(
+            "오피스면적",
+            edit("office_area_m2", formatArea(p?.office_area_m2)),
+          )}
+          {overviewRow(
+            "리테일면적",
+            edit("retail_area_m2", formatArea(p?.retail_area_m2)),
+          )}
+          {overviewRow("기준층면적(전용)", floorValues("exclusive"))}
+          {overviewRow("기준층면적(임대)", floorValues("rentable"))}
+          {overviewRow(
+            "시공사",
+            edit(
+              "contractor_name",
+              p?.contractor_name || contractor || "미확인",
+            ),
+          )}
+          {overviewRow(
+            "설계사",
+            edit("architect_name", p?.architect_name || "미확인"),
+          )}
           {overviewRow("VIEW", tags("views"))}
           {overviewRow(
             "자연환경",

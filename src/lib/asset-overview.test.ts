@@ -35,6 +35,13 @@ test("overview prefers official total register without mixing individual buildin
   assert.equal(overviewRegisterFact([a], "parking_total")?.value, 12);
   assert.equal(
     overviewRegisterFact(
+      [{ ...a, emergency_elevators: 0 }],
+      "emergency_elevators",
+    )?.value,
+    0,
+  );
+  assert.equal(
+    overviewRegisterFact(
       [{ ...a, parking_outdoor_self: null }],
       "parking_total",
     ),

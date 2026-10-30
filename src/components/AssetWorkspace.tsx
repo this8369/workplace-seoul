@@ -928,9 +928,6 @@ function AssetWorkspaceContent({
     ),
     개요: (
       <>
-        <div className="section-heading">
-          <h2>개요</h2>
-        </div>
         <div className="overview-grid">
           <AssetOverview
             building={b}
