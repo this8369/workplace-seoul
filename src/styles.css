@@ -4060,13 +4060,12 @@ button:disabled {
 .asset-popup .register-heading h2,
 .asset-popup .info-panel h3,
 .asset-popup .igis-detail-locked h2,
-.asset-popup .complex-overview-card h2 {
+.asset-popup .complex-overview-card h2,
+.asset-popup .asset-overview-stack .section-heading h2 {
   font-size: var(--asset-section-title-size);
-}
-.asset-popup .section-heading h2,
-.asset-popup .info-panel h3 {
   font-weight: 650;
-  letter-spacing: -0.3px;
+  line-height: 1.5;
+  letter-spacing: normal;
 }
 .asset-popup .info-panel,
 .asset-popup .asset-content-card {

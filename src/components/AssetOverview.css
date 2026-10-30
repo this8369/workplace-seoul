@@ -16,8 +16,6 @@
 }
 .asset-overview-stack .section-heading h2 {
   margin: 0;
-  font-size: 20px;
-  font-weight: 750;
 }
 .asset-overview-stack .section-heading > svg {
   color: #8794a7;
@@ -501,10 +499,6 @@
   .overview-editor-grid {
     grid-template-columns: 1fr;
   }
-}
-.asset-popup .asset-overview-stack .section-heading h2 {
-  letter-spacing: normal;
-  font-size: var(--asset-section-title-size);
 }
 .asset-popup .asset-overview-stack .overview-facts > div {
   gap: 12px;
