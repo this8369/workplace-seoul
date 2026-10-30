@@ -133,7 +133,6 @@ export default function IgisDetailLayout({
         {visible && (
           <AreaUnitProvider key={target.id}>
             <IgisSidePanelFrame
-              building={target}
               mobile={mobile}
               onClose={close}
               panelRef={side}
@@ -184,13 +183,11 @@ export default function IgisDetailLayout({
 }
 
 export function IgisSidePanelFrame({
-  building,
   mobile,
   onClose,
   panelRef,
   children,
 }: {
-  building: Pick<Building, "name">;
   mobile: boolean;
   onClose: () => void;
   panelRef?: React.Ref<HTMLElement>;
@@ -240,7 +237,7 @@ export function IgisSidePanelFrame({
       <header className="igis-panel-header">
         <div className="igis-panel-heading">
           <span className="igis-panel-mark">IGIS</span>
-          <h2 id={title}>이지스</h2>
+          <h2 id={title}>이지스 자산정보</h2>
         </div>
         <div className="igis-panel-tools">
           <button
@@ -262,10 +259,7 @@ export function IgisSidePanelFrame({
           </button>
         </div>
       </header>
-      <div className="igis-panel-scroll">
-        <div className="igis-panel-asset-name">{building.name}</div>
-        {children}
-      </div>
+      <div className="igis-panel-scroll">{children}</div>
     </aside>
   );
 }

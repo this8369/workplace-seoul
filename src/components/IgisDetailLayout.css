@@ -140,14 +140,6 @@
   scrollbar-width: thin;
   overscroll-behavior: contain;
 }
-.igis-panel-asset-name {
-  margin-bottom: 20px;
-  font-size: 21px;
-  font-weight: 700;
-  line-height: 1.4;
-  overflow-wrap: anywhere;
-  word-break: keep-all;
-}
 .igis-side-panel .info-panel {
   min-width: 0;
   padding: 18px;
