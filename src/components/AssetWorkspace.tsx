@@ -1072,10 +1072,6 @@ function AssetWorkspaceContent({
         <div className="section-heading">
           <div>
             <h2>시장 임대</h2>
-            <p>
-              알스퀘어가 집계한 시장 조사 데이터입니다. 이지스의 실제 계약
-              임대료·수납액·운영실적은 별도 권한으로 관리합니다.
-            </p>
           </div>
         </div>
         <div className="asset-content-card">
@@ -1086,6 +1082,10 @@ function AssetWorkspaceContent({
               확인된 기준분기와 면적·금액 단위를 함께 기록합니다.
             </Blank>
           )}
+          <p className="market-leasing-note">
+            알스퀘어가 집계한 시장 조사 데이터입니다. 이지스의 실제 계약
+            임대료·수납액·운영실적은 별도 권한으로 관리합니다.
+          </p>
         </div>
       </section>
     ),

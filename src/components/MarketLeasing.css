@@ -2,6 +2,12 @@
   container: market-leasing / inline-size;
   min-width: 0;
 }
+.market-leasing-note {
+  margin: 16px 0 0;
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: calc(1.75em - 2px);
+}
 .market-latest {
   margin-bottom: 22px;
 }
