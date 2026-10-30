@@ -1,0 +1,164 @@
+.market-leasing {
+  container: market-leasing / inline-size;
+  min-width: 0;
+}
+.market-latest {
+  margin-bottom: 22px;
+}
+.market-latest-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+.market-latest-heading h3 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 650;
+}
+.market-latest-heading > span {
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+.market-latest-rates {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px 12px;
+  margin: 0;
+}
+.market-latest-rates > div {
+  display: block;
+  min-width: 0;
+  border: 0;
+  padding: 0;
+}
+.market-latest-rates dt {
+  font-size: 12px;
+  margin-bottom: 6px;
+}
+.asset-popup .market-latest-rates dd {
+  max-width: none;
+  text-align: left;
+  color: var(--text-primary);
+  font-size: 22px;
+  font-weight: 650;
+  line-height: 1.4;
+}
+.market-latest-rates small {
+  display: inline-block;
+  margin-left: 5px;
+  font-size: 10px;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+.market-lease-table-wrap {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+.asset-popup .market-lease-table {
+  width: 100%;
+  table-layout: fixed;
+  font-variant-numeric: tabular-nums;
+}
+.market-lease-period {
+  width: 15%;
+}
+.market-lease-rate {
+  width: 14.5%;
+}
+.market-lease-secondary {
+  width: 13.5%;
+}
+.asset-popup .market-lease-table th,
+.asset-popup .market-lease-table td {
+  min-width: 0;
+  padding: 11px 5px;
+  font-size: 11px;
+  line-height: 1.45;
+  white-space: nowrap;
+  text-align: right;
+}
+.asset-popup .market-lease-table tr > :first-child {
+  text-align: left;
+}
+.asset-popup .market-lease-table thead th {
+  white-space: normal;
+  vertical-align: top;
+  font-size: 11px;
+  font-weight: 600;
+}
+.market-lease-table thead th small {
+  display: block;
+  margin-top: 3px;
+  color: var(--text-secondary);
+  font-size: 9px;
+  font-weight: 400;
+}
+.market-lease-table tbody tr:last-child > * {
+  border-bottom: 0;
+}
+.market-lease-mobile-details {
+  display: none;
+}
+.market-lease-table .review-pencil {
+  display: none;
+}
+.market-lease-table .review-value {
+  margin: 0;
+  padding: 0;
+}
+
+@container market-leasing (max-width: 440px) {
+  .market-lease-table .market-lease-secondary {
+    display: none;
+  }
+  .market-lease-period {
+    width: 18%;
+  }
+  .market-lease-rate {
+    width: 20.5%;
+  }
+  .asset-popup .market-lease-table th,
+  .asset-popup .market-lease-table td {
+    padding: 10px 4px;
+  }
+  .asset-popup .market-lease-table .market-lease-values > * {
+    border-bottom: 0;
+    padding-bottom: 6px;
+  }
+  .market-lease-mobile-details {
+    display: table-row;
+  }
+  .asset-popup .market-lease-mobile-details td {
+    padding-top: 0;
+    padding-bottom: 10px;
+  }
+  .market-lease-mobile-details td > div {
+    display: flex;
+    justify-content: flex-end;
+    gap: 14px;
+    color: var(--text-secondary);
+    font-size: 10px;
+  }
+  .market-lease-mobile-details b {
+    font-weight: 500;
+    margin-left: 4px;
+  }
+}
+
+@container market-leasing (max-width: 280px) {
+  .market-lease-period,
+  .market-lease-rate {
+    width: 20%;
+  }
+  .asset-popup .market-lease-table th,
+  .asset-popup .market-lease-table td {
+    padding-inline: 2px;
+    font-size: 10px;
+  }
+  .market-latest-rates small {
+    display: block;
+    margin: 3px 0 0;
+  }
+}

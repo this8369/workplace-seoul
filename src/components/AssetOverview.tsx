@@ -73,7 +73,6 @@ export default function AssetOverview({
   sharedBuilding,
   sharedRegister,
   complex,
-  onEfficiencyChange,
 }: {
   building: Building;
   complex?: BuildingComplex;
@@ -83,7 +82,6 @@ export default function AssetOverview({
   places: Place[];
   contractor?: string | null;
   register?: RegisterData | null;
-  onEfficiencyChange?: (efficiencyPct: number | null) => void;
 }) {
   const version = useDataReviewVersion(),
     { formatArea } = useAreaUnit();
@@ -204,9 +202,6 @@ export default function AssetOverview({
   const p = profileFields.values,
     power = complex || powerFields.values,
     displayedBuilding = buildingFields.values || b;
-  useEffect(() => {
-    onEfficiencyChange?.(p?.efficiency_pct ?? null);
-  }, [b.id, p?.efficiency_pct, onEfficiencyChange]);
   // Area bases belong to the same observation as their corresponding area.
   if (p && current?.sharedProfile)
     for (const prefix of ["office", "retail"] as const) {

@@ -10,11 +10,7 @@ import {
 } from "./DataReview";
 import BuildingRegister from "./BuildingRegister";
 import AssetOverview from "./AssetOverview";
-import MarketRentCalculator from "./MarketRentCalculator";
-import {
-  latestMarketLease,
-  rentRateBasis,
-} from "../lib/market-rent-calculator";
+import MarketLeasing from "./MarketLeasing";
 import { useScrollSections } from "./useScrollSections";
 import { AreaUnitProvider, useAreaUnit } from "./AreaUnit";
 import { fetchTransactionDetail } from "../lib/member-details";
@@ -564,7 +560,6 @@ function AssetWorkspaceContent({
     [tenantView, setTenantView] = useState("list"),
     [companyId, setCompanyId] = useState<string | null>(null);
   const [sourcesOpen, setSourcesOpen] = useState(false);
-  const [marketEfficiency, setMarketEfficiency] = useState<number | null>(null);
   const [addressMode, setAddressMode] = useState<"parcel" | "road">("parcel");
   const addresses = [b.standard_address, b.address, b.source_address].filter(
     Boolean,
@@ -716,7 +711,6 @@ function AssetWorkspaceContent({
   }, []);
   useEffect(() => {
     setSourcesOpen(false);
-    setMarketEfficiency(null);
     setCompanyId(null);
     setTenantQuery("");
     setTenantView("list");
@@ -733,14 +727,6 @@ function AssetWorkspaceContent({
   const leases = leasesSource.rows.sort((a, b) =>
     b.period.localeCompare(a.period),
   );
-  const latestLease = latestMarketLease(leases);
-  const leaseBases = new Set(leases.map(rentRateBasis));
-  const leaseRateUnit =
-    leaseBases.size === 1 && leaseBases.has("rentable")
-      ? `임대${unit}`
-      : leaseBases.size === 1 && leaseBases.has("exclusive")
-        ? `전용${unit}`
-        : unit;
   const developments = developmentsSource.rows;
   const developmentSummary = markerDevelopmentIndex(developments).get(
     developmentsSource.inherited ? sharedBuilding!.id : b.id,
@@ -948,7 +934,6 @@ function AssetWorkspaceContent({
         <div className="overview-grid">
           <AssetOverview
             building={b}
-            onEfficiencyChange={setMarketEfficiency}
             floorValues={floorValues}
             places={
               (overviewBuilding
@@ -1094,96 +1079,8 @@ function AssetWorkspaceContent({
           </div>
         </div>
         <div className="asset-content-card">
-          {latestLease && (
-            <MarketRentCalculator
-              key={b.id}
-              lease={latestLease}
-              buildingId={b.id}
-              efficiencyPct={marketEfficiency}
-              typicalExclusivePyeong={
-                b.typical_floor_exclusive_pyeong ??
-                (towerRows.length === 1
-                  ? towerRows[0].typical_floor_exclusive_pyeong
-                  : null)
-              }
-            />
-          )}
           {leases.length ? (
-            <>
-              <div className="table-scroll">
-                <table>
-                  <thead>
-                    <tr>
-                      {[
-                        "기준분기",
-                        `보증금 (원/${leaseRateUnit})`,
-                        `시장 월임대료 (원/${leaseRateUnit})`,
-                        `관리비 (원/${leaseRateUnit})`,
-                        `시장 NOC (원/전용${unit})`,
-                        "공실률",
-                        "렌트프리 (개월/년)",
-                      ].map((x) => (
-                        <th key={x}>{x}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {leases.map((l) => (
-                      <tr key={l.id}>
-                        <th>
-                          <RV
-                            entity="leasing_quarters"
-                            id={l.id}
-                            field="period"
-                          >
-                            {l.period}
-                          </RV>
-                        </th>
-                        <td>
-                          <RV
-                            entity="leasing_quarters"
-                            id={l.id}
-                            field="deposit"
-                          >
-                            {numeric(perPyeong(l.deposit))}
-                          </RV>
-                        </td>
-                        <td>
-                          <RV entity="leasing_quarters" id={l.id} field="rent">
-                            {numeric(perPyeong(l.rent))}
-                          </RV>
-                        </td>
-                        <td>
-                          <RV entity="leasing_quarters" id={l.id} field="fee">
-                            {numeric(perPyeong(l.fee))}
-                          </RV>
-                        </td>
-                        <td>
-                          <RV entity="leasing_quarters" id={l.id} field="noc">
-                            {numeric(perPyeong(l.noc))}
-                          </RV>
-                        </td>
-                        <td>
-                          {numeric(
-                            l.vacancy == null ? null : l.vacancy * 100,
-                            "%",
-                          )}
-                        </td>
-                        <td>
-                          <RV
-                            entity="leasing_quarters"
-                            id={l.id}
-                            field="rent_free"
-                          >
-                            {numeric(l.rent_free)}
-                          </RV>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </>
+            <MarketLeasing leases={leases} />
           ) : (
             <Blank title="임대 조건을 수집하고 있습니다">
               확인된 기준분기와 면적·금액 단위를 함께 기록합니다.
