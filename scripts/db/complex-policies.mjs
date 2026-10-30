@@ -1,6 +1,16 @@
 // Explicit product decisions take precedence over shared parcel/register evidence.
 export const standaloneComplexes = [
   {
+    id: "c5b8632a-3ec0-5d6b-ac11-8029f3f22c4c",
+    name: "디큐브시티",
+    reason:
+      "2026-10-30 사용자 요청: 스페이스케이와 타임워크웨스트는 별도 자산으로 표시. 동일 주소를 근거로 기준층·시장 임대·운영 정보를 합치지 않음",
+    buildingIds: [
+      "32fd8815-944a-526b-88c1-aa152db6e4ac",
+      "c319bb99-b72f-5cda-9148-0a5280c2e93f",
+    ],
+  },
+  {
     id: "4acaec75-4e22-59b8-affc-7732ae6df1ed",
     name: "롯데월드타워",
     reason:

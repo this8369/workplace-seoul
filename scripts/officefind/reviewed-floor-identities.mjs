@@ -1,4 +1,5 @@
 import { identityMatch } from "./parser.mjs";
+import { dcubeIdentityMatch } from "./dcube-identities.mjs";
 
 // Reviewed on 2026-10-13. These resolve old site-wide/lot addresses only; they
 // neither rewrite addresses nor permit other buildings at the same location.
@@ -41,6 +42,8 @@ export const reviewedFloorIdentities = [
 ];
 
 export function matchFloorIdentity(building, source, siblings = []) {
+  const distinctAsset = dcubeIdentityMatch(building, source);
+  if (distinctAsset) return distinctAsset;
   const automatic = identityMatch(building, source, siblings);
   if (automatic.ok) return automatic;
   const reviewed = reviewedFloorIdentities.find(

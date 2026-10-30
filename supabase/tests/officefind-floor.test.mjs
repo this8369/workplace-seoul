@@ -1,11 +1,39 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { dcubeIdentities } from "../../scripts/officefind/dcube-identities.mjs";
+import { matchFloorIdentity } from "../../scripts/officefind/reviewed-floor-identities.mjs";
 import {
   parseOffice,
   identityMatch,
 } from "../../scripts/officefind/parser.mjs";
 const page = (r = 173, e = 95.5) =>
   `<h1 class="office-name">테스트타워</h1><div class="office-address">서울 강남구 강남대로 560 (논현동 50)</div><table><tr><th>기준층 면적</th><td>임대 <span data-py="${r}" data-m2="52.3">${((r * 400) / 121).toFixed(2)}m²</span> / 전용 <span data-py="${e}" data-m2="28.8">${((e * 400) / 121).toFixed(2)}m²</span></td></tr></table><h3>기준층 임대시세 <small>2026년 기준</small></h3>`;
+test("Space K and Timewalk West never match each other's floor source at their shared address", () => {
+  for (const target of dcubeIdentities)
+    for (const source of dcubeIdentities) {
+      const building = {
+        ...target,
+        status: target === dcubeIdentities[0] ? "operating" : "development",
+        road_address: "서울특별시 구로구 경인로 662",
+      };
+      const observation = {
+        name: source.sourceName,
+        address: "서울 구로구 경인로 662 (신도림동 692)",
+        url: new URL(source.path, "https://officefind.co.kr").href,
+      };
+      assert.equal(
+        matchFloorIdentity(building, observation).ok,
+        target === source,
+      );
+      assert.equal(
+        matchFloorIdentity(
+          { ...building, name: "디큐브시티 오피스" },
+          observation,
+        ).ok,
+        target === source,
+      );
+    }
+});
 test("floor parser separates source-stated units without using incorrect data-m2", () => {
   const p = parseOffice(page(), "https://officefind.co.kr/test");
   assert.equal(p.rentable_pyeong, 173);
