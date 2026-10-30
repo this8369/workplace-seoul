@@ -63,6 +63,7 @@ import {
 } from "./lib/map-list";
 import {
   fetchCatalog,
+  fetchFreshCatalog,
   fetchCatalogArchive,
   fetchCatalogImages,
   supabase,
@@ -354,6 +355,42 @@ export default function App() {
       });
   }, []);
   useEffect(refresh, [refresh]);
+  const catalogSyncGeneration = useRef(0);
+  const refreshVisibleCatalog = useCallback(() => {
+    const loadVersion = loadGeneration.current;
+    const syncVersion = ++catalogSyncGeneration.current;
+    void fetchFreshCatalog()
+      .then((data) => {
+        if (
+          loadVersion !== loadGeneration.current ||
+          syncVersion !== catalogSyncGeneration.current
+        )
+          return;
+        setCatalog((current) => ({
+          ...current,
+          buildings: data.buildings,
+          images: data.images,
+          leasing: data.leasing,
+          developments: data.developments,
+          complexes: data.complexes,
+          towers: data.towers,
+        }));
+        setBuildings(data.buildings);
+        setSavedBuildings((current) =>
+          current.map((building) => {
+            const updated = data.buildings.find((b) => b.id === building.id);
+            return updated ? { ...building, ...updated } : building;
+          }),
+        );
+      })
+      .catch(() => {
+        if (
+          loadVersion === loadGeneration.current &&
+          syncVersion === catalogSyncGeneration.current
+        )
+          setNotice("저장됐지만 목록 갱신에 실패했습니다. 새로고침해 주세요.");
+      });
+  }, []);
   useEffect(() => {
     if (load !== "ready" || archiveLoad !== "idle" || view !== "transactions")
       return;
@@ -1406,6 +1443,7 @@ export default function App() {
                     key={`${session?.user.id}:${canReadDetails}:${active.complex_id || active.id}`}
                     building={active}
                     complexes={catalog.complexes}
+                    onInformationSaved={refreshVisibleCatalog}
                     onActiveBuilding={focusBuilding}
                     savedIds={saved}
                     onSaveBuilding={toggleSave}

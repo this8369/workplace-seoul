@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { publicSupabase } from "./public-supabase";
+import { createCatalogRequests } from "./catalog-requests";
 import type { Building } from "./domain";
 import {
   configureDistricts,
@@ -50,7 +51,7 @@ export async function fetchBuildings(): Promise<Building[]> {
 
 import { emptyCatalog, type Catalog } from "./catalog";
 const coreListeners = new Set<(data: Catalog) => void>();
-let catalogRequest: Promise<Catalog> | undefined;
+const catalogRequests = createCatalogRequests(loadCatalog);
 const cacheKey = `workplace-catalog-public-v15:${url}`;
 // Discard older snapshots containing fields which are now member-only.
 try {
@@ -79,13 +80,17 @@ export function fetchCatalog(
   const cached = cachedCatalog();
   if (cached) onCore?.(cached);
   if (onCore) coreListeners.add(onCore);
-  if (!catalogRequest)
-    catalogRequest = loadCatalog().finally(() => {
-      catalogRequest = undefined;
-    });
-  return catalogRequest.finally(() => {
+  return catalogRequests.read().finally(() => {
     if (onCore) coreListeners.delete(onCore);
   });
+}
+export function fetchFreshCatalog(): Promise<Catalog> {
+  try {
+    sessionStorage.removeItem(cacheKey);
+  } catch {
+    /* Storage is optional; the network read is always fresh. */
+  }
+  return catalogRequests.fresh();
 }
 async function all(table: string) {
   if (!publicSupabase) return [];

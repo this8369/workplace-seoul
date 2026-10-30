@@ -143,7 +143,10 @@ function ComplexContent(
     },
     informationRevision: revision,
     loadScope,
-    onInformationSaved: () => setRevision((n) => n + 1),
+    onInformationSaved: () => {
+      setRevision((n) => n + 1);
+      props.onInformationSaved?.();
+    },
     single: true,
     embedded: true,
     sharedOverview: data ? <SharedComplexDetails data={data} /> : undefined,
