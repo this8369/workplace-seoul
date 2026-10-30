@@ -1,19 +1,23 @@
 .asset-detail-layout {
   --asset-main-columns: 1;
   --igis-panel-space: 0px;
+  --asset-layer-shadow: 0 3px 12px rgb(21 31 54 / 10%);
+  --asset-shadow-gutter: 16px;
   position: absolute;
-  inset: 1.25% auto 1.25% 1.25%;
+  inset: 0 auto 0 0;
   z-index: 20;
   display: flex;
   gap: 18px;
-  width: 97.5%;
+  width: 100%;
   max-width: calc(
     var(--asset-main-columns) * 440px + (var(--asset-main-columns) - 1) * 18px +
-      var(--igis-panel-space)
+      var(--igis-panel-space) + 2 * var(--asset-shadow-gutter)
   );
+  padding: var(--asset-shadow-gutter);
   min-height: 0;
   overflow-x: auto;
   scrollbar-width: thin;
+  scroll-padding: var(--asset-shadow-gutter);
   overscroll-behavior-x: contain;
 }
 .asset-detail-layout:has(.complex-workspace) {
@@ -77,7 +81,7 @@
   border: 1px solid #e0e5ef;
   border-radius: 28px;
   background: #f7f8fb;
-  box-shadow: 0 12px 40px rgb(21 31 54 / 16%);
+  box-shadow: var(--asset-layer-shadow, 0 3px 12px rgb(21 31 54 / 10%));
   color: #202a3d;
   container-type: inline-size;
 }
@@ -210,6 +214,7 @@
 }
 @media (max-width: 900px) {
   .asset-detail-layout {
+    --asset-shadow-gutter: 0px;
     inset: 0;
     width: 100%;
     max-width: none;

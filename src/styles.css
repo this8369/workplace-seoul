@@ -3603,9 +3603,7 @@ button:disabled {
   border-radius: 28px;
   background: #f7f8fb;
   border: 1px solid rgb(255 255 255 / 85%);
-  box-shadow:
-    0 20px 65px rgb(21 31 54 / 23%),
-    0 2px 10px rgb(21 31 54 / 12%);
+  box-shadow: var(--asset-layer-shadow, 0 3px 12px rgb(21 31 54 / 10%));
   container-type: inline-size;
 }
 .asset-popup-toolbar {

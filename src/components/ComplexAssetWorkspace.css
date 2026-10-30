@@ -337,9 +337,7 @@
   .complex-component {
     border-radius: 28px;
     border: 1px solid rgb(255 255 255 / 85%);
-    box-shadow:
-      0 20px 65px rgb(21 31 54 / 20%),
-      0 2px 10px rgb(21 31 54 / 10%);
+    box-shadow: var(--asset-layer-shadow, 0 3px 12px rgb(21 31 54 / 10%));
     overflow: hidden;
     isolation: isolate;
     container-type: inline-size;
