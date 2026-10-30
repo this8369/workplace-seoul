@@ -5,7 +5,7 @@
 .market-leasing-note {
   margin: 16px 0 0;
   color: var(--text-secondary);
-  font-size: 13px;
+  font-size: 11px;
   line-height: calc(1.75em - 2px);
 }
 .market-latest {
@@ -40,21 +40,21 @@
   padding: 0;
 }
 .market-latest-rates dt {
-  font-size: 12px;
+  font-size: 14px;
   margin-bottom: 6px;
 }
 .asset-popup .market-latest-rates dd {
   max-width: none;
   text-align: left;
   color: var(--text-primary);
-  font-size: 22px;
+  font-size: 24px;
   font-weight: 650;
   line-height: 1.4;
 }
 .market-latest-rates small {
   display: inline-block;
   margin-left: 5px;
-  font-size: 10px;
+  font-size: 11px;
   color: var(--text-secondary);
   font-weight: 500;
 }
