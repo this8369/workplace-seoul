@@ -24,9 +24,10 @@ import { towersFor } from "../lib/building-towers";
 import BuildingPhoto from "./BuildingPhoto";
 import AssetMedia from "./AssetMedia";
 import AssetActions from "./AssetActions";
+import { IgisDetailButton } from "./IgisDetailLayout";
 import { districts } from "../lib/map-regions";
 import { primaryImage } from "../lib/building-images";
-import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowLeft,
   ArrowRight,
@@ -36,7 +37,6 @@ import {
   Check,
   ChevronRight,
   Clock3,
-  LockKeyhole,
   FileText,
   MapPin,
   Search,
@@ -56,8 +56,6 @@ import {
   type Transaction,
 } from "../lib/catalog";
 
-const IgisOperationsPanel = lazy(() => import("./IgisOperationsPanel"));
-const IgisAssetPanel = lazy(() => import("./IgisAssetPanel"));
 function Source({ item }: { item: Evidence }) {
   const url = safeSourceUrl(item.source_url);
   return (
@@ -573,7 +571,7 @@ function AssetWorkspaceContent({
   const popup = useRef<HTMLDivElement>(null);
   const page = useRef<HTMLElement>(null);
   const reviewVersion = useDataReviewVersion();
-  const tabs = assetDetailTabs(b);
+  const tabs = assetDetailTabs();
   const {
     active: tab,
     loaded: loadedSections,
@@ -777,35 +775,6 @@ function AssetWorkspaceContent({
     as_of: b.source_as_of || b.verified_on,
   };
   const sectionContent: Record<AssetTab | "자료 출처", React.ReactNode> = {
-    이지스: (
-      <section className="asset-section">
-        <div className="section-heading">
-          <h2>이지스</h2>
-        </div>
-        {canReadIgis ? (
-          <Suspense
-            fallback={
-              <p className="context-note">이지스 정보를 불러오고 있습니다.</p>
-            }
-          >
-            <IgisOperationsPanel
-              key={b.igis_source_building_id || b.id}
-              buildingId={b.igis_source_building_id || b.id}
-            />
-            <IgisAssetPanel buildingId={b.igis_source_building_id || b.id} />
-          </Suspense>
-        ) : (
-          <section className="info-panel igis-detail-locked">
-            <LockKeyhole size={25} />
-            <h2>이지스 내부정보</h2>
-            <p>로그인 후 권한이 있는 정보만 확인할 수 있습니다.</p>
-            <button type="button" className="primary" onClick={onRequireLogin}>
-              로그인하고 보기
-            </button>
-          </section>
-        )}
-      </section>
-    ),
     건축물대장: (
       <>
         <BuildingRegister
@@ -1464,6 +1433,7 @@ function AssetWorkspaceContent({
           onRequireLogin={onRequireLogin}
         />
         <div className="asset-toolbar-secondary">
+          <IgisDetailButton building={b} />
           <AssetHistoryButton compact />
           <button
             className="asset-popup-close"
@@ -1673,8 +1643,6 @@ function AssetWorkspaceContent({
                             tabs.length) %
                           tabs.length;
                   goToSection(tabs[next]);
-                  if (tabs[next] === "이지스" && !canReadIgis)
-                    onRequireLogin?.();
                   document
                     .getElementById(`asset-${b.id}-tab-${next}`)
                     ?.focus({ preventScroll: true });
@@ -1682,7 +1650,6 @@ function AssetWorkspaceContent({
               }}
               onClick={() => {
                 goToSection(t);
-                if (t === "이지스" && !canReadIgis) onRequireLogin?.();
               }}
             >
               {t}

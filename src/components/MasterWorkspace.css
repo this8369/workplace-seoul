@@ -247,6 +247,23 @@
   padding: 0;
   background: transparent;
 }
+.master-type-select {
+  display: grid;
+  gap: 7px;
+  margin-bottom: 16px;
+  font-size: 12px;
+  color: #69758a;
+}
+.master-type-select select {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #d3dbea;
+  border-radius: 10px;
+  background-color: #f8f9fc;
+  color: #253044;
+  font: inherit;
+  font-size: 14px;
+}
 .master-workspace button:disabled {
   opacity: 0.4;
   cursor: default;

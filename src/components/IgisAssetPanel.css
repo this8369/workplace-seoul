@@ -1,0 +1,89 @@
+.igis-investment-select {
+  display: grid;
+  gap: 7px;
+  margin-bottom: 20px;
+}
+.igis-investment-select > span {
+  font-size: 12px;
+  font-weight: 550;
+  color: #69758a;
+}
+.igis-investment-select select {
+  width: 100%;
+  min-width: 0;
+  padding: 11px 30px 11px 12px;
+  border: 1px solid #d3dbea;
+  border-radius: 10px;
+  background-color: #f8f9fc;
+  color: #253044;
+  font: inherit;
+  font-size: 14px;
+  text-overflow: ellipsis;
+}
+.igis-object-record + .igis-object-record {
+  margin-top: 24px;
+  padding-top: 24px;
+  border-top: 1px solid #dfe5ee;
+}
+.igis-object-heading {
+  display: block;
+  height: auto;
+  padding: 0;
+  border: 0;
+  margin-bottom: 14px;
+}
+.igis-side-panel .igis-object-heading h3 {
+  margin: 0 0 7px;
+  font-size: 16px;
+  font-weight: 650;
+  line-height: 1.5;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+.igis-object-code {
+  color: #7c879b;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.igis-object-fields {
+  display: grid;
+  grid-template-columns: 1fr;
+  margin: 0;
+}
+.igis-object-fields > div {
+  display: grid;
+  grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
+  align-items: baseline;
+  gap: 14px;
+  padding: 12px 0;
+  border-top: 1px solid #e9ecf2;
+  font-size: 13px;
+  line-height: 1.6;
+}
+.igis-object-fields dt {
+  color: #69758a;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+.igis-object-fields dd {
+  margin: 0;
+  text-align: left;
+  color: #263145;
+  font-weight: 550;
+  overflow-wrap: anywhere;
+  font-variant-numeric: tabular-nums;
+}
+.igis-empty-fields {
+  margin-top: 14px;
+}
+.igis-empty-fields > summary {
+  padding: 10px 0;
+  color: #69758a;
+  cursor: pointer;
+  font-size: 12px;
+}
+.igis-investment-note {
+  margin-bottom: 0;
+  padding-top: 14px;
+  border-top: 1px solid #e9ecf2;
+}

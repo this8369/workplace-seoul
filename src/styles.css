@@ -1633,16 +1633,6 @@ tbody th {
   grid-template-columns: 1.1fr 1fr;
   gap: 16px;
 }
-.igis-detail-locked > svg {
-  color: var(--muted);
-}
-.igis-detail-locked p {
-  color: var(--muted);
-  line-height: 1.6;
-}
-.igis-detail-locked .primary {
-  margin-top: 8px;
-}
 .asset-media-actions:empty {
   display: none;
 }
@@ -4057,7 +4047,6 @@ button:disabled {
 .asset-popup .section-heading h2,
 .asset-popup .register-heading h2,
 .asset-popup .info-panel h3,
-.asset-popup .igis-detail-locked h2,
 .asset-popup .complex-overview-card h2,
 .asset-popup .asset-overview-stack .section-heading h2 {
   font-size: var(--asset-section-title-size);

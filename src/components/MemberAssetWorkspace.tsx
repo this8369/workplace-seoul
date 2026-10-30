@@ -2,6 +2,7 @@ import { lazy, Suspense, useEffect, useState } from "react";
 import { DataReviewProvider } from "./DataReview";
 import { X } from "lucide-react";
 import { AssetWorkspace } from "./AssetWorkspace";
+import IgisDetailLayout from "./IgisDetailLayout";
 import type { Building } from "../lib/domain";
 import type { Catalog } from "../lib/catalog";
 import { fetchMemberAsset } from "../lib/member-details";
@@ -38,13 +39,15 @@ export default function MemberAssetWorkspace(props: MemberWorkspaceProps) {
   const complex =
     !props.single &&
     props.complexes?.find((c) => c.id === props.building.complex_id);
-  if (complex)
-    return (
-      <Suspense fallback={null}>
-        <ComplexAssetWorkspace {...props} complex={complex} />
-      </Suspense>
-    );
-  return <SingleAssetWorkspace {...props} />;
+  const content = complex ? (
+    <Suspense fallback={null}>
+      <ComplexAssetWorkspace {...props} complex={complex} />
+    </Suspense>
+  ) : (
+    <SingleAssetWorkspace {...props} />
+  );
+  if (props.embedded) return content;
+  return <IgisDetailLayout {...props}>{content}</IgisDetailLayout>;
 }
 function SingleAssetWorkspace({
   building,

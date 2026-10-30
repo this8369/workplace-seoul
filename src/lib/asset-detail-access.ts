@@ -2,7 +2,6 @@ import type { Building } from "./domain.ts";
 
 const tabs = [
   "개요",
-  "이지스",
   "시장 임대",
   "임차기업",
   "토지",
@@ -12,11 +11,11 @@ const tabs = [
   "주변",
 ] as const;
 export type AssetTab = (typeof tabs)[number];
-const generalTabs = tabs.filter((tab) => tab !== "이지스");
+export function assetDetailTabs(): readonly AssetTab[] {
+  return tabs;
+}
 
-// The published per-building flag is authoritative, never a sibling or list group.
-export function assetDetailTabs(
-  building: Pick<Building, "is_igis">,
-): readonly AssetTab[] {
-  return building.is_igis === true ? tabs : generalTabs;
+// A sibling's private affiliation must never enable this building's panel.
+export function hasIgisDetails(building: Pick<Building, "is_igis">): boolean {
+  return building.is_igis === true;
 }

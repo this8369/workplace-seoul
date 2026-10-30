@@ -184,14 +184,16 @@ export default function MasterWorkspace({
         className={`master-workspace ${embedded ? "master-embedded" : ""}`}
         aria-label="MY 데이터 관리"
       >
-        <header className="master-heading">
-          <div>
-            <span className="eyebrow">MY / IGIS</span>
-            <h1>데이터 관리</h1>
-            <p>자산과 기업을 중심으로 펀드·투자·대출 관계를 살펴보세요.</p>
-          </div>
-          <span className="pill">회원 전용</span>
-        </header>
+        {!embedded && (
+          <header className="master-heading">
+            <div>
+              <span className="eyebrow">MY / IGIS</span>
+              <h1>데이터 관리</h1>
+              <p>자산과 기업을 중심으로 펀드·투자·대출 관계를 살펴보세요.</p>
+            </div>
+            <span className="pill">회원 전용</span>
+          </header>
+        )}
         <button
           className="review-record-button"
           onClick={() => setInbox((v) => !v)}
@@ -202,21 +204,40 @@ export default function MasterWorkspace({
           <ReviewInbox onSaved={() => setRefresh((n) => n + 1)} />
         ) : (
           <>
-            <nav className="master-tabs" aria-label="데이터 분류">
-              {sections.map(([key, label]) => (
-                <button
-                  key={key}
-                  aria-pressed={table === key}
-                  onClick={() => {
-                    setTable(key);
+            {embedded ? (
+              <label className="master-type-select">
+                <span>정보 분류</span>
+                <select
+                  value={table}
+                  onChange={(event) => {
+                    setTable(event.target.value);
                     setOffset(0);
                   }}
                 >
-                  {label}
-                </button>
-              ))}
-            </nav>
-            {(fundScope || partyScope) && (
+                  {sections.map(([key, label]) => (
+                    <option key={key} value={key}>
+                      {label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            ) : (
+              <nav className="master-tabs" aria-label="데이터 분류">
+                {sections.map(([key, label]) => (
+                  <button
+                    key={key}
+                    aria-pressed={table === key}
+                    onClick={() => {
+                      setTable(key);
+                      setOffset(0);
+                    }}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </nav>
+            )}
+            {(fundScope || partyScope) && !(embedded && vehicleScope) && (
               <p className="master-note">
                 {scopeLabel || "선택한 펀드"}의 연결 정보
                 {!vehicleScope && (
