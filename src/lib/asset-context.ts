@@ -140,7 +140,7 @@ export function useAssetContext(
   );
   const facts = useDeferred<AssetFact[]>(
     `${key}:facts`,
-    enabled("개요") || sources,
+    sources,
     async () =>
       (await rows<AssetFact>("building_facts")).filter((f) => !f.complex_id),
   );

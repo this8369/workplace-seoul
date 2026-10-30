@@ -1005,32 +1005,6 @@ function AssetWorkspaceContent({
             </p>
           )}
         </section>
-        {context.facts.error && (
-          <div className="context-status" role="alert">
-            추가 자산 정보를 불러오지 못했습니다.
-            <button onClick={context.retry}>다시 불러오기</button>
-          </div>
-        )}
-        {!!context.facts.data?.length && (
-          <section className="info-panel recent-trade">
-            <h3>추가 자산 정보</h3>
-            <dl>
-              {context.facts.data.map((f) => (
-                <div key={f.id}>
-                  <dt>{f.field_key.replaceAll("_", " ")}</dt>
-                  <dd>
-                    <RV entity="building_facts" id={f.id} field="value">
-                      {typeof f.value === "object"
-                        ? JSON.stringify(f.value)
-                        : String(f.value)}
-                      {f.unit ? ` ${f.unit}` : ""}
-                    </RV>
-                  </dd>
-                </div>
-              ))}
-            </dl>
-          </section>
-        )}
       </>
     ),
     "시장 임대": (
