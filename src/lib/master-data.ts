@@ -11,6 +11,12 @@ export async function masterRpc<T>(
   if (!supabase) throw Error("서비스 연결을 확인해 주세요.");
   const { data, error } = await supabase.rpc(name, args);
   if (error) {
+    if (error.message.includes("overview_item_exists"))
+      throw Error("이미 등록된 항목입니다. 기존 항목을 선택해 수정해 주세요.");
+    if (error.message.includes("overview_standard_topic"))
+      throw Error("기존 자산개요 항목을 선택해 수정해 주세요.");
+    if (error.message.includes("invalid_overview_value"))
+      throw Error("항목명과 내용을 확인해 주세요.");
     if (error.message.includes("revision_conflict"))
       throw Error(
         "다른 사용자가 먼저 수정했습니다. 최신 내용을 다시 불러온 뒤 수정해 주세요.",

@@ -19,6 +19,7 @@ import {
   prepareSubwayConnections,
 } from "../lib/asset-overview";
 import type { StationLocation } from "../lib/subway-stations";
+import { overviewItemInput } from "../lib/overview-topics";
 export type ReviewTarget = {
   entity: string;
   id: string;
@@ -50,7 +51,12 @@ const ReviewContext = createContext<{
   assetId?: string;
   version: number;
   readOnly: boolean;
+  beginEdit: () => boolean;
+  saved: () => void;
 } | null>(null);
+export function useDataReviewActions() {
+  return useContext(ReviewContext);
+}
 export function useDataReviewVersion() {
   return useContext(ReviewContext)?.version ?? 0;
 }
@@ -182,6 +188,10 @@ export function DataReviewProvider({
 }) {
   const [target, setTarget] = useState<ReviewTarget | null>(null);
   const [version, setVersion] = useState(0);
+  const saved = () => {
+    setVersion((n) => n + 1);
+    onSaved?.();
+  };
   return (
     <ReviewContext.Provider
       value={{
@@ -197,6 +207,14 @@ export function DataReviewProvider({
         // Keep available controls visible; authorize before mounting the dialog
         // that loads private edit context and history.
         readOnly: !enabled && !onRequireLogin,
+        beginEdit: () => {
+          if (!enabled) {
+            onRequireLogin?.();
+            return false;
+          }
+          return true;
+        },
+        saved,
       }}
     >
       {children}
@@ -209,10 +227,7 @@ export function DataReviewProvider({
             location: target.location || location,
           }}
           onClose={() => setTarget(null)}
-          onSaved={() => {
-            setVersion((n) => n + 1);
-            onSaved?.();
-          }}
+          onSaved={saved}
         />
       )}
     </ReviewContext.Provider>
@@ -375,6 +390,13 @@ export function FieldDialog({
     };
   }, [target.entity, target.id, attempt]);
   const selected = context?.fields.find((f) => f.key === field);
+  const isOverviewValue =
+    target.entity === "building_facts" &&
+    context?.record.overview_enabled === true &&
+    field === "value";
+  const isBoolean =
+    selected?.type === "boolean" ||
+    (isOverviewValue && typeof selected?.value === "boolean");
   const isFloorArea =
     /^(typical_floor_exclusive_pyeong|typical_floor_rentable_pyeong)$/.test(
       field,
@@ -477,8 +499,11 @@ export function FieldDialog({
     try {
       if (floorValueError) throw Error(floorValueError);
       if (!reason.trim()) throw Error("수정 사유를 입력해 주세요.");
-      let proposed =
-        value.trim() === ""
+      let proposed = isOverviewValue
+        ? isBoolean
+          ? value === "true"
+          : overviewItemInput(value)
+        : value.trim() === ""
           ? null
           : selected.type === "boolean"
             ? value === "true"
@@ -569,7 +594,9 @@ export function FieldDialog({
             >
               {context.fields.map((f) => (
                 <option value={f.key} key={f.key}>
-                  {fieldLabel(target.entity, f.key)}
+                  {f.key === "value" && context.record.overview_enabled === true
+                    ? (context.record.name as string)
+                    : fieldLabel(target.entity, f.key)}
                 </option>
               ))}
             </select>
@@ -631,7 +658,7 @@ export function FieldDialog({
                         "단일 숫자만 입력 · 단위: 평 · 미확인은 비워두세요."}
                     </span>
                   </>
-                ) : selected?.type === "boolean" ? (
+                ) : isBoolean ? (
                   <select
                     aria-label={
                       context.can_edit ? "수정할 값" : "수정 요청할 값"
@@ -639,7 +666,7 @@ export function FieldDialog({
                     value={value}
                     onChange={(e) => editValue(e.target.value)}
                   >
-                    <option value="">미확인</option>
+                    {!isOverviewValue && <option value="">미확인</option>}
                     <option value="true">
                       {field === "dual_substation" ? "O" : "예"}
                     </option>
@@ -652,7 +679,9 @@ export function FieldDialog({
                     aria-label={
                       context.can_edit ? "수정할 값" : "수정 요청할 값"
                     }
-                    rows={selected?.type === "jsonb" ? 6 : 2}
+                    rows={
+                      selected?.type === "jsonb" && !isOverviewValue ? 6 : 2
+                    }
                     value={value}
                     onChange={(e) => editValue(e.target.value)}
                   />

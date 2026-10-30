@@ -35,6 +35,7 @@ import {
 import { useAreaUnit } from "./AreaUnit";
 import "./AssetOverview.css";
 import LoadDensityHelp from "./LoadDensityHelp";
+import OverviewExtraFields from "./OverviewExtraFields";
 export function LineBadges({ lines }: { lines: string[] }) {
   return (
     <span className="overview-lines">
@@ -256,6 +257,7 @@ export default function AssetOverview({
   ) => (
     <div
       className="overview-fact"
+      data-overview-label={label}
       key={label}
       hidden={collapsible && !expanded && !previewLabels.has(label)}
     >
@@ -551,6 +553,33 @@ export default function AssetOverview({
           {overviewRow("어메니티 운영사", tags("amenity_operators"))}
           {overviewRow("브랜드 리테일 운영사", tags("retail_operators"))}
         </dl>
+        <OverviewExtraFields
+          key={b.id}
+          assetId={b.id}
+          expanded={expanded}
+          onExpand={() => setExpanded(true)}
+          onExistingTopic={(topic) => {
+            setExpanded(true);
+            requestAnimationFrame(() => {
+              const card = document
+                .getElementById(factsId)
+                ?.closest(".asset-overview-stack");
+              const rows = card?.querySelectorAll<HTMLElement>(
+                "[data-overview-label], .section-heading h2",
+              );
+              const row = Array.from(rows || []).find(
+                (el) =>
+                  (el.dataset.overviewLabel || el.textContent) ===
+                  topic.overview_label,
+              );
+              row?.scrollIntoView({ block: "center", behavior: "smooth" });
+              const button = row?.querySelector<HTMLButtonElement>(
+                "button.review-value",
+              );
+              if (button) button.focus({ preventScroll: true });
+            });
+          }}
+        />
       </section>
       <section className="info-panel asset-power-card">
         <div className="section-heading">

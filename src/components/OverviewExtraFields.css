@@ -1,0 +1,76 @@
+.overview-extra-footer {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 12px;
+}
+.overview-extra-footer > button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 9px;
+  border: 0;
+  border-radius: 8px;
+  background: #f0f3f8;
+  color: #65738a;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+.overview-extra-footer > button:hover {
+  background: #e6ebf4;
+  color: #293d8c;
+}
+.overview-extra-facts dd {
+  white-space: pre-wrap;
+}
+.overview-item-dialog > header h2 {
+  margin: 0;
+}
+.overview-item-dialog form {
+  margin-top: 18px;
+}
+.overview-topic-combobox {
+  position: relative;
+}
+.overview-topic-options {
+  position: absolute;
+  top: calc(100% + 5px);
+  left: 0;
+  right: 0;
+  z-index: 1;
+  max-height: 240px;
+  overflow: auto;
+  padding: 5px;
+  border: 1px solid #dbe2eb;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 4px 14px #17253d14;
+}
+.overview-topic-options > button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 10px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: #202a3b;
+  font: inherit;
+  font-size: 14px;
+  text-align: left;
+  cursor: pointer;
+}
+.overview-topic-options > button:hover,
+.overview-topic-options > button[aria-selected="true"] {
+  background: #eaf0f8;
+  color: #283e80;
+}
+.overview-item-dialog .review-submit {
+  margin-top: 20px;
+  cursor: pointer;
+}
+.overview-item-dialog button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
