@@ -4227,14 +4227,6 @@ button:disabled {
   flex-shrink: 0;
   font-size: 13px;
 }
-.asset-popup .nearby-preview-section > h3 {
-  font-size: var(--asset-section-title-size);
-  margin: 0;
-}
-.nearby-preview-section {
-  padding-top: 18px;
-  border-top: 1px solid #e6e9f0;
-}
 .context-status {
   display: flex;
   align-items: center;
@@ -4556,44 +4548,64 @@ button:disabled {
     font-size: 16px;
   }
 }
-.nearby-categories,
-.nearby-preview {
+.nearby-categories {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
 }
 .nearby-categories button {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 10px;
-  padding: 20px;
+  gap: 8px;
+  min-width: 0;
+  padding: 16px;
   background: #eaf0f5;
+  color: var(--text-secondary);
+  border: 1px solid transparent;
   border-radius: 16px;
+  text-align: left;
 }
-.nearby-categories button[aria-pressed="true"] {
+.nearby-categories button:hover {
+  background: #e4eaf3;
+}
+.nearby-categories button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+.nearby-categories button[aria-expanded="true"] {
   background: #e3e8fa;
   color: var(--accent);
-  box-shadow: inset 0 0 0 1px #aebce7;
+  border-color: #aebce7;
 }
-.nearby-categories span {
-  font-size: 12px;
-}
-.nearby-preview {
-  margin-top: 22px;
-}
-.nearby-preview > div {
+.nearby-category-top {
   display: flex;
-  flex-direction: column;
-  gap: 10px;
-  color: var(--text-secondary);
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
 }
-.nearby-preview strong {
+.nearby-category-chevron {
+  transition: transform 150ms ease;
+}
+.nearby-categories button[aria-expanded="true"] .nearby-category-chevron {
+  transform: rotate(180deg);
+}
+.nearby-category-label {
   font-size: 14px;
+  font-weight: 650;
+  white-space: nowrap;
 }
-.nearby-preview p {
-  font-size: 13px;
-  line-height: 1.65;
+.nearby-category-count b {
+  color: var(--text-primary);
+  font-size: 22px;
+  font-weight: 650;
+}
+.nearby-category-count small {
+  margin-left: 4px;
+  font-size: 11px;
+}
+.nearby-results[hidden] {
+  display: none;
 }
 .nearby-list {
   display: grid;
@@ -4707,9 +4719,8 @@ button:disabled {
     gap: 8px;
   }
   .nearby-categories button {
-    padding: 13px;
+    padding: 11px;
   }
-  .nearby-preview,
   .nearby-list {
     grid-template-columns: 1fr;
   }

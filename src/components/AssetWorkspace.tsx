@@ -849,6 +849,7 @@ function AssetWorkspaceContent({
     주변: (
       <>
         <SurroundingsPanel
+          key={b.id}
           building={b}
           places={context.places}
           onRetry={context.retry}
