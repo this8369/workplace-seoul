@@ -98,7 +98,7 @@ export default function OverviewExtraFields({
           )}
         </>
       )}
-      {!review?.readOnly && (
+      {expanded && !review?.readOnly && (
         <div className="overview-extra-footer">
           <button
             type="button"
