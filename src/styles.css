@@ -4038,9 +4038,7 @@ button:disabled {
   margin-top: 36px;
   padding-top: 28px;
 }
-.asset-scroll-section + .asset-scroll-section::before,
-.asset-popup .land-section::before,
-.asset-popup .land-section dl > div::before {
+.asset-scroll-section + .asset-scroll-section::before {
   content: "";
   position: absolute;
   top: 0;
@@ -4178,23 +4176,8 @@ button:disabled {
 .asset-popup .land-facts {
   display: contents;
 }
-.asset-popup .land-panel .land-section {
-  position: relative;
-  border: 0;
-  border-radius: 0;
-  padding: 24px 0 0;
-  background: transparent;
-  box-shadow: none;
-}
 .asset-popup .land-section > h3 {
   margin: 0 0 16px;
-}
-.asset-popup .land-section dl > div {
-  position: relative;
-  border-top: 0;
-}
-.asset-popup .land-section dl > div::before {
-  background: #e6e9f0;
 }
 .asset-popup .nearby-content {
   display: flex;
