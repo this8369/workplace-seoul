@@ -6,12 +6,14 @@ import { PGlite } from "@electric-sql/pglite";
 test("register overview stays live, preserves manual facts, separates common/component scope and rejects unverified evidence", async () => {
   const db = new PGlite();
   try {
-    await db.exec(`create role anon;create role authenticated;create schema private;
+    await db.exec(`create role anon;create role authenticated;create role service_role;create schema private;
   create table buildings(id uuid primary key default gen_random_uuid(),name text,address text,region text,status text default 'operating',gross_area_m2 numeric(16,6),area_basis text,latitude numeric,longitude numeric,overview text,floors_above integer,floors_below integer,completion_year integer,parking_spaces integer,source_name text,source_url text,verified_on date,published boolean default true,source_as_of text,standard_address text,road_address text,address_status text,typical_floor_area_pyeong numeric,typical_floor_rentable_pyeong numeric,typical_floor_exclusive_pyeong numeric,typical_floor_source_url text,typical_floor_source_period text,typical_floor_collected_at timestamptz,usage_approved_on date,completion_source_url text,completion_collected_at timestamptz,typical_floor_scope text,complex_id uuid,redevelopment_building_id uuid,complex_scope text,component_source_building_id uuid,is_mixed_use boolean);
   create table building_complexes(id uuid primary key default gen_random_uuid(),name text,representative_building_id uuid,gross_area_m2 numeric,area_method text,published boolean default true,area_scope text,common_facts jsonb,parking_spaces integer,contracted_capacity_mw numeric,dual_substation boolean);
   create table building_asset_profiles(id uuid primary key,building_id uuid,owner_name text,ceiling_height_m numeric,lease_span_m numeric,office_area_m2 numeric,retail_area_m2 numeric,office_area_basis text,retail_area_basis text,contractor_name text,architect_name text,views jsonb,green_spaces jsonb,hotels jsonb,amenity_operators jsonb,retail_operators jsonb,subway_connections jsonb,certifications jsonb,site_area_m2 numeric(18,4),floor_area_ratio numeric(12,4),efficiency_pct numeric);
-  create table building_register_records(id uuid primary key default gen_random_uuid(),record_kind text,is_current boolean default true,gross_area_m2 numeric,floors_above numeric,floors_below numeric,site_area_m2 numeric,floor_area_ratio numeric,parking_total numeric,parking_indoor_self numeric,parking_outdoor_self numeric,parking_indoor_mechanical numeric,parking_outdoor_mechanical numeric,approval_date date);
+  create table building_register_records(id uuid primary key default gen_random_uuid(),register_pk text default gen_random_uuid()::text,parcel_key text default gen_random_uuid()::text,record_kind text,is_current boolean default true,gross_area_m2 numeric,floors_above numeric,floors_below numeric,site_area_m2 numeric,floor_area_ratio numeric,parking_total numeric,parking_indoor_self numeric,parking_outdoor_self numeric,parking_indoor_mechanical numeric,parking_outdoor_mechanical numeric,approval_date date);
   create table building_register_links(building_id uuid,record_id uuid,status text);
+  create table private.building_register_snapshots(id uuid primary key default gen_random_uuid(),operation text,parcel_key text,response jsonb,collected_at timestamptz default clock_timestamp(),imported_at timestamptz default clock_timestamp());
+  create table building_parcels(building_id uuid,pnu text,area_m2 numeric,verified boolean,unique(building_id,pnu));
   create table private.igis_catalog_publications(building_id uuid,asset_category text);
   create view catalog_buildings as select * from buildings where published;
   create function public.is_public_detail_asset(uuid) returns boolean language sql stable security definer as $$select coalesce((select published from buildings where id=$1),false)$$;
@@ -249,6 +251,247 @@ test("register overview stays live, preserves manual facts, separates common/com
       [zr],
     );
     assert.equal((await facts(zero)).parking_spaces, 0);
+    await db.exec(
+      await readFile(
+        new URL(
+          "../migrations/202610300001_register_site_area.sql",
+          import.meta.url,
+        ),
+        "utf8",
+      ),
+    );
+    const snapshot = async (parcel, operation, items) => {
+      await db.query(
+        "insert into private.building_register_snapshots(parcel_key,operation,response) values($1,$2,$3::jsonb)",
+        [
+          parcel,
+          operation,
+          JSON.stringify([{ response: { body: { items: { item: items } } } }]),
+        ],
+      );
+      await db.query("select private.refresh_register_site_sources($1)", [
+        parcel,
+      ]);
+    };
+    const title = async (assetId, pk, parcel, area = 0) => {
+      const id = await record(assetId);
+      await db.query(
+        "update building_register_records set register_pk=$2,parcel_key=$3,site_area_m2=$4 where id=$1",
+        [id, pk, parcel, area],
+      );
+      return id;
+    };
+    const parcel = "11560-11000-0-0023-0000";
+    const towerA = await asset("component"),
+      towerB = await asset("component");
+    const complexId = (
+      await db.query(
+        "insert into building_complexes(representative_building_id) values($1) returning id",
+        [towerA],
+      )
+    ).rows[0].id;
+    await db.query("update buildings set complex_id=$1 where id=any($2)", [
+      complexId,
+      [towerA, towerB],
+    ]);
+    const ta = await title(towerA, "1000000000000002263359", parcel);
+    const tb = await title(towerB, "1000000000000002263390", parcel);
+    const recap = (
+      await db.query(
+        "insert into building_register_records(register_pk,parcel_key,record_kind,site_area_m2,gross_area_m2) values('1000000000000002263087',$1,'complex',33058,999999) returning id",
+        [parcel],
+      )
+    ).rows[0].id;
+    const pairs = [
+      {
+        mgmBldrgstPk: "1000000000000002263359",
+        mgmUpBldrgstPk: "1000000000000002263087",
+      },
+      {
+        mgmBldrgstPk: "1000000000000002263390",
+        mgmUpBldrgstPk: "1000000000000002263087",
+      },
+    ];
+    await snapshot(parcel, "getBrBasisOulnInfo", pairs);
+    assert.equal(
+      Number((await facts(towerA)).site_area_m2),
+      33058,
+      "official parent supplies shared site",
+    );
+    assert.equal(
+      Number((await facts(towerB)).site_area_m2),
+      33058,
+      "site is not multiplied by the tower count",
+    );
+    assert.equal(
+      Number((await facts(towerA)).gross_area_m2),
+      1000,
+      "parent GFA never replaces tower GFA",
+    );
+    await db.query(
+      "update building_register_records set site_area_m2=34000 where id=$1",
+      [recap],
+    );
+    assert.equal(
+      Number((await facts(towerB)).site_area_m2),
+      34000,
+      "parent site refresh is live",
+    );
+    await db.query(
+      "update building_register_records set is_current=false where id=$1",
+      [recap],
+    );
+    assert.equal(
+      (await facts(towerA)).site_area_m2,
+      null,
+      "inactive parent is ignored",
+    );
+    await db.query(
+      "update building_register_records set is_current=true where id=$1",
+      [recap],
+    );
+    await db.query(
+      "update building_register_links set status='candidate' where record_id=$1",
+      [tb],
+    );
+    assert.equal(
+      (await facts(towerA)).site_area_m2,
+      null,
+      "partial complex coverage is not presented as the total",
+    );
+    await db.query(
+      "update building_register_links set status='verified' where record_id=$1",
+      [tb],
+    );
+    await snapshot(parcel, "getBrBasisOulnInfo", []);
+    assert.equal(
+      (await facts(towerA)).site_area_m2,
+      null,
+      "complete source refresh can remove a parent link",
+    );
+    await snapshot(parcel, "getBrBasisOulnInfo", pairs);
+    assert.equal(Number((await facts(towerA)).site_area_m2), 34000);
+    await db.query(
+      "update building_asset_profiles set site_area_m2=35000 where id=$1",
+      [towerA],
+    );
+    assert.equal(
+      Number(
+        (await shown("detail_building_asset_profiles", towerA)).site_area_m2,
+      ),
+      35000,
+      "manual override is preserved",
+    );
+
+    const separateParcel = "11560-11000-0-0028-0001";
+    await db.query(
+      "update building_register_records set parent_register_pk=null,parent_snapshot_id=null,site_area_m2=100 where id=$1",
+      [ta],
+    );
+    await db.query(
+      "update building_register_records set parcel_key=$2,site_area_m2=200 where id=$1",
+      [tb, separateParcel],
+    );
+    await snapshot(parcel, "getBrBasisOulnInfo", [
+      { mgmBldrgstPk: pairs[0].mgmBldrgstPk, mgmUpBldrgstPk: 0 },
+    ]);
+    await snapshot(separateParcel, "getBrBasisOulnInfo", [
+      { mgmBldrgstPk: pairs[1].mgmBldrgstPk, mgmUpBldrgstPk: 0 },
+    ]);
+    assert.equal(
+      Number((await facts(towerB)).site_area_m2),
+      300,
+      "separate legal sites are summed once",
+    );
+    await db.query(
+      "update building_register_records set parcel_key=$2,site_area_m2=100 where id=$1",
+      [tb, parcel],
+    );
+    await snapshot(
+      parcel,
+      "getBrBasisOulnInfo",
+      pairs.map((p) => ({ ...p, mgmUpBldrgstPk: 0 })),
+    );
+    assert.equal(
+      Number((await facts(towerB)).site_area_m2),
+      100,
+      "repeated site on one parcel is counted once",
+    );
+    await db.query(
+      "update building_register_records set site_area_m2=101 where id=$1",
+      [tb],
+    );
+    assert.equal(
+      (await facts(towerB)).site_area_m2,
+      null,
+      "conflicting same-site areas remain unresolved",
+    );
+
+    const cadastral = await asset();
+    await title(cadastral, "77", separateParcel);
+    await snapshot(separateParcel, "getBrBasisOulnInfo", [
+      { mgmBldrgstPk: "77", mgmUpBldrgstPk: 0 },
+    ]);
+    await db.query(
+      "insert into building_parcels values($1,'1156011000100280001',100,true),($1,'1156011000100280002',50,true)",
+      [cadastral],
+    );
+    assert.equal(
+      (await facts(cadastral)).site_area_m2,
+      null,
+      "address parcel alone does not establish complete site",
+    );
+    await snapshot(separateParcel, "getBrAtchJibunInfo", [
+      {
+        mgmBldrgstPk: "77",
+        atchSigunguCd: "11560",
+        atchBjdongCd: "11000",
+        atchPlatGbCd: "0",
+        atchBun: "28",
+        atchJi: "2",
+      },
+    ]);
+    assert.equal(
+      Number((await facts(cadastral)).site_area_m2),
+      150,
+      "complete official parcel set can fill a zero title area",
+    );
+    await db.query(
+      "update building_parcels set area_m2=null where building_id=$1 and pnu='1156011000100280002'",
+      [cadastral],
+    );
+    assert.equal(
+      (await facts(cadastral)).site_area_m2,
+      null,
+      "missing attached parcel area cannot silently reduce the total",
+    );
+    await db.query(
+      "update building_parcels set area_m2=50,verified=false where building_id=$1 and pnu='1156011000100280002'",
+      [cadastral],
+    );
+    assert.equal(
+      (await facts(cadastral)).site_area_m2,
+      null,
+      "unverified parcel area is ignored",
+    );
+    await db.query(
+      "update building_parcels set verified=true where building_id=$1",
+      [cadastral],
+    );
+    await snapshot(separateParcel, "getBrAtchJibunInfo", []);
+    assert.equal(
+      Number((await facts(cadastral)).site_area_m2),
+      100,
+      "a complete empty attached-parcel refresh removes a former parcel",
+    );
+    await db.query("update buildings set status='development' where id=$1", [
+      cadastral,
+    ]);
+    assert.equal(
+      (await facts(cadastral)).site_area_m2,
+      null,
+      "old physical site is not applied to a development plan",
+    );
     const hidden = await asset();
     await record(hidden);
     await db.query("update buildings set published=false where id=$1", [

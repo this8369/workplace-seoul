@@ -24,6 +24,7 @@
 
 - `private.building_register_snapshots`: API 기능별 요청 지번, 전체 페이지 원본, 수집시각, 내용 해시. 인증키와 키가 포함된 URL은 저장하지 않는다. 원본 버전은 누적 보관한다.
 - `public.building_register_records`: 표제부/총괄표제부 정규화. `(register_pk, record_kind)`로 식별. `record_kind=complex`와 `building`을 구분한다.
+- 기본개요의 `mgmUpBldrgstPk`는 `parent_register_pk`와 근거 snapshot으로 보관한다. 공식 대표·부속지번 전체는 `site_parcel_pnus`와 근거 snapshot으로 보관한다. importer가 최신 성공 응답으로 함께 갱신하며, 대지면적은 이 관계를 따라 조회 시 보완한다.
 - `public.building_register_links`: 기존 자산 및 선택적 개별 동 연결, 검증 상태, 검증 근거/시점. 주소가 같다는 이유만으로 자동 승인하지 않는다.
 - `public.building_register_floors`: 한 층에 여러 용도별 행이 있을 수 있으므로 원본 항목 순번을 보존한다.
 - `public.building_register_area_parts`: 전유/공용 구분별 면적. 호별 대장 PK는 기본개요의 공식 상위대장 PK(`mgmUpBldrgstPk`)를 따라 표제부에 연결한다. 관계가 불명확한 자료는 원본에 보존하고 연결을 보류한다.

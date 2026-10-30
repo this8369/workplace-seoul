@@ -167,6 +167,9 @@ try {
     const parents = registerParents(
       captures.find((c) => c.operation === "getBrBasisOulnInfo")?.items ?? [],
     );
+    await db.query("select private.refresh_register_site_sources($1)", [
+      parcelKey,
+    ]);
     for (const data of captures) {
       const isFloor = data.operation === "getBrFlrOulnInfo",
         isArea = data.operation === "getBrExposPubuseAreaInfo";
