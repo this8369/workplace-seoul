@@ -1,4 +1,3 @@
-import { Fragment } from "react";
 import type { Leasing } from "../lib/catalog";
 import { numeric } from "../lib/catalog";
 import { latestMarketLease, rentRateBasis } from "../lib/market-leasing";
@@ -26,25 +25,6 @@ export default function MarketLeasing({ leases }: { leases: Leasing[] }) {
         : "unconfirmed";
     return `${noc || basis === "exclusive" ? "전용" : basis === "rentable" ? "임대" : ""}${unit}`;
   };
-  const secondary = (lease: Leasing) => (
-    <>
-      <span>
-        공실률{" "}
-        <b>
-          {numeric(lease.vacancy == null ? null : lease.vacancy * 100, "%")}
-        </b>
-      </span>
-      <span>
-        렌트프리{" "}
-        <b>
-          <RV entity="leasing_quarters" id={lease.id} field="rent_free">
-            {numeric(lease.rent_free)}
-          </RV>
-        </b>
-        {lease.rent_free != null && "개월/년"}
-      </span>
-    </>
-  );
   return (
     <div className="market-leasing">
       {latest && (
@@ -75,6 +55,16 @@ export default function MarketLeasing({ leases }: { leases: Leasing[] }) {
               );
             })}
           </dl>
+          {latest.rent_free != null && latest.rent_free > 0 && (
+            <div className="market-lease-incentive">
+              <span>렌트프리</span>
+              <strong>
+                <RV entity="leasing_quarters" id={latest.id} field="rent_free">
+                  연 {numeric(latest.rent_free)}개월
+                </RV>
+              </strong>
+            </div>
+          )}
         </section>
       )}
       <div className="market-lease-table-wrap">
@@ -84,8 +74,6 @@ export default function MarketLeasing({ leases }: { leases: Leasing[] }) {
             {tableRates.map(([field]) => (
               <col className="market-lease-rate" key={field} />
             ))}
-            <col className="market-lease-secondary" />
-            <col className="market-lease-secondary" />
           </colgroup>
           <thead>
             <tr>
@@ -96,52 +84,24 @@ export default function MarketLeasing({ leases }: { leases: Leasing[] }) {
                   <small>원/{rateUnit(undefined, field === "noc")}</small>
                 </th>
               ))}
-              <th scope="col" className="market-lease-secondary">
-                공실률
-              </th>
-              <th scope="col" className="market-lease-secondary">
-                렌트프리<small>개월/년</small>
-              </th>
             </tr>
           </thead>
           <tbody>
             {leases.map((lease) => (
-              <Fragment key={lease.id}>
-                <tr className="market-lease-values">
-                  <th scope="row">
-                    <RV entity="leasing_quarters" id={lease.id} field="period">
-                      {lease.period}
-                    </RV>
-                  </th>
-                  {tableRates.map(([field]) => (
-                    <td key={field}>
-                      <RV entity="leasing_quarters" id={lease.id} field={field}>
-                        {numeric(perPyeong(lease[field]))}
-                      </RV>
-                    </td>
-                  ))}
-                  <td className="market-lease-secondary">
-                    {numeric(
-                      lease.vacancy == null ? null : lease.vacancy * 100,
-                      "%",
-                    )}
-                  </td>
-                  <td className="market-lease-secondary">
-                    <RV
-                      entity="leasing_quarters"
-                      id={lease.id}
-                      field="rent_free"
-                    >
-                      {numeric(lease.rent_free)}
+              <tr key={lease.id}>
+                <th scope="row">
+                  <RV entity="leasing_quarters" id={lease.id} field="period">
+                    {lease.period}
+                  </RV>
+                </th>
+                {tableRates.map(([field]) => (
+                  <td key={field}>
+                    <RV entity="leasing_quarters" id={lease.id} field={field}>
+                      {numeric(perPyeong(lease[field]))}
                     </RV>
                   </td>
-                </tr>
-                <tr className="market-lease-mobile-details">
-                  <td colSpan={5}>
-                    <div>{secondary(lease)}</div>
-                  </td>
-                </tr>
-              </Fragment>
+                ))}
+              </tr>
             ))}
           </tbody>
         </table>

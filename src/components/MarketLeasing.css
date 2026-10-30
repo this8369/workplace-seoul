@@ -52,6 +52,22 @@
   color: var(--text-secondary);
   font-weight: 500;
 }
+.market-lease-incentive {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 18px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+.market-lease-incentive strong {
+  color: var(--accent);
+  font-size: 14px;
+  font-weight: 650;
+}
 .market-lease-table-wrap {
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -62,13 +78,10 @@
   font-variant-numeric: tabular-nums;
 }
 .market-lease-period {
-  width: 15%;
+  width: 18%;
 }
 .market-lease-rate {
-  width: 14.5%;
-}
-.market-lease-secondary {
-  width: 13.5%;
+  width: 20.5%;
 }
 .asset-popup .market-lease-table th,
 .asset-popup .market-lease-table td {
@@ -98,52 +111,20 @@
 .market-lease-table tbody tr:last-child > * {
   border-bottom: 0;
 }
-.market-lease-mobile-details {
+.market-lease-table .review-pencil,
+.market-lease-incentive .review-pencil {
   display: none;
 }
-.market-lease-table .review-pencil {
-  display: none;
-}
-.market-lease-table .review-value {
+.market-lease-table .review-value,
+.market-lease-incentive .review-value {
   margin: 0;
   padding: 0;
 }
 
 @container market-leasing (max-width: 440px) {
-  .market-lease-table .market-lease-secondary {
-    display: none;
-  }
-  .market-lease-period {
-    width: 18%;
-  }
-  .market-lease-rate {
-    width: 20.5%;
-  }
   .asset-popup .market-lease-table th,
   .asset-popup .market-lease-table td {
     padding: 10px 4px;
-  }
-  .asset-popup .market-lease-table .market-lease-values > * {
-    border-bottom: 0;
-    padding-bottom: 6px;
-  }
-  .market-lease-mobile-details {
-    display: table-row;
-  }
-  .asset-popup .market-lease-mobile-details td {
-    padding-top: 0;
-    padding-bottom: 10px;
-  }
-  .market-lease-mobile-details td > div {
-    display: flex;
-    justify-content: flex-end;
-    gap: 14px;
-    color: var(--text-secondary);
-    font-size: 10px;
-  }
-  .market-lease-mobile-details b {
-    font-weight: 500;
-    margin-left: 4px;
   }
 }
 
