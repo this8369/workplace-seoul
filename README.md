@@ -14,7 +14,7 @@ npm run dev
 
 `npm run build`는 TypeScript 검사와 프로덕션 빌드, `npm test`는 면적 경계값·검색·출처 링크 및 로컬 PostgreSQL의 공개 조회·수정 차단·관심 건물 격리를 검증합니다.
 
-로컬 시연 서버(5173·8082·8083)는 `node scripts/dev/demo-servers.mjs install --takeover`로 macOS 자동 시작·재시작을 등록합니다. 상태 확인과 관리 명령은 [시연 서버 유지](docs/demo-servers.md)를 참고합니다.
+로컬 시연 서버(5173·8082·8083·4178)는 `node scripts/dev/demo-servers.mjs install --takeover`로 macOS 자동 시작·재시작을 등록합니다. 상태 확인과 관리 명령은 [시연 서버 유지](docs/demo-servers.md)를 참고합니다.
 
 ## 구성
 

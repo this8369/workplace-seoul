@@ -19,7 +19,7 @@ const home = homedir();
 const domain = `gui/${process.getuid()}`;
 const agents = join(home, "Library/LaunchAgents");
 const logs = join(home, "Library/Logs/WorkplaceDemoServers");
-const sites = [
+const configuredSites = [
   {
     name: "Workplace Seoul",
     port: 5173,
@@ -42,12 +42,29 @@ const sites = [
     host: "127.0.0.1",
     title: "송현 BID TF",
   },
+  {
+    name: "개발사업관리플랫폼 로컬 작업실",
+    port: 4178,
+    dir: join(home, "Documents/ChatGPT/개발사업관리플랫폼"),
+    host: "127.0.0.1",
+    node: "/usr/local/bin/node",
+    script: "scripts/local-preview/server.mjs",
+    args: ["--port=4178"],
+    requiredFiles: [".build/local-preview/original-workspace.json"],
+    titlePrefix: "로컬 디자인 작업실 · 개발사업관리플랫폼",
+  },
 ].map((site) => ({
   ...site,
   label: `com.workplace.demo.${site.port}`,
   url: `http://127.0.0.1:${site.port}/`,
-  entry: join(site.dir, "node_modules/vite/bin/vite.js"),
+  entry: join(site.dir, site.script || "node_modules/vite/bin/vite.js"),
 }));
+const onlyPort = process.argv
+  .find((arg) => arg.startsWith("--only="))
+  ?.slice(7);
+const sites = onlyPort
+  ? configuredSites.filter((site) => String(site.port) === onlyPort)
+  : configuredSites;
 
 function command(file, args, options = {}) {
   return execFileSync(file, args, {
@@ -92,7 +109,7 @@ function listeners(site) {
     throw error;
   }
 }
-function expectedVite(site, pid) {
+function expectedServer(site, pid) {
   const cwd = command("/usr/sbin/lsof", [
     "-a",
     "-p",
@@ -107,7 +124,9 @@ function expectedVite(site, pid) {
   const cmd = command("/bin/ps", ["-p", String(pid), "-o", "command="]);
   return (
     cwd === site.dir &&
-    /node_modules\/(?:\.bin\/vite|vite\/bin\/vite\.js)(?:\s|$)/.test(cmd)
+    (site.script
+      ? cmd.includes(site.entry) && site.args.every((arg) => cmd.includes(arg))
+      : /node_modules\/(?:\.bin\/vite|vite\/bin\/vite\.js)(?:\s|$)/.test(cmd))
   );
 }
 async function probe(site) {
@@ -118,7 +137,12 @@ async function probe(site) {
     const title = (await response.text()).match(
       /<title>([^<]+)<\/title>/i,
     )?.[1];
-    return response.ok && title === site.title;
+    return (
+      response.ok &&
+      (site.titlePrefix
+        ? title?.startsWith(site.titlePrefix) === true
+        : title === site.title)
+    );
   } catch {
     return false;
   }
@@ -147,34 +171,39 @@ async function status() {
   return result;
 }
 async function install(takeover) {
-  const node = await realpath(process.execPath);
   // Validate every project and occupied port before changing any running server.
   for (const site of sites) {
     await access(site.entry);
+    await access(site.node || process.execPath);
+    for (const file of site.requiredFiles || [])
+      await access(join(site.dir, file));
     const current = state(site);
     for (const pid of listeners(site)) {
       if (pid === current.pid) continue;
-      if (!takeover || !expectedVite(site, pid))
+      if (!takeover || !expectedServer(site, pid))
         throw Error(
-          `${site.port} 포트가 사용 중입니다. 해당 프로젝트의 Vite만 --takeover로 전환할 수 있습니다.`,
+          `${site.port} 포트가 사용 중입니다. 지정된 프로젝트 서버만 --takeover로 전환할 수 있습니다.`,
         );
     }
   }
   await mkdir(agents, { recursive: true });
   await mkdir(logs, { recursive: true, mode: 0o700 });
   for (const site of sites) {
+    const node = await realpath(site.node || process.execPath);
     const plist = join(agents, `${site.label}.plist`);
     const definition = {
       Label: site.label,
       ProgramArguments: [
         node,
         site.entry,
-        ...(site.mode ? ["--mode", site.mode] : []),
-        "--host",
-        site.host,
-        "--port",
-        String(site.port),
-        "--strictPort",
+        ...(site.args || [
+          ...(site.mode ? ["--mode", site.mode] : []),
+          "--host",
+          site.host,
+          "--port",
+          String(site.port),
+          "--strictPort",
+        ]),
       ],
       WorkingDirectory: site.dir,
       EnvironmentVariables: {
@@ -206,9 +235,9 @@ async function install(takeover) {
     }
     if (current.loaded) command("/bin/launchctl", ["bootout", service(site)]);
     for (const pid of listeners(site)) {
-      if (!takeover || !expectedVite(site, pid))
+      if (!takeover || !expectedServer(site, pid))
         throw Error(
-          `${site.port}: 지정된 Vite가 아닌 프로세스가 있어 중단했습니다.`,
+          `${site.port}: 지정된 서버가 아닌 프로세스가 있어 중단했습니다.`,
         );
       process.kill(pid, "SIGTERM");
     }
@@ -233,7 +262,7 @@ async function verifyRecovery() {
     if (
       !before.pid ||
       !listeners(site).includes(before.pid) ||
-      !expectedVite(site, before.pid)
+      !expectedServer(site, before.pid)
     )
       throw Error(`${site.name}: launchd가 관리하는 정상 서버부터 필요합니다.`);
     process.kill(before.pid, "SIGTERM");
@@ -255,6 +284,7 @@ async function stop() {
 try {
   if (process.platform !== "darwin")
     throw Error("macOS launchd 전용 명령입니다.");
+  if (!sites.length) throw Error(`등록되지 않은 포트입니다: ${onlyPort}`);
   const action = process.argv[2] || "status";
   if (action === "install") {
     await install(process.argv.includes("--takeover"));
@@ -268,7 +298,7 @@ try {
       process.exitCode = 1;
   } else
     throw Error(
-      "사용법: node scripts/dev/demo-servers.mjs install [--takeover] | status | verify-recovery | stop",
+      "사용법: node scripts/dev/demo-servers.mjs install [--takeover] | status | verify-recovery | stop [--only=포트]",
     );
 } catch (error) {
   console.error(error.message);
