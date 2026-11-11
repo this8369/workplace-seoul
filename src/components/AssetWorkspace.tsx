@@ -24,6 +24,7 @@ import { towersFor } from "../lib/building-towers";
 import BuildingPhoto from "./BuildingPhoto";
 import AssetMedia from "./AssetMedia";
 import AssetActions from "./AssetActions";
+import { IgisDetailButton } from "./IgisDetailLayout";
 import { districts } from "../lib/map-regions";
 import { primaryImage } from "../lib/building-images";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -1406,6 +1407,7 @@ function AssetWorkspaceContent({
           onRequireLogin={onRequireLogin}
         />
         <div className="asset-toolbar-secondary">
+          <IgisDetailButton building={b} />
           <AssetHistoryButton compact />
           <button
             className="asset-popup-close"

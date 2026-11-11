@@ -1,7 +1,5 @@
 import {
   createContext,
-  lazy,
-  Suspense,
   useContext,
   useEffect,
   useId,
@@ -13,11 +11,9 @@ import { ArrowUpRight, LockKeyhole, RotateCw, X } from "lucide-react";
 import type { Building } from "../lib/domain";
 import { hasIgisDetails } from "../lib/asset-detail-access";
 import { AreaUnitProvider, useAreaUnit } from "./AreaUnit";
-import { DataReviewProvider } from "./DataReview";
+import IgisSampleFund from "./IgisSampleFund";
 import "./IgisDetailLayout.css";
 
-const IgisAssetPanel = lazy(() => import("./IgisAssetPanel"));
-const IgisOperationsPanel = lazy(() => import("./IgisOperationsPanel"));
 const IgisDetailContext = createContext<{
   buildingId?: string;
   open: (building: Building, trigger: HTMLButtonElement) => void;
@@ -44,40 +40,34 @@ export default function IgisDetailLayout({
   building,
   canReadIgis = false,
   onRequireLogin,
-  informationRevision,
-  onInformationSaved,
   children,
 }: {
   building: Building;
   canReadIgis?: boolean;
   onRequireLogin?: () => void;
-  informationRevision?: number;
-  onInformationSaved?: () => void;
   children: ReactNode;
 }) {
   const [mobile, setMobile] = useState(
     () => window.matchMedia("(max-width: 900px)").matches,
   );
-  const [panel, setPanel] = useState<{ building: Building; open: boolean }>();
+  const [panel, setPanel] = useState<{
+    selectionId: string;
+    building: Building;
+    open: boolean;
+  }>();
   const trigger = useRef<HTMLButtonElement | null>(null);
   const focusPanel = useRef(false);
   const side = useRef<HTMLElement>(null);
   const layout = useRef<HTMLDivElement>(null);
-  const currentPanel = panel?.building.id === building.id ? panel : undefined;
-  const target = currentPanel
-    ? {
-        ...currentPanel.building,
-        ...building,
-        is_igis: building.is_igis ?? currentPanel.building.is_igis,
-      }
-    : building;
+  const currentPanel = panel?.selectionId === building.id ? panel : undefined;
+  const target = currentPanel?.building ?? building;
   const visible =
     hasIgisDetails(target) && (currentPanel?.open ?? (!mobile && canReadIgis));
   useEffect(() => {
     const mq = window.matchMedia("(max-width: 900px)");
     const update = () => {
       setMobile(mq.matches);
-      setPanel({ building, open: false });
+      setPanel({ selectionId: building.id, building, open: false });
     };
     mq.addEventListener("change", update);
     return () => mq.removeEventListener("change", update);
@@ -97,7 +87,7 @@ export default function IgisDetailLayout({
     }
   }, [visible, target.id, mobile]);
   function close() {
-    setPanel({ building: target, open: false });
+    setPanel({ selectionId: building.id, building: target, open: false });
     layout.current?.scrollTo({ left: 0 });
     requestAnimationFrame(() => {
       const button = trigger.current?.isConnected
@@ -115,7 +105,7 @@ export default function IgisDetailLayout({
         open: (next, button) => {
           trigger.current = button;
           focusPanel.current = true;
-          setPanel({ building: next, open: true });
+          setPanel({ selectionId: building.id, building: next, open: true });
           if (!canReadIgis) onRequireLogin?.();
         },
       }}
@@ -132,35 +122,9 @@ export default function IgisDetailLayout({
         </div>
         {visible && (
           <AreaUnitProvider key={target.id}>
-            <IgisSidePanelFrame
-              mobile={mobile}
-              onClose={close}
-              panelRef={side}
-            >
+            <IgisSidePanelFrame mobile={mobile} onClose={close} panelRef={side}>
               {canReadIgis ? (
-                <DataReviewProvider
-                  key={target.id}
-                  assetId={target.id}
-                  location={target}
-                  enabled
-                  externalVersion={informationRevision}
-                  onSaved={onInformationSaved}
-                >
-                  <Suspense
-                    fallback={
-                      <div className="igis-panel-status" role="status">
-                        이지스 정보를 불러오고 있습니다.
-                      </div>
-                    }
-                  >
-                    <IgisAssetPanel
-                      buildingId={target.igis_source_building_id || target.id}
-                    />
-                    <IgisOperationsPanel
-                      buildingId={target.igis_source_building_id || target.id}
-                    />
-                  </Suspense>
-                </DataReviewProvider>
+                <IgisSampleFund />
               ) : (
                 <div className="igis-panel-locked">
                   <LockKeyhole size={28} aria-hidden="true" />

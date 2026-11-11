@@ -2,7 +2,7 @@ import { lazy, Suspense, useEffect, useState } from "react";
 import { DataReviewProvider } from "./DataReview";
 import { X } from "lucide-react";
 import { AssetWorkspace } from "./AssetWorkspace";
-import "./IgisDetailLayout.css";
+import IgisDetailLayout from "./IgisDetailLayout";
 import type { Building } from "../lib/domain";
 import type { Catalog } from "../lib/catalog";
 import { fetchMemberAsset } from "../lib/member-details";
@@ -46,11 +46,7 @@ export default function MemberAssetWorkspace(props: MemberWorkspaceProps) {
     <SingleAssetWorkspace {...props} />
   );
   if (props.embedded) return content;
-  return (
-    <div className="asset-detail-layout">
-      <div className="asset-detail-main">{content}</div>
-    </div>
-  );
+  return <IgisDetailLayout {...props}>{content}</IgisDetailLayout>;
 }
 function SingleAssetWorkspace({
   building,

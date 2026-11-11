@@ -179,6 +179,98 @@ test("public catalog excludes private fields and future imports; raw details req
         1,
       );
     }
+
+    await db.exec(
+      "reset role;select set_config('request.jwt.claim.sub','',false)",
+    );
+    const asset = (
+      await db.query(
+        "insert into private.master_assets(name,existing_building_id) values('Test source asset',$1) returning id",
+        [bid],
+      )
+    ).rows[0].id;
+    const fund = (
+      await db.query(
+        "insert into private.master_vehicles(name) values('Test source fund') returning id",
+      )
+    ).rows[0].id;
+    await db.query(
+      `insert into private.master_investment_objects(asset_id,name,underlying_sector,source_sold_flag,resolution_status)
+       values($1,'Test investment','복합 오피스',false,'verified_source_evidence')`,
+      [asset],
+    );
+    await db.query(
+      "insert into private.igis_catalog_publications(building_id,asset_category,source_as_of,evidence) values($1,'office',current_date,$2)",
+      [bid, JSON.stringify({ object_id: asset })],
+    );
+    await db.query(
+      `insert into private.master_import_batches(id,content_hash,exported_on,source_system,status,source_file_count,source_row_count,detail_row_count)
+       values(gen_random_uuid(),'test-hash',current_date,'fixture','complete',1,1,1)`,
+    );
+    await db.query(
+      `insert into private.master_import_files(id,batch_id,name,sha256,original_xlsx,metadata)
+       select gen_random_uuid(),id,'fixture.xlsx','test',decode('aa','hex'),'{}' from private.master_import_batches`,
+    );
+    await db.query(
+      `insert into private.master_source_rows(id,file_id,sheet_name,excel_row,row_kind,values_json,raw_cells,row_hash)
+       select gen_random_uuid(),id,'fixture',1,'detail','{}','{}','test' from private.master_import_files`,
+    );
+    await db.query(
+      `insert into private.data_change_requests(entity,record_id,field_key,record_label,proposed_value,reason,requester,client_key)
+       values('master_vehicles',$1,'name','Private fund','"Test edit"','test change',$2,gen_random_uuid()),
+         ('buildings',$3,'name','Public building','"Test edit"','test change',$2,gen_random_uuid())`,
+      [fund, uid, bid],
+    );
+    await db.query(
+      `insert into private.data_history_deletions(history_id,deleted_by)
+       select id,$1 from private.data_record_history where entity='master_vehicles' limit 1`,
+      [uid],
+    );
+    const catalog = () =>
+      db.query("select * from public.catalog_buildings order by id");
+    const before = (await catalog()).rows;
+    assert.equal(before[0].is_igis, true);
+    assert.equal(before[0].is_mixed_use, true);
+    const purge = await readFile(
+      new URL("../../scripts/db/purge-igis-fund-data.sql", import.meta.url),
+      "utf8",
+    );
+    await db.exec(purge);
+    await db.exec(purge);
+    for (const table of [
+      "master_vehicles",
+      "master_assets",
+      "master_import_files",
+      "master_source_rows",
+      "master_change_history",
+      "data_history_deletions",
+    ]) {
+      assert.equal(
+        (await db.query(`select 1 from private.${table} limit 1`)).rowCount,
+        0,
+        table,
+      );
+    }
+    assert.deepEqual(
+      (await db.query("select entity from private.data_change_requests")).rows,
+      [{ entity: "buildings" }],
+    );
+    assert.deepEqual(
+      (await db.query("select evidence from private.igis_catalog_publications"))
+        .rows,
+      [{ evidence: {} }],
+    );
+    await db.exec("set role anon");
+    assert.deepEqual((await catalog()).rows, before);
+    assert.equal(
+      (
+        await db.query(
+          "select is_igis from public.detail_buildings where id=$1",
+          [bid],
+        )
+      ).rows[0].is_igis,
+      true,
+    );
   } finally {
     await db.close();
   }
