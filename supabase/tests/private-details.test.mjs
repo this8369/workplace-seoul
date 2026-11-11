@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { PGlite } from "@electric-sql/pglite";
 import { pgliteMigrations } from "./pglite-migrations.mjs";
+import { igisSampleApiSql } from "../../scripts/db/igis-sample-api.mjs";
 
 test("public catalog excludes private fields and future imports; raw details require active, verified membership", async () => {
   const db = new PGlite();
@@ -270,6 +271,89 @@ test("public catalog excludes private fields and future imports; raw details req
         )
       ).rows[0].is_igis,
       true,
+    );
+
+    await db.exec("reset role");
+    await db.query(
+      "update private.workplace_members set enabled=true,verified_until=now()+interval '5 minutes',permissions='{}' where user_id=$1",
+      [uid],
+    );
+    await db.exec(igisSampleApiSql());
+    await db.exec("set role anon");
+    await assert.rejects(
+      () => db.query("select public.master_asset_context($1)", [bid]),
+      /permission denied/,
+    );
+    await asMember();
+    const demo = async (building) =>
+      (
+        await db.query("select public.master_asset_context($1) as value", [
+          building,
+        ])
+      ).rows[0].value;
+    const eligible = await demo(bid);
+    assert.equal(eligible.vehicles.length, 1);
+    assert.equal(eligible.vehicles[0].source_code, "DEMO-IGIS-01");
+    assert.deepEqual(await demo(next), { objects: [], vehicles: [] });
+    for (const entity of [
+      "master_vehicles",
+      "master_assets",
+      "master_parties",
+      "master_investment_objects",
+      "master_investments",
+      "master_beneficiary_positions",
+      "master_loan_positions",
+      "master_aum_snapshots",
+    ]) {
+      const data = (
+        await db.query(
+          "select public.master_query_records($1,'',30,0,$2) as value",
+          [entity, eligible.vehicles[0].id],
+        )
+      ).rows[0].value;
+      assert(data.records.length > 0, entity);
+    }
+    const scopes = (
+      await db.query("select public.igis_operation_access($1) as value", [bid])
+    ).rows[0].value.scopes;
+    assert.equal(scopes.length, 4);
+    assert(scopes.every((scope) => !scope.can_write));
+    for (const entity of [
+      "igis_lease_contracts",
+      "igis_lease_terms",
+      "igis_operating_periods",
+      "igis_cash_entries",
+      "igis_operating_plans",
+      "igis_asset_valuations",
+    ]) {
+      const data = (
+        await db.query(
+          "select public.igis_operation_records($1,$2,$3) as value",
+          [entity, scopes[0].asset_id, scopes[0].vehicle_id],
+        )
+      ).rows[0].value;
+      assert(data.length > 0, entity);
+    }
+    await assert.rejects(
+      () =>
+        db.query(
+          "select public.igis_operation_records('igis_lease_contracts',$1,$2)",
+          [bid, scopes[0].vehicle_id],
+        ),
+      /operation_read_denied/,
+    );
+    await assert.rejects(
+      () =>
+        db.query(
+          "select public.master_save_record('master_vehicles',null,null,'{}','test')",
+        ),
+      /permission denied/,
+    );
+    await db.exec("reset role");
+    assert.equal(
+      (await db.query("select 1 from private.master_vehicles limit 1"))
+        .rowCount,
+      0,
     );
   } finally {
     await db.close();

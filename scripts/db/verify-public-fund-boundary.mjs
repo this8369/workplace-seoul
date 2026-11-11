@@ -1,5 +1,15 @@
 import assert from "node:assert/strict";
 import { connectDatabase } from "../building-register/vworld-client.mjs";
+import { igisSampleApiSql } from "./igis-sample-api.mjs";
+
+const demoSql = igisSampleApiSql();
+const demoBodies = new Map(
+  [
+    ...demoSql.matchAll(
+      /^create or replace function public\.([a-z_]+)\([\s\S]*? as \$\$([\s\S]*?)\$\$;/gm,
+    ),
+  ].map(([, name, body]) => [name, body]),
+);
 
 const db = await connectDatabase();
 try {
@@ -13,14 +23,14 @@ try {
     1,
   );
   const { rows: exposed } = await db.query(`
-    select role.name as role, p.proname as entry_point
+    select role.name as role, p.proname as entry_point, p.prosrc as body
     from pg_proc p join pg_namespace n on n.oid=p.pronamespace
     cross join (values ('anon'),('authenticated'),('service_role')) role(name)
     where n.nspname='public' and p.proname ~ '^(master_|igis_operation_|has_master_permission$)'
       and p.proname <> 'master_asset_corrections'
       and has_function_privilege(role.name,p.oid,'EXECUTE')
     union all
-    select role.name, c.relname
+    select role.name, c.relname, null::text
     from pg_class c join pg_namespace n on n.oid=c.relnamespace
     cross join (values ('anon'),('authenticated'),('service_role')) role(name)
     where n.nspname='private' and c.relkind in ('r','p')
@@ -31,7 +41,30 @@ try {
       and (not c.relrowsecurity or has_any_column_privilege(role.name,c.oid,'SELECT,INSERT,UPDATE,REFERENCES')
         or has_table_privilege(role.name,c.oid,'DELETE,TRUNCATE,TRIGGER'))
   `);
-  assert.deepEqual(exposed, [], "No API role may have direct fund access");
+  const sampleEndpoints = exposed.filter(
+    ({ role, entry_point, body }) =>
+      role === "authenticated" && demoBodies.get(entry_point) === body,
+  );
+  assert.deepEqual(
+    exposed
+      .filter((entry) => !sampleEndpoints.includes(entry))
+      .map(({ role, entry_point }) => ({ role, entry_point })),
+    [],
+    "API roles may only execute the known synthetic fixture functions",
+  );
+  if (sampleEndpoints.length) {
+    const expected = demoSql.match(
+      /function private\.igis_sample_rows\(\)[\s\S]*? as \$fn\$([\s\S]*?)\$fn\$;/,
+    )?.[1];
+    const {
+      rows: [sample],
+    } = await db.query(`select prosrc as body from pg_proc
+      where oid=to_regprocedure('private.igis_sample_rows()')`);
+    assert(
+      expected && sample?.body === expected,
+      "Fund sample function must contain only the known fixture",
+    );
+  }
   assert.equal(
     (
       await db.query(`
@@ -67,7 +100,7 @@ try {
     1,
   );
   console.log(
-    "Public catalog and details available. Fund access denied for API roles. Fund audit and connection logging configured.",
+    "Public catalog and details available. Real fund access denied for API roles. Fund audit and connection logging configured.",
   );
 } finally {
   await db.query("rollback").catch(() => {});
