@@ -735,6 +735,125 @@ test("field review: fund ownership, request routing, atomic approval, scoped his
         ]),
       /read_denied/,
     );
+
+    await db.exec(`reset role;
+      create function public.is_public_detail_asset(uuid) returns boolean
+        language sql stable as $$select exists(select 1 from public.buildings where id=$1)$$;
+      grant usage on schema public to service_role;
+      grant execute on function public.master_asset_context(uuid) to service_role;
+      grant select on private.master_vehicles to service_role;
+    `);
+    const privateRequest = (
+      await db.query(
+        `insert into private.data_change_requests(entity,record_id,field_key,asset_ids,
+          record_label,proposed_value,reason,requester,client_key)
+         values('master_vehicles',$1,'name',array[$2]::uuid[],'Private fund','"Internal name"',
+           'Internal request',$3,gen_random_uuid()) returning id`,
+        [fund, building, steward],
+      )
+    ).rows[0].id;
+    await db.query(
+      "update private.workplace_members set verified_until=now()+interval '1 hour' where user_id in ($1,$2)",
+      [steward, manager],
+    );
+    await db.exec(
+      await readFile(
+        new URL(
+          "../migrations/202611110001_close_public_fund_access.sql",
+          import.meta.url,
+        ),
+        "utf8",
+      ),
+    );
+    for (const role of ["anon", "authenticated", "service_role"]) {
+      const { rows } = await db.query(
+        `select p.proname from pg_proc p join pg_namespace n on n.oid=p.pronamespace
+         where n.nspname='public' and p.proname ~ '^(master_|igis_operation_|has_master_permission$)'
+         and p.proname <> 'master_asset_corrections'
+         and has_function_privilege($1,p.oid,'EXECUTE')`,
+        [role],
+      );
+      assert.deepEqual(rows, [], `${role} has no internal fund API access`);
+      assert.equal(
+        (
+          await db.query(
+            "select has_table_privilege($1,'private.master_vehicles','SELECT') allowed",
+            [role],
+          )
+        ).rows[0].allowed,
+        false,
+      );
+    }
+    await db.exec("set role authenticated");
+    for (const id of [steward, manager]) {
+      await login(id);
+      await assert.rejects(
+        () => db.query("select public.master_asset_context($1)", [building]),
+        /permission denied/,
+      );
+      await assert.rejects(
+        () =>
+          db.query("select public.data_field_context('master_vehicles',$1)", [
+            fund,
+          ]),
+        /invalid_entity_type/,
+      );
+      await assert.rejects(
+        () =>
+          db.query("select public.data_field_history('master_vehicles',$1)", [
+            fund,
+          ]),
+        /invalid_entity_type/,
+      );
+    }
+    await login(steward);
+    const inbox = (await db.query("select public.data_review_inbox() value"))
+      .rows[0].value;
+    assert(inbox.requests.some((r) => r.id === nullRequest));
+    assert(!inbox.requests.some((r) => r.id === privateRequest));
+    await assert.rejects(
+      () =>
+        db.query("select public.data_decide_request($1,false,'Test denial')", [
+          privateRequest,
+        ]),
+      /request_not_pending/,
+    );
+    const corrections = (
+      await db.query("select public.master_asset_corrections($1) value", [
+        building,
+      ])
+    ).rows[0].value;
+    assert(corrections.edited_fields.includes("name"));
+    assert.deepEqual(
+      Object.keys(corrections.asset).sort(),
+      [...corrections.edited_fields].sort(),
+    );
+    assert(!("source_row_id" in corrections.asset));
+    const publicAssetHistory = await historyFor(building);
+    assert(publicAssetHistory.some((h) => h.entity === "buildings"));
+    assert(!publicAssetHistory.some((h) => h.entity.startsWith("master_")));
+    await db.query(
+      "select public.data_save_field('buildings',$1,'name',to_jsonb($2::text),'\"After lockdown\"','Verified')",
+      [building, corrections.asset.name],
+    );
+    await db.exec("reset role");
+    assert.equal(
+      (
+        await db.query("select name from private.master_assets where id=$1", [
+          asset,
+        ])
+      ).rows[0].name,
+      "After lockdown",
+    );
+    assert.equal(
+      (
+        await db.query(
+          "select status from private.data_change_requests where id=$1",
+          [privateRequest],
+        )
+      ).rows[0].status,
+      "pending",
+    );
   } finally {
     await db.close();
   }

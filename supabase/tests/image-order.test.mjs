@@ -1,7 +1,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { readFile, readdir } from "node:fs/promises";
+import { readFile } from "node:fs/promises";
 import { PGlite } from "@electric-sql/pglite";
+import { pgliteMigrations } from "./pglite-migrations.mjs";
 test("gallery order drives the cover, while drafts, plans and other towers remain isolated", async () => {
   const db = new PGlite();
   try {
@@ -12,11 +13,7 @@ test("gallery order drives the cover, while drafts, plans and other towers remai
    create table storage.objects(id uuid primary key default gen_random_uuid(),bucket_id text,name text);
    alter table storage.objects enable row level security;
    grant usage on schema public,auth,storage to anon,authenticated; grant select on storage.objects to anon,authenticated; grant insert,delete on storage.objects to authenticated;`);
-    for (const name of (
-      await readdir(new URL("../migrations/", import.meta.url))
-    )
-      .filter((x) => x.endsWith(".sql"))
-      .sort())
+    for (const name of await pgliteMigrations())
       await db.exec(
         await readFile(
           new URL("../migrations/" + name, import.meta.url),

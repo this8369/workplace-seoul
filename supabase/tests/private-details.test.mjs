@@ -1,7 +1,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { readFile, readdir } from "node:fs/promises";
+import { readFile } from "node:fs/promises";
 import { PGlite } from "@electric-sql/pglite";
+import { pgliteMigrations } from "./pglite-migrations.mjs";
 
 test("public catalog excludes private fields and future imports; raw details require active, verified membership", async () => {
   const db = new PGlite();
@@ -19,7 +20,7 @@ test("public catalog excludes private fields and future imports; raw details req
       grant select on storage.objects to anon,authenticated;
       grant insert,delete on storage.objects to authenticated;`);
     const dir = new URL("../migrations/", import.meta.url);
-    const files = (await readdir(dir)).filter((f) => f.endsWith(".sql")).sort();
+    const files = await pgliteMigrations();
     for (const file of files.filter((f) => f < "20261012"))
       await db.exec(await readFile(new URL(file, dir), "utf8"));
     await db.query(

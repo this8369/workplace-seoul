@@ -1,7 +1,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { readFile, readdir } from "node:fs/promises";
+import { readFile } from "node:fs/promises";
 import { PGlite } from "@electric-sql/pglite";
+import { pgliteMigrations } from "./pglite-migrations.mjs";
 test("IGIS linkage separates read/edit/admin; denies forged, expired, disabled and self-escalated access", async () => {
   const db = new PGlite();
   try {
@@ -13,9 +14,7 @@ test("IGIS linkage separates read/edit/admin; denies forged, expired, disabled a
  alter table storage.objects enable row level security;
  grant usage on schema public,auth,storage to anon,authenticated;
  grant select on storage.objects to anon,authenticated;grant insert,delete on storage.objects to authenticated;`);
-    for (const f of (await readdir(new URL("../migrations/", import.meta.url)))
-      .filter((f) => f.endsWith(".sql"))
-      .sort())
+    for (const f of await pgliteMigrations())
       await db.exec(
         await readFile(new URL("../migrations/" + f, import.meta.url), "utf8"),
       );

@@ -1,5 +1,15 @@
 import pg from "pg";
 import { readFile, readdir } from "node:fs/promises";
+const only = process.argv.find((arg) => arg.startsWith("--only="))?.slice(7);
+if (only !== undefined && !/^\d{12}$/.test(only)) {
+  throw new Error("Invalid migration version");
+}
+const files = (await readdir("supabase/migrations"))
+  .filter((file) => file.endsWith(".sql"))
+  .sort();
+if (only && !files.some((file) => file.startsWith(`${only}_`))) {
+  throw new Error("Migration version not found");
+}
 const config = JSON.parse(
   await readFile("data/private/db-config.json", "utf8"),
 );
@@ -26,10 +36,9 @@ try {
     await db.query(
       "create schema if not exists supabase_migrations; create table if not exists supabase_migrations.schema_migrations(version text primary key, statements text[], name text)",
     );
-    for (const file of (await readdir("supabase/migrations"))
-      .filter((f) => f.endsWith(".sql"))
-      .sort()) {
+    for (const file of files) {
       const version = file.split("_")[0];
+      if (only && version !== only) continue;
       const through = process.argv
         .find((arg) => arg.startsWith("--through="))
         ?.split("=")[1];

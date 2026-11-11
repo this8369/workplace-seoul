@@ -25,8 +25,6 @@ import { fetchBuildingImages, primaryImage } from "./lib/building-images";
 import { regionForBuilding, districts } from "./lib/map-regions";
 import { hasLocation } from "./lib/map-clusters";
 import {
-  lazy,
-  Suspense,
   useCallback,
   useEffect,
   useMemo,
@@ -85,7 +83,6 @@ import { emptyCatalog, type Catalog } from "./lib/catalog";
 const initialAsset = sharedAssetId(location.search);
 const initialTitle = document.title;
 const initialQuery = new URLSearchParams(location.search).get("q") || "";
-const MasterWorkspace = lazy(() => import("./components/MasterWorkspace"));
 const cardValue = (value: string | null | undefined) =>
   !value || value === "미확인" || value === "—" ? "-" : value;
 export default function App() {
@@ -176,7 +173,7 @@ export default function App() {
     [region, setRegion] = useState(""),
     [status, setStatus] = useState(""),
     [view, setView] = useState<
-      "all" | "saved" | "transactions" | "images" | "my"
+      "all" | "saved" | "transactions" | "images"
     >("all");
   const [selected, setSelection] = useState<string | null>(initialAsset),
     [compare, setCompare] = useState<string[]>([]),
@@ -253,7 +250,6 @@ export default function App() {
   const canManageImages = canReadDetails && can("images.manage");
   const canReadTransactions = true;
   const [adminImages, setAdminImages] = useState<Catalog["images"]>([]);
-  const accessUser = useRef(session?.user.id);
   const [comparisonDetails, setComparisonDetails] = useState<Building[]>([]);
   useEffect(() => {
     setComparisonDetails([]);
@@ -273,17 +269,8 @@ export default function App() {
     };
   }, [showCompare, compare]);
   useEffect(() => {
-    const changedAccount =
-      !!accessUser.current && accessUser.current !== session?.user.id;
-    accessUser.current = session?.user.id;
-    if (!canReadDetails) {
-      clearPrivatePhotoUrls();
-      // Keep the navigation intent while revalidating, but render private data
-      // only after the server has issued a fresh attestation.
-      if (accessPending && !changedAccount) return;
-      setView((current) => (current === "my" ? "all" : current));
-    }
-  }, [canReadDetails, accessPending, session?.user.id]);
+    if (!canReadDetails) clearPrivatePhotoUrls();
+  }, [canReadDetails, session?.user.id]);
   useEffect(() => {
     if (canReadDetails && loginMode === "email" && !recoveryRoute)
       setLogin(false);
@@ -939,22 +926,6 @@ export default function App() {
             <FileText size={18} />
             <span className="nav-text">빌딩 매매사례</span>
           </button>
-          <button
-            aria-label="MY 데이터 관리"
-            title="MY 데이터 관리"
-            className={view === "my" ? "current" : ""}
-            onClick={() => {
-              if (!canReadDetails) {
-                requireLogin();
-                return;
-              }
-              setView("my");
-              setSelected(null);
-            }}
-          >
-            <Layers3 size={18} />
-            <span className="nav-text">MY</span>
-          </button>
         </nav>
         <nav className="admin-navigation" aria-label="관리 메뉴">
           <div className="nav-label">관리</div>
@@ -985,15 +956,7 @@ export default function App() {
       </aside>
       <main>
         {!active && view === "transactions" && searchToolbar}
-        {view === "my" && canReadDetails ? (
-          <Suspense
-            fallback={
-              <div className="empty">데이터 관리를 불러오고 있습니다.</div>
-            }
-          >
-            <MasterWorkspace key={session?.user.id} />
-          </Suspense>
-        ) : view === "transactions" && !active ? (
+        {view === "transactions" && !active ? (
           load === "ready" && archiveLoad === "ready" ? (
             <DataReviewProvider
               key={`${session?.user.id}:${canReadDetails}`}
@@ -1602,7 +1565,7 @@ export default function App() {
       {canReadDetails && session && (
         <AssetNotifications key={session.user.id} onOpen={select} />
       )}
-      {accessPending && (login || view === "my" || view === "images") ? (
+      {accessPending && (login || view === "images") ? (
         <div className="toast" role="status">
           {access.status === "unavailable"
             ? "인증 서버에 다시 연결하고 있습니다. 잠시 후 자동으로 다시 시도합니다."

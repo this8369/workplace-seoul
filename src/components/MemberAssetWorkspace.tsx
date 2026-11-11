@@ -2,7 +2,7 @@ import { lazy, Suspense, useEffect, useState } from "react";
 import { DataReviewProvider } from "./DataReview";
 import { X } from "lucide-react";
 import { AssetWorkspace } from "./AssetWorkspace";
-import IgisDetailLayout from "./IgisDetailLayout";
+import "./IgisDetailLayout.css";
 import type { Building } from "../lib/domain";
 import type { Catalog } from "../lib/catalog";
 import { fetchMemberAsset } from "../lib/member-details";
@@ -11,8 +11,7 @@ import type { MemberAssetScope } from "../lib/member-asset-scope";
 import type { BuildingComplex } from "../lib/building-towers";
 const ComplexAssetWorkspace = lazy(() => import("./ComplexAssetWorkspace"));
 
-// General detail is public; IGIS content and editing retain account permissions.
-// No private result is merged into the public catalog or browser storage.
+// General detail is public. Asset editing retains account permissions.
 export type MemberWorkspaceProps = {
   building: Building;
   canReadTransactions: boolean;
@@ -47,7 +46,11 @@ export default function MemberAssetWorkspace(props: MemberWorkspaceProps) {
     <SingleAssetWorkspace {...props} />
   );
   if (props.embedded) return content;
-  return <IgisDetailLayout {...props}>{content}</IgisDetailLayout>;
+  return (
+    <div className="asset-detail-layout">
+      <div className="asset-detail-main">{content}</div>
+    </div>
+  );
 }
 function SingleAssetWorkspace({
   building,
